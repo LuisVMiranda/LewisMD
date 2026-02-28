@@ -46,9 +46,9 @@
 - **Recovery dialog**: If the app detects that a local backup differs from the saved version (e.g., after a crash or lost connection), it shows a side-by-side diff so you can choose to keep the server version or restore the backup.
 
 ### Organization
-- Nested folder structure
+- Nested folder structure with context menu (right-click to create new notes or folders)
 - Drag and drop files and folders
-- Quick file finder (`Ctrl+P`)
+- Quick file finder (`Ctrl+P`) sorted by recency
 - Full-text search with regex support (`Ctrl+Shift+F`)
 - Find and replace with regex support (`Ctrl+H`)
 - **Hugo blog post support** - Create posts with proper directory structure
@@ -737,7 +737,7 @@ Then add the responsive CSS to your stylesheet (e.g. `assets/css/custom.css` or 
 
 ## Themes
 
-FrankMD includes 18 color themes:
+FrankMD includes 18 built-in color themes, plus automatic [Omarchy](https://omarchy.dev) theme sync:
 
 <p align="center">
   <img src="https://new-uploads-akitaonrails.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_14-37-05.jpg" alt="Theme picker" width="300">
@@ -765,6 +765,8 @@ FrankMD includes 18 color themes:
 | Solarized Dark | Classic dark color scheme |
 | Solarized Light | Classic light color scheme |
 | Tokyo Night | Vibrant night theme |
+
+**Omarchy auto-sync:** If you run the [Omarchy](https://omarchy.dev) desktop environment, FrankMD detects your terminal theme and adds it as a selectable "Omarchy" option. Switching your terminal theme updates FrankMD in real time.
 
 Change themes from the dropdown in the top-right corner. Your preference is saved to the `.fed` file.
 
@@ -874,9 +876,10 @@ app/
 │   ├── folder.rb              # Folder ActiveModel
 │   └── config.rb              # Configuration management
 ├── services/
-│   ├── notes_service.rb       # File system operations
-│   ├── images_service.rb      # Image handling & S3
-│   └── ai_service.rb          # AI/LLM integration
+│   ├── notes_service.rb           # File system operations
+│   ├── images_service.rb          # Image handling & S3
+│   ├── ai_service.rb              # AI/LLM integration
+│   └── omarchy_theme_service.rb   # Omarchy desktop theme sync
 ├── javascript/
 │   └── controllers/
 │       ├── app_controller.js          # Main Stimulus controller
@@ -967,8 +970,8 @@ This is a Rails 8 app. Follow Rails 8 idioms and conventions:
 
 ### Test Coverage
 
-| Type | Tests | Line Coverage | Branch Coverage |
-|------|-------|---------------|-----------------|
-| JavaScript (Vitest) | 1,070 | 83.72% | 69.10% |
-| Ruby (Minitest) | 355 | 76.64% | 70.22% |
-| **Total** | **1,425** | **~80%** | **~70%** |
+| Type | Tests |
+|------|-------|
+| JavaScript (Vitest) | 1,379 |
+| Ruby (Minitest) | 425 |
+| **Total** | **1,804** |
