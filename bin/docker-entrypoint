@@ -43,4 +43,19 @@ EOF
   exit 1
 fi
 
+target_port="${THRUSTER_TARGET_PORT:-${EXTERNAL_PORT:-3000}}"
+
+case "$target_port" in
+  80|443)
+    target_port="3000"
+    echo "FrankMD: THRUSTER_TARGET_PORT cannot be 80/443 (reserved by Thruster). Using puma:${target_port}."
+    ;;
+esac
+
+export THRUSTER_TARGET_PORT="$target_port"
+
+if [ -n "$EXTERNAL_PORT" ]; then
+  echo "FrankMD: open http://localhost:${EXTERNAL_PORT} (host -> container:80 -> puma:${target_port})"
+fi
+
 exec "${@}"
