@@ -4,7 +4,7 @@ require "net/http"
 require "json"
 
 class YoutubeController < ApplicationController
-  def config
+  def status
     render json: { enabled: youtube_api_key.present? }
   end
 

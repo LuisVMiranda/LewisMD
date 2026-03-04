@@ -17,7 +17,7 @@ Rails.application.routes.draw do
   delete "folders/*path", to: "folders#destroy", as: :destroy_folder
 
   # Images API
-  get "images/config", to: "images#config"
+  get "images/config", to: "images#status"
   get "images", to: "images#index"
   get "images/preview/*path", to: "images#preview", as: :image_preview, format: false
   post "images/upload", to: "images#upload"
@@ -29,11 +29,11 @@ Rails.application.routes.draw do
   get "images/search_pinterest", to: "images#search_pinterest"
 
   # YouTube API
-  get "youtube/config", to: "youtube#config"
+  get "youtube/config", to: "youtube#status"
   get "youtube/search", to: "youtube#search"
 
   # AI endpoints
-  get "ai/config", to: "ai#config"
+  get "ai/config", to: "ai#status"
   post "ai/fix_grammar", to: "ai#fix_grammar"
   get "ai/image_config", to: "ai#image_config"
   post "ai/generate_image", to: "ai#generate_image"
@@ -49,7 +49,7 @@ Rails.application.routes.draw do
 
   # Logs API (for debugging)
   get "logs/tail", to: "logs#tail"
-  get "logs/config", to: "logs#config"
+  get "logs/config", to: "logs#status"
 
   # Health check (with CORS for splash screen polling)
   get "up" => "health#show", as: :rails_health_check

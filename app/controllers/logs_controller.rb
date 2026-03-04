@@ -26,7 +26,7 @@ class LogsController < ApplicationController
 
   # GET /logs/config
   # Returns all config keys with resolved values and their source
-  def config
+  def status
     cfg = Config.new
     entries = Config::SCHEMA.keys.map do |key|
       schema = Config::SCHEMA[key]
