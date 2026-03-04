@@ -51,7 +51,7 @@ class Config
     "openai_model" => { default: "gpt-4o-mini", type: :string, env: "OPENAI_MODEL" },
 
     # AI Image Generation
-    "image_generation_model" => { default: "imagen-4.0-generate-001", type: :string, env: "IMAGE_GENERATION_MODEL" }
+    "image_generation_model" => { default: "google/gemini-3.1-flash-image-preview", type: :string, env: "IMAGE_GENERATION_MODEL" }
   }.freeze
 
   # Keys that should not be exposed to the frontend (sensitive)

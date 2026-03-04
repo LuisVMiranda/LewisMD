@@ -11,6 +11,7 @@ class AiControllerTest < ActionDispatch::IntegrationTest
       OPENAI_API_KEY OPENROUTER_API_KEY ANTHROPIC_API_KEY
       GEMINI_API_KEY OLLAMA_API_BASE AI_PROVIDER AI_MODEL
       OPENAI_MODEL OPENROUTER_MODEL ANTHROPIC_MODEL GEMINI_MODEL OLLAMA_MODEL
+      IMAGE_GENERATION_MODEL
     ].each do |key|
       @original_env[key] = ENV[key]
       ENV.delete(key)
@@ -183,24 +184,24 @@ class AiControllerTest < ActionDispatch::IntegrationTest
   end
 
   # Image config endpoint tests
-  test "image_config returns enabled false when no Gemini key" do
+  test "image_config returns enabled false when no OpenRouter key" do
     get "/ai/image_config", as: :json
     assert_response :success
 
     data = JSON.parse(response.body)
     assert_equal false, data["enabled"]
-    assert_equal "imagen-4.0-generate-001", data["model"]
+    assert_equal "google/gemini-3.1-flash-image-preview", data["model"]
   end
 
-  test "image_config returns enabled true when Gemini key is set" do
-    ENV["GEMINI_API_KEY"] = "gemini-test-key"
+  test "image_config returns enabled true when OpenRouter key is set" do
+    ENV["OPENROUTER_API_KEY"] = "sk-or-test-key"
 
     get "/ai/image_config", as: :json
     assert_response :success
 
     data = JSON.parse(response.body)
     assert_equal true, data["enabled"]
-    assert_equal "imagen-4.0-generate-001", data["model"]
+    assert_equal "google/gemini-3.1-flash-image-preview", data["model"]
   end
 
   # Generate image endpoint tests

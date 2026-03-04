@@ -11,6 +11,7 @@ class AiServiceTest < ActiveSupport::TestCase
       OPENAI_API_KEY OPENROUTER_API_KEY ANTHROPIC_API_KEY
       GEMINI_API_KEY OLLAMA_API_BASE AI_PROVIDER AI_MODEL
       OPENAI_MODEL OPENROUTER_MODEL ANTHROPIC_MODEL GEMINI_MODEL OLLAMA_MODEL
+      IMAGE_GENERATION_MODEL
     ].each do |key|
       @original_env[key] = ENV[key]
       ENV.delete(key)
@@ -205,17 +206,17 @@ class AiServiceTest < ActiveSupport::TestCase
   end
 
   # Image generation tests
-  test "image_generation_enabled? returns false when no Gemini key" do
+  test "image_generation_enabled? returns false when no OpenRouter key" do
     assert_not AiService.image_generation_enabled?
   end
 
-  test "image_generation_enabled? returns true when Gemini key is set" do
-    ENV["GEMINI_API_KEY"] = "gemini-test-key"
+  test "image_generation_enabled? returns true when OpenRouter key is set" do
+    ENV["OPENROUTER_API_KEY"] = "sk-or-test-key"
     assert AiService.image_generation_enabled?
   end
 
   test "image_generation_model returns default model" do
-    assert_equal "imagen-4.0-generate-001", AiService.image_generation_model
+    assert_equal "google/gemini-3.1-flash-image-preview", AiService.image_generation_model
   end
 
   test "image_generation_info returns correct structure" do
@@ -223,11 +224,11 @@ class AiServiceTest < ActiveSupport::TestCase
     assert_includes info.keys, :enabled
     assert_includes info.keys, :model
     assert_equal false, info[:enabled]
-    assert_equal "imagen-4.0-generate-001", info[:model]
+    assert_equal "google/gemini-3.1-flash-image-preview", info[:model]
   end
 
-  test "image_generation_info returns enabled when Gemini key set" do
-    ENV["GEMINI_API_KEY"] = "gemini-test-key"
+  test "image_generation_info returns enabled when OpenRouter key set" do
+    ENV["OPENROUTER_API_KEY"] = "sk-or-test-key"
     info = AiService.image_generation_info
     assert_equal true, info[:enabled]
   end
@@ -238,24 +239,24 @@ class AiServiceTest < ActiveSupport::TestCase
   end
 
   test "generate_image returns error when prompt is blank" do
-    ENV["GEMINI_API_KEY"] = "gemini-test-key"
+    ENV["OPENROUTER_API_KEY"] = "sk-or-test-key"
     result = AiService.generate_image("")
     assert_equal "No prompt provided", result[:error]
   end
 
   test "generate_image returns error when prompt is nil" do
-    ENV["GEMINI_API_KEY"] = "gemini-test-key"
+    ENV["OPENROUTER_API_KEY"] = "sk-or-test-key"
     result = AiService.generate_image(nil)
     assert_equal "No prompt provided", result[:error]
   end
 
   test "generate_image accepts reference_image_path parameter" do
-    ENV["GEMINI_API_KEY"] = "gemini-test-key"
+    ENV["OPENROUTER_API_KEY"] = "sk-or-test-key"
     # This will fail at the API call since we don't have a real key,
     # but it verifies the method accepts the parameter
     result = AiService.generate_image("A sunset", reference_image_path: "nonexistent.jpg")
     # Should not error on the parameter itself - will fail later at API call
-    # Reference image doesn't exist, so it falls back to text-only which hits Imagen API
+    # Reference image doesn't exist, so it falls back to text-only which hits OpenRouter
     assert result[:error].present?
   end
 
@@ -312,106 +313,52 @@ class AiServiceTest < ActiveSupport::TestCase
 
   # === Image generation response parsing ===
 
-  test "extract_image_from_imagen_response extracts base64 data" do
-    response = {
-      "predictions" => [
-        {
-          "bytesBase64Encoded" => "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
-          "mimeType" => "image/png"
-        }
-      ]
-    }
+  test "extract_image_from_response extracts base64 from RubyLLM Content with attachments" do
+    mock_attachment = stub(content: "binary_image_data", mime_type: "image/png")
+    mock_content = stub(attachments: [ mock_attachment ], text: "Image generated")
+    mock_content.stubs(:is_a?).returns(false)
+    mock_content.stubs(:is_a?).with(RubyLLM::Content).returns(true)
+    mock_response = stub(content: mock_content)
 
-    result = AiService.extract_image_from_imagen_response(response, "imagen-4.0-generate-001")
+    result = AiService.extract_image_from_response(mock_response, "google/gemini-3.1-flash-image-preview")
 
-    assert result[:data].present?
-    assert_equal "image/png", result[:mime_type]
-    assert_equal "imagen-4.0-generate-001", result[:model]
     assert_nil result[:error]
+    assert_equal Base64.strict_encode64("binary_image_data"), result[:data]
+    assert_equal "image/png", result[:mime_type]
+    assert_equal "google/gemini-3.1-flash-image-preview", result[:model]
   end
 
-  test "extract_image_from_imagen_response handles empty predictions" do
-    response = { "predictions" => [] }
+  test "extract_image_from_response returns error when no attachments" do
+    mock_content = stub(attachments: [], text: "I cannot generate that image")
+    mock_content.stubs(:is_a?).returns(false)
+    mock_content.stubs(:is_a?).with(RubyLLM::Content).returns(true)
+    mock_response = stub(content: mock_content)
 
-    result = AiService.extract_image_from_imagen_response(response, "model")
-
-    assert_equal "No predictions in response", result[:error]
-  end
-
-  test "extract_image_from_imagen_response handles missing image data" do
-    response = {
-      "predictions" => [
-        { "text" => "Some text response" }
-      ]
-    }
-
-    result = AiService.extract_image_from_imagen_response(response, "model")
+    result = AiService.extract_image_from_response(mock_response, "model")
 
     assert_equal "No image data in response", result[:error]
   end
 
-  test "extract_image_from_gemini_response extracts inline image" do
-    response = {
-      "candidates" => [
-        {
-          "content" => {
-            "parts" => [
-              {
-                "inlineData" => {
-                  "data" => "base64imagedata==",
-                  "mimeType" => "image/jpeg"
-                }
-              }
-            ]
-          }
-        }
-      ]
-    }
+  test "extract_image_from_response handles plain string content" do
+    mock_response = stub(content: "Some text response")
 
-    result = AiService.extract_image_from_gemini_response(response, "gemini-model")
+    result = AiService.extract_image_from_response(mock_response, "model")
 
-    assert_equal "base64imagedata==", result[:data]
-    assert_equal "image/jpeg", result[:mime_type]
-    assert_equal "gemini-model", result[:model]
-  end
-
-  test "extract_image_from_gemini_response handles empty candidates" do
-    response = { "candidates" => [] }
-
-    result = AiService.extract_image_from_gemini_response(response, "model")
-
-    assert_equal "No candidates in response", result[:error]
-  end
-
-  test "extract_image_from_gemini_response handles nil response" do
-    result = AiService.extract_image_from_gemini_response(nil, "model")
-
-    assert_equal "No response from Gemini", result[:error]
-  end
-
-  # === mime_type_for_path ===
-
-  test "mime_type_for_path returns correct types" do
-    assert_equal "image/jpeg", AiService.mime_type_for_path("/path/to/image.jpg")
-    assert_equal "image/jpeg", AiService.mime_type_for_path("/path/to/image.jpeg")
-    assert_equal "image/png", AiService.mime_type_for_path("/path/to/image.png")
-    assert_equal "image/gif", AiService.mime_type_for_path("/path/to/image.gif")
-    assert_equal "image/webp", AiService.mime_type_for_path("/path/to/image.webp")
-    assert_equal "image/jpeg", AiService.mime_type_for_path("/path/to/file.unknown")
+    assert_equal "No image data in response", result[:error]
   end
 end
 
-# === Image generation with mocked HTTP ===
+# === Image generation with mocked RubyLLM ===
 
-class AiServiceImageGenerationHttpTest < ActiveSupport::TestCase
+class AiServiceImageGenerationTest < ActiveSupport::TestCase
   def setup
     setup_test_notes_dir
     @original_env = {}
-    %w[GEMINI_API_KEY].each do |key|
+    %w[OPENROUTER_API_KEY].each do |key|
       @original_env[key] = ENV[key]
       ENV.delete(key)
     end
-    ENV["GEMINI_API_KEY"] = "test-gemini-key"
+    ENV["OPENROUTER_API_KEY"] = "sk-or-test-key"
 
     # Stub images path so ImagesService.find_image works
     @config_stub = stub("config")
@@ -420,17 +367,15 @@ class AiServiceImageGenerationHttpTest < ActiveSupport::TestCase
     @config_stub.stubs(:get).with("image_generation_model").returns(nil)
     @config_stub.stubs(:feature_available?).returns(false)
     @config_stub.stubs(:feature_available?).with("ai").returns(true)
-    @config_stub.stubs(:ai_providers_available).returns([ "gemini" ])
-    @config_stub.stubs(:effective_ai_provider).returns("gemini")
-    @config_stub.stubs(:effective_ai_model).returns("gemini-2.0-flash")
+    @config_stub.stubs(:ai_providers_available).returns([ "openrouter" ])
+    @config_stub.stubs(:effective_ai_provider).returns("openrouter")
+    @config_stub.stubs(:effective_ai_model).returns("openai/gpt-4o-mini")
     @config_stub.stubs(:get_ai).returns(nil)
-    @config_stub.stubs(:get_ai).with("gemini_api_key").returns("test-gemini-key")
+    @config_stub.stubs(:get_ai).with("openrouter_api_key").returns("sk-or-test-key")
     @config_stub.stubs(:ai_configured_in_file?).returns(false)
-    # Allow gemini_key_for_images to find the key via instance_variable_get
-    @config_stub.stubs(:instance_variable_get).with(:@values).returns({ "gemini_api_key" => "test-gemini-key" })
+    # Allow openrouter_key_for_images to find the key via instance_variable_get
+    @config_stub.stubs(:instance_variable_get).with(:@values).returns({ "openrouter_api_key" => "sk-or-test-key" })
     Config.stubs(:new).returns(@config_stub)
-
-    WebMock.disable_net_connect!(allow_localhost: true)
   end
 
   def teardown
@@ -442,39 +387,33 @@ class AiServiceImageGenerationHttpTest < ActiveSupport::TestCase
         ENV.delete(key)
       end
     end
-    WebMock.reset!
-    WebMock.allow_net_connect!
   end
 
-  test "generate_image_text_only returns image data on success" do
-    stub_request(:post, /generativelanguage\.googleapis\.com.*predict/)
-      .to_return(
-        status: 200,
-        body: {
-          "predictions" => [
-            {
-              "bytesBase64Encoded" => "iVBORw0KGgoAAAANSUhEUg==",
-              "mimeType" => "image/png"
-            }
-          ]
-        }.to_json,
-        headers: { "Content-Type" => "application/json" }
-      )
+  test "generate_image text-only returns image data on success" do
+    mock_attachment = stub(content: "png_binary_data", mime_type: "image/png")
+    mock_content = stub(attachments: [ mock_attachment ], text: "Image generated")
+    mock_content.stubs(:is_a?).returns(false)
+    mock_content.stubs(:is_a?).with(RubyLLM::Content).returns(true)
+    mock_response = stub(content: mock_content)
+
+    mock_chat = stub
+    mock_chat.stubs(:with_params).returns(mock_chat)
+    mock_chat.stubs(:ask).with("A sunset over mountains").returns(mock_response)
+    RubyLLM.stubs(:chat).returns(mock_chat)
 
     result = AiService.generate_image("A sunset over mountains")
 
     assert_nil result[:error]
-    assert_equal "iVBORw0KGgoAAAANSUhEUg==", result[:data]
+    assert_equal Base64.strict_encode64("png_binary_data"), result[:data]
     assert_equal "image/png", result[:mime_type]
-    assert_equal "imagen-4.0-generate-001", result[:model]
+    assert_equal "google/gemini-3.1-flash-image-preview", result[:model]
   end
 
-  test "generate_image_text_only handles API error" do
-    stub_request(:post, /generativelanguage\.googleapis\.com.*predict/)
-      .to_return(
-        status: 400,
-        body: { "error" => { "message" => "Invalid prompt" } }.to_json
-      )
+  test "generate_image handles API error" do
+    mock_chat = stub
+    mock_chat.stubs(:with_params).returns(mock_chat)
+    mock_chat.stubs(:ask).raises(StandardError.new("OpenRouter API error: Invalid prompt"))
+    RubyLLM.stubs(:chat).returns(mock_chat)
 
     result = AiService.generate_image("bad prompt")
 
@@ -482,7 +421,7 @@ class AiServiceImageGenerationHttpTest < ActiveSupport::TestCase
     assert_includes result[:error], "Invalid prompt"
   end
 
-  test "generate_image_with_reference returns image from Gemini" do
+  test "generate_image with reference passes content with attachment" do
     # Create a reference image file
     ref_path = create_test_note("ref_image.png")
     png_data = [
@@ -495,84 +434,57 @@ class AiServiceImageGenerationHttpTest < ActiveSupport::TestCase
     ].pack("C*")
     File.binwrite(ref_path, png_data)
 
-    stub_request(:post, /generativelanguage\.googleapis\.com.*generateContent/)
-      .to_return(
-        status: 200,
-        body: {
-          "candidates" => [
-            {
-              "content" => {
-                "parts" => [
-                  {
-                    "inlineData" => {
-                      "data" => "edited_image_base64==",
-                      "mimeType" => "image/jpeg"
-                    }
-                  }
-                ]
-              }
-            }
-          ]
-        }.to_json,
-        headers: { "Content-Type" => "application/json" }
-      )
+    mock_attachment = stub(content: "edited_binary_data", mime_type: "image/jpeg")
+    mock_content = stub(attachments: [ mock_attachment ], text: "Edited image")
+    mock_content.stubs(:is_a?).returns(false)
+    mock_content.stubs(:is_a?).with(RubyLLM::Content).returns(true)
+    mock_response = stub(content: mock_content)
+
+    mock_chat = stub
+    mock_chat.stubs(:with_params).returns(mock_chat)
+    mock_chat.stubs(:ask).with(instance_of(RubyLLM::Content)).returns(mock_response)
+    RubyLLM.stubs(:chat).returns(mock_chat)
 
     result = AiService.generate_image("Make it brighter", reference_image_path: "ref_image.png")
 
     assert_nil result[:error]
-    assert_equal "edited_image_base64==", result[:data]
+    assert_equal Base64.strict_encode64("edited_binary_data"), result[:data]
     assert_equal "image/jpeg", result[:mime_type]
-    assert_equal "gemini-3-pro-image-preview", result[:model]
+    assert_equal "google/gemini-3.1-flash-image-preview", result[:model]
   end
 
-  test "generate_image_with_reference handles API error" do
-    ref_path = create_test_note("ref_image2.png")
-    File.binwrite(ref_path, "fake png data")
+  test "generate_image handles text-only response (no image generated)" do
+    mock_content = stub(attachments: [], text: "I cannot generate that image")
+    mock_content.stubs(:is_a?).returns(false)
+    mock_content.stubs(:is_a?).with(RubyLLM::Content).returns(true)
+    mock_response = stub(content: mock_content)
 
-    stub_request(:post, /generativelanguage\.googleapis\.com.*generateContent/)
-      .to_return(
-        status: 500,
-        body: { "error" => { "message" => "Internal server error" } }.to_json
-      )
+    mock_chat = stub
+    mock_chat.stubs(:with_params).returns(mock_chat)
+    mock_chat.stubs(:ask).returns(mock_response)
+    RubyLLM.stubs(:chat).returns(mock_chat)
 
-    result = AiService.generate_image("Edit this", reference_image_path: "ref_image2.png")
+    result = AiService.generate_image("Generate something impossible")
 
-    assert result[:error].present?
-    assert_includes result[:error], "Internal server error"
+    assert_equal "No image data in response", result[:error]
   end
 
   test "generate_image falls back to text-only when reference image not found" do
-    stub_request(:post, /generativelanguage\.googleapis\.com.*predict/)
-      .to_return(
-        status: 200,
-        body: {
-          "predictions" => [
-            { "bytesBase64Encoded" => "fallback_data==", "mimeType" => "image/png" }
-          ]
-        }.to_json,
-        headers: { "Content-Type" => "application/json" }
-      )
+    mock_attachment = stub(content: "fallback_data", mime_type: "image/png")
+    mock_content = stub(attachments: [ mock_attachment ], text: "Generated")
+    mock_content.stubs(:is_a?).returns(false)
+    mock_content.stubs(:is_a?).with(RubyLLM::Content).returns(true)
+    mock_response = stub(content: mock_content)
+
+    mock_chat = stub
+    mock_chat.stubs(:with_params).returns(mock_chat)
+    # When ref image not found, prompt is passed as string (not Content)
+    mock_chat.stubs(:ask).with("A cat").returns(mock_response)
+    RubyLLM.stubs(:chat).returns(mock_chat)
 
     result = AiService.generate_image("A cat", reference_image_path: "nonexistent.png")
 
     assert_nil result[:error]
-    assert_equal "fallback_data==", result[:data]
-  end
-
-  test "extract_image_from_gemini_response handles text-only response" do
-    response = {
-      "candidates" => [
-        {
-          "content" => {
-            "parts" => [
-              { "text" => "I cannot generate that image" }
-            ]
-          }
-        }
-      ]
-    }
-
-    result = AiService.extract_image_from_gemini_response(response, "model")
-    assert_equal "No image data in response", result[:error]
+    assert_equal Base64.strict_encode64("fallback_data"), result[:data]
   end
 end
