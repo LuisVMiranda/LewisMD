@@ -80,7 +80,7 @@
   }
 
   /* Active line - transparent to not conflict with selection */
-  .cm-editor.cm-focused .cm-activeLine {
+  .cm-editor .cm-activeLine {
     background: transparent;
   }
 

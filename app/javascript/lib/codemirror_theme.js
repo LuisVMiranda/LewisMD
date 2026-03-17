@@ -43,7 +43,7 @@ export function createEditorTheme(options = {}) {
     },
 
     // Active line highlighting
-    "&.cm-focused .cm-activeLine": {
+    ".cm-activeLine": {
       backgroundColor: "transparent"
     },
 
