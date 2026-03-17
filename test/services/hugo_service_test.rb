@@ -68,6 +68,55 @@ class HugoServiceTest < ActiveSupport::TestCase
     assert_match %r{content/posts/\d{4}/\d{2}/\d{2}/my-post/index\.md}, result[:path]
   end
 
+  test "generate_blog_post with flat path style returns slug.md" do
+    result = HugoService.generate_blog_post("My Blog Post", path_style: "flat")
+
+    assert_equal "my-blog-post.md", result[:path]
+  end
+
+  test "generate_blog_post with flat path style prepends parent path" do
+    result = HugoService.generate_blog_post("My Post", parent: "content/posts", path_style: "flat")
+
+    assert_equal "content/posts/my-post.md", result[:path]
+  end
+
+  test "generate_blog_post with flat path style includes frontmatter" do
+    result = HugoService.generate_blog_post("My Post", path_style: "flat")
+
+    assert result[:content].start_with?("---")
+    assert_includes result[:content], 'title: "My Post"'
+    assert_includes result[:content], 'slug: "my-post"'
+    assert_includes result[:content], "draft: true"
+  end
+
+  test "generate_blog_post with dated path style returns date structure" do
+    result = HugoService.generate_blog_post("My Post", path_style: "dated")
+
+    assert_match %r{\d{4}/\d{2}/\d{2}/my-post/index\.md}, result[:path]
+  end
+
+  test "generate_blog_post reads path_style from config" do
+    config_stub = stub
+    config_stub.stubs(:get).returns(nil)
+    config_stub.stubs(:get).with("hugo_path_style").returns("flat")
+    Config.stubs(:new).returns(config_stub)
+
+    result = HugoService.generate_blog_post("Config Test")
+
+    assert_equal "config-test.md", result[:path]
+  end
+
+  test "generate_blog_post defaults to dated when config not set" do
+    config_stub = stub
+    config_stub.stubs(:get).returns(nil)
+    config_stub.stubs(:get).with("hugo_path_style").returns(nil)
+    Config.stubs(:new).returns(config_stub)
+
+    result = HugoService.generate_blog_post("Config Test")
+
+    assert_match %r{\d{4}/\d{2}/\d{2}/config-test/index\.md}, result[:path]
+  end
+
   test "generate_blog_post escapes quotes in title" do
     result = HugoService.generate_blog_post('Say "Hello" World')
 

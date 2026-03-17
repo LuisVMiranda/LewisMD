@@ -32,14 +32,20 @@ class HugoService
     end
 
     # Generate Hugo blog post path and content
-    # Returns { path: "YYYY/MM/DD/slug/index.md", content: "frontmatter..." }
-    def generate_blog_post(title, parent: nil)
+    # Returns { path: "...", content: "frontmatter..." }
+    # path_style: "dated" = YYYY/MM/DD/slug/index.md, "flat" = slug.md
+    def generate_blog_post(title, parent: nil, path_style: nil)
+      path_style ||= Config.new.get("hugo_path_style") || "dated"
       now = Time.current
       slug = slugify(title)
 
-      # Build path: YYYY/MM/DD/slug/index.md
-      date_path = now.strftime("%Y/%m/%d")
-      relative_path = "#{date_path}/#{slug}/index.md"
+      # Build path based on style
+      relative_path = if path_style == "flat"
+        "#{slug}.md"
+      else
+        date_path = now.strftime("%Y/%m/%d")
+        "#{date_path}/#{slug}/index.md"
+      end
       full_path = parent.present? ? "#{parent}/#{relative_path}" : relative_path
 
       # Generate ISO date with timezone offset

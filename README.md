@@ -669,6 +669,16 @@ tags:
 ---
 ```
 
+#### Flat Path Style
+
+If you prefer to keep all posts in a single folder without date-based nesting, set `hugo_path_style = flat` in your `.fed` file:
+
+```ini
+hugo_path_style = flat
+```
+
+With flat style, creating a post titled "My Amazing Post Title" produces `my-amazing-post-title.md` in the current folder instead of the nested `YYYY/MM/DD/slug/index.md` structure. The frontmatter content remains the same.
+
 <p align="center">
   <img src="https://new-uploads-akitaonrails.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_14-38-55.jpg" alt="Hugo post with frontmatter" width="700">
   <br>

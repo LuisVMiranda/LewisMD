@@ -50,6 +50,9 @@ class Config
     "openai_api_key" => { default: nil, type: :string, env: "OPENAI_API_KEY" },
     "openai_model" => { default: "gpt-4o-mini", type: :string, env: "OPENAI_MODEL" },
 
+    # Hugo blog post settings
+    "hugo_path_style" => { default: "dated", type: :string, env: "HUGO_PATH_STYLE" },
+
     # AI Image Generation
     "image_generation_model" => { default: "google/gemini-3.1-flash-image-preview", type: :string, env: "IMAGE_GENERATION_MODEL" }
   }.freeze
@@ -172,6 +175,17 @@ class Config
         "",
         "# google_api_key = your-google-api-key",
         "# google_cse_id = your-custom-search-engine-id"
+      ]
+    },
+    {
+      marker: "# Hugo",
+      lines: [
+        "",
+        "# Hugo Blog Posts",
+        "",
+        "# Path style: dated = YYYY/MM/DD/slug/index.md (default)",
+        "#             flat  = slug.md (in current folder)",
+        "# hugo_path_style = dated"
       ]
     },
     {
