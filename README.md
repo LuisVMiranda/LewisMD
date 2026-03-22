@@ -5,14 +5,14 @@
 <h1 align="center">LewisMD</h1>
 
 <p align="center">
-  <strong>LewisMD</strong> (Lewis Markdown) is a simple, feature-rich, self-hosted markdown note-taking app built with Ruby on Rails 8.<br>
-  The name honors Frank Rosenblatt, inventor of the Perceptron - the pioneering neural network that laid the foundation for modern AI.<br>
-  <strong>fed</strong> (frank editor) is the command-line alias.
+  <strong>LewisMD</strong> is a heavily customized, feature-rich, self-hosted markdown note-taking app built with Ruby on Rails 8.<br>
+  <em>This project is a dedicated fork stemming directly from the original <a href="https://github.com/luisvmiranda/lewismd">FrankMD by Akita</a>.</em><br>
+  <strong>fed</strong> (frank editor) remains the command-line alias for legacy compatibility.
 </p>
 
 <p align="center">
-  <a href="https://github.com/akitaonrails/LewisMD">
-    <img src="https://img.shields.io/badge/GitHub-akitaonrails%2FLewisMD-blue?logo=github" alt="GitHub">
+  <a href="https://github.com/LuisVMiranda/LewisMD">
+    <img src="https://img.shields.io/badge/GitHub-LuisVMiranda%2FLewisMD-blue?logo=github" alt="GitHub">
   </a>
 </p>
 
@@ -24,7 +24,7 @@
 - **Blog-friendly** - Perfect for drafting posts with live preview
 
 <p align="center">
-  <img src="https://new-uploads-akitaonrails.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_15-16-29.jpg" alt="LewisMD running as desktop app" width="800">
+  <img src="https://new-uploads-LuisVMiranda.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_15-16-29.jpg" alt="LewisMD running as desktop app" width="800">
   <br>
   <em>LewisMD running as a desktop app with <code>fed .</code> command</em>
 </p>
@@ -58,19 +58,19 @@
 - **Hugo blog post support** - Create posts with proper directory structure
 
 <p align="center">
-  <img src="https://new-uploads-akitaonrails.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_15-24-36.jpg" alt="File finder" width="600">
+  <img src="https://new-uploads-LuisVMiranda.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_15-24-36.jpg" alt="File finder" width="600">
   <br>
   <em>Quick file finder with fuzzy search (Ctrl+P)</em>
 </p>
 
 <p align="center">
-  <img src="https://new-uploads-akitaonrails.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_15-25-59.jpg" alt="Content search" width="600">
+  <img src="https://new-uploads-LuisVMiranda.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_15-25-59.jpg" alt="Content search" width="600">
   <br>
   <em>Full-text search with regex support (Ctrl+Shift+F)</em>
 </p>
 
 <p align="center">
-  <img src="https://new-uploads-akitaonrails.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_15-22-35.jpg" alt="Find and replace" width="600">
+  <img src="https://new-uploads-LuisVMiranda.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_15-22-35.jpg" alt="Find and replace" width="600">
   <br>
   <em>Find and replace with regex support (Ctrl+H)</em>
 </p>
@@ -82,7 +82,7 @@
 - GitHub-flavored markdown support
 
 <p align="center">
-  <img src="https://new-uploads-akitaonrails.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_14-13-29.jpg" alt="Preview panel" width="700">
+  <img src="https://new-uploads-LuisVMiranda.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_14-13-29.jpg" alt="Preview panel" width="700">
   <br>
   <em>Live preview with synchronized scrolling</em>
 </p>
@@ -95,49 +95,49 @@
 - **Emoji & Emoticons**: Quick picker with search
 
 <p align="center">
-  <img src="https://new-uploads-akitaonrails.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_14-03-02.jpg" alt="Local image picker" width="600">
+  <img src="https://new-uploads-LuisVMiranda.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_14-03-02.jpg" alt="Local image picker" width="600">
   <br>
   <em>Browse local images from your filesystem</em>
 </p>
 
 <p align="center">
-  <img src="https://new-uploads-akitaonrails.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_14-06-07.jpg" alt="Web image search" width="600">
+  <img src="https://new-uploads-LuisVMiranda.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_14-06-07.jpg" alt="Web image search" width="600">
   <br>
   <em>Search images from the web (DuckDuckGo, Google, Pinterest)</em>
 </p>
 
 <p align="center">
-  <img src="https://new-uploads-akitaonrails.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_14-10-24.jpg" alt="AI image generation" width="600">
+  <img src="https://new-uploads-LuisVMiranda.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_14-10-24.jpg" alt="AI image generation" width="600">
   <br>
   <em>Generate images with AI (requires configured AI provider)</em>
 </p>
 
 <p align="center">
-  <img src="https://new-uploads-akitaonrails.s3.us-east-2.amazonaws.com/frankmd/2026/02/ai_1769965759787.png" alt="AI generated image example" width="400">
+  <img src="https://new-uploads-LuisVMiranda.s3.us-east-2.amazonaws.com/frankmd/2026/02/ai_1769965759787.png" alt="AI generated image example" width="400">
   <br>
   <em>Example AI-generated image: "nano banana"</em>
 </p>
 
 <p align="center">
-  <img src="https://new-uploads-akitaonrails.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_14-12-34.jpg" alt="YouTube search" width="600">
+  <img src="https://new-uploads-LuisVMiranda.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_14-12-34.jpg" alt="YouTube search" width="600">
   <br>
   <em>Search and embed YouTube videos</em>
 </p>
 
 <p align="center">
-  <img src="https://new-uploads-akitaonrails.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_14-28-00.jpg" alt="Table editor" width="600">
+  <img src="https://new-uploads-LuisVMiranda.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_14-28-00.jpg" alt="Table editor" width="600">
   <br>
   <em>Visual markdown table editor</em>
 </p>
 
 <p align="center">
-  <img src="https://new-uploads-akitaonrails.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_14-30-19.jpg" alt="Emoji picker" width="500">
+  <img src="https://new-uploads-LuisVMiranda.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_14-30-19.jpg" alt="Emoji picker" width="500">
   <br>
   <em>Emoji picker with search</em>
 </p>
 
 <p align="center">
-  <img src="https://new-uploads-akitaonrails.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_14-30-40.jpg" alt="Emoticon picker" width="500">
+  <img src="https://new-uploads-LuisVMiranda.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_14-30-40.jpg" alt="Emoticon picker" width="500">
   <br>
   <em>Emoticon picker</em>
 </p>
@@ -150,7 +150,7 @@
 - Supports Ollama (local), OpenAI, Anthropic, Gemini, and OpenRouter
 
 <p align="center">
-  <img src="https://new-uploads-akitaonrails.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_14-22-28.jpg" alt="AI grammar checker" width="700">
+  <img src="https://new-uploads-LuisVMiranda.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_14-22-28.jpg" alt="AI grammar checker" width="700">
   <br>
   <em>AI grammar checker with side-by-side diff view</em>
 </p>
@@ -161,7 +161,7 @@
 - Persistent preference saved to configuration
 
 <p align="center">
-  <img src="https://new-uploads-akitaonrails.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_14-34-30.jpg" alt="Japanese interface" width="700">
+  <img src="https://new-uploads-LuisVMiranda.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_14-34-30.jpg" alt="Japanese interface" width="700">
   <br>
   <em>Full interface localization (Japanese example)</em>
 </p>
@@ -177,7 +177,7 @@
 ### 1. Install
 
 ```bash
-curl -sL https://raw.githubusercontent.com/akitaonrails/LewisMD/master/install.sh | bash
+curl -sL https://raw.githubusercontent.com/LuisVMiranda/LewisMD/main/install.sh | bash
 ```
 
 Then add to your `~/.bashrc` or `~/.zshrc`:
@@ -237,7 +237,7 @@ mkdir -p ~/notes
 docker run -d --name frankmd -p 7591:80 \
   -v ~/notes:/rails/notes \
   --restart unless-stopped \
-  akitaonrails/frankmd:latest
+  luisvmiranda/lewismd:latest
 
 # Stop
 docker stop frankmd
@@ -260,7 +260,7 @@ Quick reference (full file in `docker-compose.yml`):
 ```yaml
 services:
   frankmd:
-    image: akitaonrails/frankmd:latest
+    image: luisvmiranda/lewismd:latest
     container_name: frankmd
     restart: unless-stopped
     ports:
@@ -636,7 +636,7 @@ Typewriter mode (`Ctrl+\`) is designed for focused, distraction-free writing:
 - Adjust editor width with `Ctrl+Shift++` and `Ctrl+Shift+-`
 
 <p align="center">
-  <img src="https://new-uploads-akitaonrails.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_14-17-37.jpg" alt="Typewriter mode" width="700">
+  <img src="https://new-uploads-LuisVMiranda.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_14-17-37.jpg" alt="Typewriter mode" width="700">
   <br>
   <em>Typewriter mode: distraction-free writing with centered cursor</em>
 </p>
@@ -651,7 +651,7 @@ LewisMD includes built-in support for creating Hugo-compatible blog posts. When 
 - **Hugo Blog Post** - A properly structured Hugo post
 
 <p align="center">
-  <img src="https://new-uploads-akitaonrails.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_14-39-53.jpg" alt="New note dialog" width="500">
+  <img src="https://new-uploads-LuisVMiranda.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_14-39-53.jpg" alt="New note dialog" width="500">
   <br>
   <em>New note dialog with Hugo blog post option</em>
 </p>
@@ -685,7 +685,7 @@ hugo_path_style = flat
 With flat style, creating a post titled "My Amazing Post Title" produces `my-amazing-post-title.md` in the current folder instead of the nested `YYYY/MM/DD/slug/index.md` structure. The frontmatter content remains the same.
 
 <p align="center">
-  <img src="https://new-uploads-akitaonrails.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_14-38-55.jpg" alt="Hugo post with frontmatter" width="700">
+  <img src="https://new-uploads-LuisVMiranda.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_14-38-55.jpg" alt="Hugo post with frontmatter" width="700">
   <br>
   <em>Hugo blog post with automatic frontmatter generation</em>
 </p>
@@ -755,7 +755,7 @@ Then add the responsive CSS to your stylesheet (e.g. `assets/css/custom.css` or 
 LewisMD includes 18 built-in color themes, plus automatic [Omarchy](https://omarchy.org) theme sync:
 
 <p align="center">
-  <img src="https://new-uploads-akitaonrails.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_14-37-05.jpg" alt="Theme picker" width="300">
+  <img src="https://new-uploads-LuisVMiranda.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_14-37-05.jpg" alt="Theme picker" width="300">
   <br>
   <em>Theme picker dropdown</em>
 </p>
@@ -841,7 +841,7 @@ For secure remote access without opening ports:
 
 ```bash
 # Clone the repository
-git clone https://github.com/akitaonrails/LewisMD.git
+git clone https://github.com/LuisVMiranda/LewisMD.git
 cd LewisMD
 
 # Install Ruby dependencies
@@ -990,3 +990,4 @@ This is a Rails 8 app. Follow Rails 8 idioms and conventions:
 | JavaScript (Vitest) | 1,379 |
 | Ruby (Minitest) | 425 |
 | **Total** | **1,804** |
+

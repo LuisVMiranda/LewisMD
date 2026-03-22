@@ -15,7 +15,7 @@
 
 services:
   frankmd:
-    image: akitaonrails/frankmd:latest
+    image: luisvmiranda/lewismd:latest
     build: .
     container_name: frankmd
     restart: unless-stopped
@@ -85,3 +85,4 @@ services:
 #     # - Create tunnel at https://one.dash.cloudflare.com/
 #     # - Add public hostname pointing to http://frankmd:80
 #     # - Copy tunnel token to .env as CLOUDFLARE_TUNNEL_TOKEN
+

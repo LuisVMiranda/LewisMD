@@ -1,8 +1,8 @@
 #!/bin/bash
-# FrankMD installer - https://github.com/akitaonrails/FrankMD
+# FrankMD installer - https://github.com/luisvmiranda/lewismd
 set -e
 
-REPO="https://raw.githubusercontent.com/akitaonrails/FrankMD/master"
+REPO="https://raw.githubusercontent.com/luisvmiranda/lewismd/master"
 CONFIG_DIR="$HOME/.config/frankmd"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOCAL_FED_DIR="$SCRIPT_DIR/config/fed"
@@ -40,3 +40,4 @@ echo "  fed-update   - Update Docker image"
 echo "  fed-stop     - Stop container"
 echo ""
 echo "To configure API keys, see: $CONFIG_DIR/env.example"
+
