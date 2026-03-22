@@ -1,22 +1,22 @@
 <p align="center">
-  <img src="public/icon.svg" width="200" height="200" alt="FrankMD icon">
+  <img src="public/icon.svg" width="200" height="200" alt="LewisMD icon">
 </p>
 
-<h1 align="center">FrankMD</h1>
+<h1 align="center">LewisMD</h1>
 
 <p align="center">
-  <strong>FrankMD</strong> (Frank Markdown) is a simple, feature-rich, self-hosted markdown note-taking app built with Ruby on Rails 8.<br>
+  <strong>LewisMD</strong> (Lewis Markdown) is a simple, feature-rich, self-hosted markdown note-taking app built with Ruby on Rails 8.<br>
   The name honors Frank Rosenblatt, inventor of the Perceptron - the pioneering neural network that laid the foundation for modern AI.<br>
   <strong>fed</strong> (frank editor) is the command-line alias.
 </p>
 
 <p align="center">
-  <a href="https://github.com/akitaonrails/FrankMD">
-    <img src="https://img.shields.io/badge/GitHub-akitaonrails%2FFrankMD-blue?logo=github" alt="GitHub">
+  <a href="https://github.com/akitaonrails/LewisMD">
+    <img src="https://img.shields.io/badge/GitHub-akitaonrails%2FLewisMD-blue?logo=github" alt="GitHub">
   </a>
 </p>
 
-## Why FrankMD?
+## Why LewisMD?
 
 - **No database** - Notes are plain markdown files on your filesystem
 - **Self-hosted** - Your data stays on your machine or server
@@ -24,9 +24,9 @@
 - **Blog-friendly** - Perfect for drafting posts with live preview
 
 <p align="center">
-  <img src="https://new-uploads-akitaonrails.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_15-16-29.jpg" alt="FrankMD running as desktop app" width="800">
+  <img src="https://new-uploads-akitaonrails.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_15-16-29.jpg" alt="LewisMD running as desktop app" width="800">
   <br>
-  <em>FrankMD running as a desktop app with <code>fed .</code> command</em>
+  <em>LewisMD running as a desktop app with <code>fed .</code> command</em>
 </p>
 
 ## Features
@@ -35,14 +35,18 @@
 - Clean, distraction-free writing interface
 - Syntax highlighting for markdown
 - Auto-save with visual feedback
-- Typewriter mode for focused writing (cursor stays centered)
+- **Typewriter mode** for focused writing (cursor stays centered, hides Explorer & Preview)
+- **Reading mode** for focused reviewing (hides Explorer & Editor, centers typography)
+- **Dynamic Layout Scaling**: Fluid percentage slider to restrict ultra-wide `.prose` line-lengths
+- **Resizable Splitters**: Draggable boundary adjusting the Editor vs Preview proportions instantly
+- **Exporters**: One-click Export to PDF and Copy as Formatted HTML
 - Customizable fonts and sizes
 - Multiple color themes (light/dark variants)
 
 ### Data Safety
-- **Offline detection**: When the server becomes unreachable, FrankMD disables the editor and shows a warning banner to prevent edits that can't be saved. A "Retry" button lets you manually re-check. The editor re-enables automatically once the connection is restored.
+- **Offline detection**: When the server becomes unreachable, LewisMD disables the editor and shows a warning banner to prevent edits that can't be saved. A "Retry" button lets you manually re-check. The editor re-enables automatically once the connection is restored.
 - **Content loss protection**: If you accidentally delete a large portion of your note (more than 20% and 50+ characters), a warning banner appears with "Undo" and "Save Anyway" buttons, giving you a chance to recover before the deletion is saved.
-- **Offline backup**: While you're editing, FrankMD periodically saves your work to the browser's local storage as a safety net.
+- **Offline backup**: While you're editing, LewisMD periodically saves your work to the browser's local storage as a safety net.
 - **Recovery dialog**: If the app detects that a local backup differs from the saved version (e.g., after a crash or lost connection), it shows a side-by-side diff so you can choose to keep the server version or restore the backup.
 
 ### Organization
@@ -140,7 +144,8 @@
 
 ### AI Features
 - **Grammar Check**: AI-powered grammar, spelling, and typo correction
-- Side-by-side diff view with original and corrected text
+- **Custom Prompts (Magic Wand)**: Select any text and send bespoke commands to local or cloud LLMs directly.
+- Side-by-side diff view with original and corrected text (shared seamlessly across grammar checks and custom prompts)
 - Editable corrections before accepting changes
 - Supports Ollama (local), OpenAI, Anthropic, Gemini, and OpenRouter
 
@@ -172,7 +177,7 @@
 ### 1. Install
 
 ```bash
-curl -sL https://raw.githubusercontent.com/akitaonrails/FrankMD/master/install.sh | bash
+curl -sL https://raw.githubusercontent.com/akitaonrails/LewisMD/master/install.sh | bash
 ```
 
 Then add to your `~/.bashrc` or `~/.zshrc`:
@@ -192,7 +197,7 @@ fed               # open current directory (same as above)
 ```
 
 **Available commands:**
-- `fed [path]` - Open FrankMD with notes directory
+- `fed [path]` - Open LewisMD with notes directory
 - `fed-update` - Check for and download updates
 - `fed-stop` - Stop the container
 
@@ -210,7 +215,7 @@ export FRANKMD_ENV=~/.config/frankmd/env
 
 ### 4. Browser (Optional)
 
-FrankMD auto-detects your browser in this order: **Chromium** → Firefox → Brave → Chrome → Edge. The first one found is used.
+LewisMD auto-detects your browser in this order: **Chromium** → Firefox → Brave → Chrome → Edge. The first one found is used.
 
 To override, set `FRANKMD_BROWSER` in your `~/.bashrc` or `~/.zshrc`:
 
@@ -285,11 +290,11 @@ docker compose up -d
 
 ## Configuration
 
-FrankMD uses a `.fed` configuration file in your notes directory. This file is automatically created on first run with all options commented out as documentation.
+LewisMD uses a `.fed` configuration file in your notes directory. This file is automatically created on first run with all options commented out as documentation.
 
 ### The .fed File
 
-When you open a notes directory for the first time, FrankMD creates a `.fed` configuration file with all available options commented out. You can uncomment and modify any setting:
+When you open a notes directory for the first time, LewisMD creates a `.fed` configuration file with all available options commented out. You can uncomment and modify any setting:
 
 ```ini
 # UI Settings
@@ -340,7 +345,7 @@ This means you can:
 
 ### Editing .fed in the App
 
-The `.fed` file appears in the explorer panel with a gear icon. You can click it to edit directly in FrankMD:
+The `.fed` file appears in the explorer panel with a gear icon. You can click it to edit directly in LewisMD:
 
 - The toolbar and preview panel are hidden when editing config files (they only appear for markdown files)
 - Changes are auto-saved like any other file
@@ -448,7 +453,7 @@ Note: Google Custom Search has a free tier of 100 queries/day.
 
 ### Optional: AI Grammar Checking
 
-FrankMD includes an AI-powered grammar and spelling checker. Click the "AI" button in the editor toolbar to check your text. The AI will fix grammar errors, spelling mistakes, typos, and punctuation while preserving your writing style and markdown formatting.
+LewisMD includes an AI-powered grammar and spelling checker. Click the "AI" button in the editor toolbar to check your text. The AI will fix grammar errors, spelling mistakes, typos, and punctuation while preserving your writing style and markdown formatting.
 
 **Supported Providers** (priority order in auto mode):
 1. **OpenAI** - GPT models
@@ -457,7 +462,7 @@ FrankMD includes an AI-powered grammar and spelling checker. Click the "AI" butt
 4. **OpenRouter** - Multiple providers, pay-per-use
 5. **Ollama** - Local, free, private
 
-When multiple providers are configured, FrankMD automatically uses the first available one in the priority order above. You can override this with `ai_provider = <provider>`.
+When multiple providers are configured, LewisMD automatically uses the first available one in the priority order above. You can override this with `ai_provider = <provider>`.
 
 #### Option 1: Ollama (Local, Free, Recommended)
 
@@ -527,7 +532,7 @@ openai_model = gpt-4o-mini
 
 #### Provider Selection
 
-By default, FrankMD uses the first configured provider in priority order (OpenAI → Anthropic → Gemini → OpenRouter → Ollama). To force a specific provider:
+By default, LewisMD uses the first configured provider in priority order (OpenAI → Anthropic → Gemini → OpenRouter → Ollama). To force a specific provider:
 
 ```ini
 ai_provider = anthropic
@@ -549,7 +554,7 @@ For example, if you have `OPENAI_API_KEY` and `OPENROUTER_API_KEY` set as enviro
 anthropic_api_key = sk-ant-your-key
 ```
 
-FrankMD will:
+LewisMD will:
 - Use **only** Anthropic (ignoring OpenAI and OpenRouter from ENV)
 - Pick up changes immediately when you save `.fed` from the editor
 
@@ -640,7 +645,7 @@ This mimics the experience of a typewriter where your typing position stays cons
 
 ## Hugo Blog Post Support
 
-FrankMD includes built-in support for creating Hugo-compatible blog posts. When you click the "New Note" button (or press `Ctrl+N`), you can choose between:
+LewisMD includes built-in support for creating Hugo-compatible blog posts. When you click the "New Note" button (or press `Ctrl+N`), you can choose between:
 
 - **Empty Document** - A plain markdown file
 - **Hugo Blog Post** - A properly structured Hugo post
@@ -653,7 +658,7 @@ FrankMD includes built-in support for creating Hugo-compatible blog posts. When 
 
 ### Hugo Post Structure
 
-When you create a Hugo blog post with a title like "My Amazing Post Title", FrankMD will:
+When you create a Hugo blog post with a title like "My Amazing Post Title", LewisMD will:
 
 1. Create the directory structure: `YYYY/MM/DD/my-amazing-post-title/`
 2. Create `index.md` inside with Hugo frontmatter:
@@ -700,7 +705,7 @@ Examples:
 
 ### Hugo YouTube Shortcode
 
-When embedding YouTube videos, FrankMD can insert a Hugo shortcode (`{{< youtube >}}`) instead of raw HTML. Check the **"Use Hugo shortcode"** checkbox in the video dialog to enable this.
+When embedding YouTube videos, LewisMD can insert a Hugo shortcode (`{{< youtube >}}`) instead of raw HTML. Check the **"Use Hugo shortcode"** checkbox in the video dialog to enable this.
 
 The inserted shortcode looks like:
 
@@ -743,11 +748,11 @@ Then add the responsive CSS to your stylesheet (e.g. `assets/css/custom.css` or 
 }
 ```
 
-**Note:** Hugo ships with a built-in `youtube` shortcode, but it uses a different syntax (`{{< youtube dQw4w9WgXcQ >}}` with a positional parameter). The custom shortcode above matches the named-parameter format (`id="..."`, `title="..."`) that FrankMD generates, and gives you full control over the markup and styling.
+**Note:** Hugo ships with a built-in `youtube` shortcode, but it uses a different syntax (`{{< youtube dQw4w9WgXcQ >}}` with a positional parameter). The custom shortcode above matches the named-parameter format (`id="..."`, `title="..."`) that LewisMD generates, and gives you full control over the markup and styling.
 
 ## Themes
 
-FrankMD includes 18 built-in color themes, plus automatic [Omarchy](https://omarchy.org) theme sync:
+LewisMD includes 18 built-in color themes, plus automatic [Omarchy](https://omarchy.org) theme sync:
 
 <p align="center">
   <img src="https://new-uploads-akitaonrails.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_14-37-05.jpg" alt="Theme picker" width="300">
@@ -776,7 +781,7 @@ FrankMD includes 18 built-in color themes, plus automatic [Omarchy](https://omar
 | Solarized Light | Classic light color scheme |
 | Tokyo Night | Vibrant night theme |
 
-**Omarchy auto-sync:** If you run the [Omarchy](https://omarchy.org) desktop environment, FrankMD detects your terminal theme and adds it as a selectable "Omarchy" option. Switching your terminal theme updates FrankMD in real time.
+**Omarchy auto-sync:** If you run the [Omarchy](https://omarchy.org) desktop environment, LewisMD detects your terminal theme and adds it as a selectable "Omarchy" option. Switching your terminal theme updates LewisMD in real time.
 
 Change themes from the dropdown in the top-right corner. Your preference is saved to the `.fed` file.
 
@@ -836,8 +841,8 @@ For secure remote access without opening ports:
 
 ```bash
 # Clone the repository
-git clone https://github.com/akitaonrails/FrankMD.git
-cd FrankMD
+git clone https://github.com/akitaonrails/LewisMD.git
+cd LewisMD
 
 # Install Ruby dependencies
 bundle install

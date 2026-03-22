@@ -39,6 +39,9 @@
 !/app/assets/builds/.keep
 /notes/*
 !/notes/.gitkeep
+/images/*
+!/images/.gitkeep
+/.fed
 
 # JavaScript dependencies (for testing)
 node_modules/
