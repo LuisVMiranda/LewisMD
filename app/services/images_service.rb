@@ -365,13 +365,20 @@ class ImagesService
       end
     end
 
-    # Save uploaded file to notes/images/ directory
+    # Save uploaded file to the configured images directory (served via /images/preview/*)
+    # Falls back to notes/images/ if images_path is not configured.
     def save_to_notes_directory(temp_path, original_filename, resize: nil)
       require "fileutils"
 
-      notes_path = Pathname.new(ENV.fetch("NOTES_PATH", Rails.root.join("notes")))
-      images_dir = notes_path.join("images")
-      FileUtils.mkdir_p(images_dir)
+      # Use images_path (served by /images/preview/*) when available;
+      # otherwise fall back to notes/images/ (not routed through preview)
+      if images_path
+        dest_dir = images_path
+      else
+        notes_path = Pathname.new(ENV.fetch("NOTES_PATH", Rails.root.join("notes")))
+        dest_dir = notes_path.join("images")
+      end
+      FileUtils.mkdir_p(dest_dir)
 
       # Generate unique filename with timestamp
       timestamp = Time.now.strftime("%Y%m%d_%H%M%S")
@@ -382,15 +389,15 @@ class ImagesService
         base_name = File.basename(safe_name, ".*")
         dest_filename = "#{timestamp}_#{base_name}.jpg"
         resized_data, _content_type, _new_filename = resize_and_compress(Pathname.new(temp_path), dest_filename, resize.to_f)
-        dest_path = images_dir.join(dest_filename)
+        dest_path = dest_dir.join(dest_filename)
         File.binwrite(dest_path, resized_data)
-        { url: "images/#{dest_filename}" }
+        { url: "/images/preview/#{dest_filename}" }
       else
         # Copy as-is
         dest_filename = "#{timestamp}_#{safe_name}"
-        dest_path = images_dir.join(dest_filename)
+        dest_path = dest_dir.join(dest_filename)
         FileUtils.cp(temp_path, dest_path)
-        { url: "images/#{dest_filename}" }
+        { url: "/images/preview/#{dest_filename}" }
       end
     end
 

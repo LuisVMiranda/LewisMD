@@ -1,7 +1,7 @@
 en:
   # Application metadata
   app:
-    name: "FrankMD"
+    name: "LewisMD"
     tagline: "A modern markdown editor for your notes"
 
   # Common actions used across the app
@@ -32,10 +32,10 @@ en:
   header:
     toggle_explorer: "Toggle Explorer (Ctrl+E)"
     toggle_typewriter: "Toggle Typewriter Mode (Ctrl+B)"
-    toggle_preview: "Toggle Preview (Ctrl+Shift+P)"
+    toggle_preview: "Toggle Preview (Ctrl+Y)"
     change_theme: "Change Theme"
     change_language: "Change Language"
-    about_app: "About FrankMD"
+    about_app: "About LewisMD"
     click_to_copy_path: "Click to copy path"
 
   # Sidebar/Explorer section
@@ -77,6 +77,8 @@ en:
       font_title: "Editor Settings"
       ai: "AI"
       ai_title: "AI Grammar Check"
+      custom_ai_prompt: "Prompt"
+      custom_ai_title: "Custom AI Prompt"
       emoji: "Emoji"
       emoji_title: "Insert Emoji (Ctrl+Shift+E)"
       find: "Find"
@@ -355,6 +357,15 @@ en:
       copyright: "All rights reserved."
       view_github: "View on GitHub"
 
+    # Custom AI Prompt dialog
+    custom_ai:
+      title: "Magic Wand"
+      prompt_label: "Instructions for AI:"
+      placeholder: "e.g., Translate to Spanish, Make it more professional..."
+      generate: "Generate"
+      hint_document: "No text selected. Analyzing entire document..."
+      hint_selection: "Analyzing highlighted selection..."
+
     # AI diff dialog
     ai_diff:
       title: "AI Grammar Check"
@@ -460,6 +471,9 @@ en:
     file_not_found: "This file no longer exists or was deleted."
     no_file_open: "No file open"
     no_text_to_check: "No text to check"
+    no_text_selected: "No text selected"
+    ai_markdown_only: "AI is only available for markdown files"
+    connection_lost: "Connection lost. Please check your internet and try your prompt again."
     no_file_provided: "No file path provided"
     no_image_data: "No image data provided"
     no_prompt_provided: "No prompt provided"

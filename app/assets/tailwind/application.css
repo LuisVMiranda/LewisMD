@@ -78,3 +78,18 @@
 @import "./components/image-picker.css";
 @import "./components/table-editor.css";
 @import "./components/ai-diff.css";
+
+/* Dynamic text width scaling — controlled by text_width_controller.js via --user-text-width */
+.cm-content {
+  max-width: var(--user-text-width, 100%) !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  transition: max-width 0.2s ease-in-out;
+}
+.prose {
+  max-width: var(--user-text-width, 100%) !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  transition: max-width 0.2s ease-in-out;
+}
+@import "./components/print.css";

@@ -35,6 +35,7 @@ Rails.application.routes.draw do
   # AI endpoints
   get "ai/config", to: "ai#status"
   post "ai/fix_grammar", to: "ai#fix_grammar"
+  post "ai/generate_custom", to: "ai#generate_custom"
   get "ai/image_config", to: "ai#image_config"
   post "ai/generate_image", to: "ai#generate_image"
 

@@ -1,489 +1,432 @@
+---
 es:
-  # Application metadata
   app:
-    name: "FrankMD"
-    tagline: "Un editor de markdown moderno para tus notas"
-
-  # Common actions used across the app
+    name: LewisMD
+    tagline: Un editor de markdown moderno para tus notas
   common:
-    cancel: "Cancelar"
-    apply: "Aplicar"
-    save: "Guardar"
-    create: "Crear"
-    delete: "Eliminar"
-    rename: "Renombrar"
-    close: "Cerrar"
-    search: "Buscar"
-    insert: "Insertar"
-    edit: "Editar"
-    ok: "OK"
-
-  # Languages
+    cancel: Cancelar
+    apply: Aplicar
+    save: Guardar
+    create: Crear
+    delete: Eliminar
+    rename: Renombrar
+    close: Cerrar
+    search: Buscar
+    insert: Insertar
+    edit: Editar
+    ok: OK
   languages:
-    en: "English"
-    pt_BR: "Português (Brasil)"
-    pt_PT: "Português (Portugal)"
-    es: "Español"
-    he: "עברית"
-    ja: "日本語"
-    ko: "한국어"
-
-  # Header section
+    en: English
+    pt_BR: Português (Brasil)
+    pt_PT: Português (Portugal)
+    es: Español
+    he: עברית
+    ja: 日本語
+    ko: 한국어
   header:
-    toggle_explorer: "Alternar Explorador (Ctrl+E)"
-    toggle_typewriter: "Alternar Modo Máquina de Escribir (Ctrl+B)"
-    toggle_preview: "Alternar Vista Previa (Ctrl+Shift+P)"
-    change_theme: "Cambiar Tema"
-    change_language: "Cambiar Idioma"
-    about_app: "Acerca de FrankMD"
-    click_to_copy_path: "Haga clic para copiar la ruta"
-
-  # Sidebar/Explorer section
+    toggle_explorer: Alternar Explorador (Ctrl+E)
+    toggle_typewriter: Alternar Modo Máquina de Escribir (Ctrl+B)
+    toggle_preview: Alternar Vista Previa (Ctrl+Shift+P)
+    change_theme: Cambiar Tema
+    change_language: Cambiar Idioma
+    about_app: Acerca de LewisMD
+    click_to_copy_path: Haga clic para copiar la ruta
   sidebar:
-    explorer: "Explorador"
-    new_note: "Nueva Nota (Ctrl+N)"
-    new_folder: "Nueva Carpeta"
-    find_file: "Buscar Archivo (Ctrl+P)"
-    search_in_files: "Buscar en Archivos (Ctrl+Shift+F)"
-    no_notes_yet: "Aún no hay notas"
-    no_files_found: "No se encontraron archivos"
-    # Document stats
-    words: "Palabras"
-    characters: "Caracteres"
-    size: "Tamaño"
-    read_time: "Tiempo de lectura"
-    line: "Línea"
-
-  # Editor section
+    explorer: Explorador
+    new_note: Nueva Nota (Ctrl+N)
+    new_folder: Nueva Carpeta
+    find_file: Buscar Archivo (Ctrl+P)
+    search_in_files: Buscar en Archivos (Ctrl+Shift+F)
+    no_notes_yet: Aún no hay notas
+    no_files_found: No se encontraron archivos
+    words: Palabras
+    characters: Caracteres
+    size: Tamaño
+    read_time: Tiempo de lectura
+    line: Línea
   editor:
-    select_note: "Selecciona o crea una nota"
-    select_note_description: "Selecciona una nota para editar"
-    select_note_hint: "o presiona Ctrl+N para crear una nueva"
-    start_writing: "Comienza a escribir..."
-    cursor_in_table: "Cursor en tabla - haz clic para editar"
-    # Editor toolbar
+    select_note: Selecciona o crea una nota
+    select_note_description: Selecciona una nota para editar
+    select_note_hint: o presiona Ctrl+N para crear una nueva
+    start_writing: Comienza a escribir...
+    cursor_in_table: Cursor en tabla - haz clic para editar
     toolbar:
-      help: "Ayuda"
-      help_title: "Ayuda de Markdown (F1)"
-      table: "Tabla"
-      table_title: "Insertar/Editar Tabla"
-      image: "Imagen"
-      image_title: "Insertar Imagen"
-      video: "Video"
-      video_title: "Insertar Video"
-      code: "Código"
-      code_title: "Insertar/Editar Bloque de Código"
-      font: "Fuente"
-      font_title: "Configuración del Editor"
-      ai: "IA"
-      ai_title: "Revisión Gramatical con IA"
-      emoji: "Emoji"
-      emoji_title: "Insertar Emoji (Ctrl+Shift+E)"
-      find: "Buscar"
-      find_title: "Buscar y reemplazar (Ctrl+F)"
-    # AI processing overlay
-    processing_with: "Procesando con"
-    press_esc_to_cancel: "Presiona ESC para cancelar"
-
-  # Preview panel
+      help: Ayuda
+      help_title: Ayuda de Markdown (F1)
+      table: Tabla
+      table_title: Insertar/Editar Tabla
+      image: Imagen
+      image_title: Insertar Imagen
+      video: Video
+      video_title: Insertar Video
+      code: Código
+      code_title: Insertar/Editar Bloque de Código
+      font: Fuente
+      font_title: Configuración del Editor
+      ai: IA
+      ai_title: Revisión Gramatical con IA
+      emoji: Emoji
+      emoji_title: Insertar Emoji (Ctrl+Shift+E)
+      find: Buscar
+      find_title: Buscar y reemplazar (Ctrl+F)
+      custom_ai_prompt: Prompt
+      custom_ai_title: Prompt de IA Personalizado
+    processing_with: Procesando con
+    press_esc_to_cancel: Presiona ESC para cancelar
   preview:
-    title: "Vista Previa"
-    zoom_in: "Acercar"
-    zoom_out: "Alejar"
-
-  # Context menu
+    title: Vista Previa
+    zoom_in: Acercar
+    zoom_out: Alejar
   context_menu:
-    new_note: "Nueva Nota"
-    new_folder: "Nueva Carpeta"
-    rename: "Renombrar"
-    delete: "Eliminar"
-
-  # Status messages
+    new_note: Nueva Nota
+    new_folder: Nueva Carpeta
+    rename: Renombrar
+    delete: Eliminar
   status:
-    copied_to_clipboard: "Contenido copiado al portapapeles"
-    saved: "Guardado"
-    unsaved: "Cambios sin guardar"
-    error_saving: "Error al guardar"
-    error_loading: "Error al cargar nota"
-    searching: "Buscando..."
-    no_matches: "No se encontraron coincidencias"
-    search_error: "Error de búsqueda"
+    copied_to_clipboard: Contenido copiado al portapapeles
+    saved: Guardado
+    unsaved: Cambios sin guardar
+    error_saving: Error al guardar
+    error_loading: Error al cargar nota
+    searching: Buscando...
+    no_matches: No se encontraron coincidencias
+    search_error: Error de búsqueda
     matches_found: "%{count} coincidencias en %{files} archivos"
-    config_applied: "Configuración aplicada"
-    found_videos: "Se encontraron %{count} videos - haz clic para insertar o usa las flechas"
-    please_enter_keywords: "Por favor ingresa palabras clave"
-    youtube_not_configured_js: "API de YouTube no configurada. Configura la variable YOUTUBE_API_KEY."
-    no_videos_found: "No se encontraron videos"
-    search_failed_retry: "La búsqueda falló. Por favor intenta de nuevo."
-    enter_keywords_search: "Ingresa palabras clave y haz clic en Buscar o presiona Enter"
-    type_to_search_regex: "Escribe para buscar en el contenido (soporta regex)"
-    processing: "Procesando..."
-    content_loss_warning: "Se detectó una gran eliminación de contenido. Presiona Ctrl+Z para deshacer si fue accidental."
-    undo: "Deshacer"
-    save_anyway: "Guardar de Todos Modos"
-    offline_backup_saved: "Copia de seguridad local guardada"
-
-  # Dialog titles and content
+    config_applied: Configuración aplicada
+    found_videos: Se encontraron %{count} videos - haz clic para insertar o usa las flechas
+    please_enter_keywords: Por favor ingresa palabras clave
+    youtube_not_configured_js: API de YouTube no configurada. Configura la variable YOUTUBE_API_KEY.
+    no_videos_found: No se encontraron videos
+    search_failed_retry: La búsqueda falló. Por favor intenta de nuevo.
+    enter_keywords_search: Ingresa palabras clave y haz clic en Buscar o presiona Enter
+    type_to_search_regex: Escribe para buscar en el contenido (soporta regex)
+    processing: Procesando...
+    content_loss_warning: Se detectó una gran eliminación de contenido. Presiona Ctrl+Z para deshacer si fue accidental.
+    undo: Deshacer
+    save_anyway: Guardar de Todos Modos
+    offline_backup_saved: Copia de seguridad local guardada
   dialogs:
-    # Rename dialog
     rename:
-      title: "Renombrar"
-      placeholder: "Nuevo nombre"
-
-    # New item dialog
+      title: Renombrar
+      placeholder: Nuevo nombre
     new_item:
-      new_note: "Nueva Nota"
-      new_folder: "Nueva Carpeta"
-      placeholder: "Nombre"
-      note_placeholder: "Nombre de la nota"
-      folder_placeholder: "Nombre de la carpeta"
-
-    # Note type dialog
+      new_note: Nueva Nota
+      new_folder: Nueva Carpeta
+      placeholder: Nombre
+      note_placeholder: Nombre de la nota
+      folder_placeholder: Nombre de la carpeta
     note_type:
-      title: "Nueva Nota"
-      empty_document: "Documento Vacío"
-      empty_description: "Archivo markdown simple"
-      hugo_post: "Publicación de Blog Hugo"
-      hugo_description: "AAAA/MM/DD/slug/index.md"
-      new_hugo_post: "Nueva Publicación de Blog Hugo"
-
-    # Table editor dialog
+      title: Nueva Nota
+      empty_document: Documento Vacío
+      empty_description: Archivo markdown simple
+      hugo_post: Publicación de Blog Hugo
+      hugo_description: AAAA/MM/DD/slug/index.md
+      new_hugo_post: Nueva Publicación de Blog Hugo
     table_editor:
-      title: "Editor de Tablas"
-      add_column: "Agregar Columna"
-      remove_column: "Eliminar Columna"
-      add_row: "Agregar Fila"
-      remove_row: "Eliminar Fila"
-      column: "Columna"
-      row: "Fila"
-      move_left: "Mover Izquierda"
-      move_right: "Mover Derecha"
-      move_up: "Mover Arriba"
-      move_down: "Mover Abajo"
-      delete_column: "Eliminar Columna"
-      delete_row: "Eliminar Fila"
-      insert_table: "Insertar Tabla"
-      header: "Encabezado"
-      header_n: "Encabezado %{n}"
-
-    # Code dialog
+      title: Editor de Tablas
+      add_column: Agregar Columna
+      remove_column: Eliminar Columna
+      add_row: Agregar Fila
+      remove_row: Eliminar Fila
+      column: Columna
+      row: Fila
+      move_left: Mover Izquierda
+      move_right: Mover Derecha
+      move_up: Mover Arriba
+      move_down: Mover Abajo
+      delete_column: Eliminar Columna
+      delete_row: Eliminar Fila
+      insert_table: Insertar Tabla
+      header: Encabezado
+      header_n: Encabezado %{n}
     code:
-      title: "Bloque de Código"
-      language_label: "Lenguaje (Tab para autocompletar)"
-      language_placeholder: "javascript, python, ruby..."
-      code_label: "Código (opcional) — Tab para indentar, Ctrl+Enter para insertar"
-      use_tabs: "Usar tabulaciones"
-      code_placeholder: "Pega o escribe tu código aquí..."
-      insert_code: "Insertar Código"
-      unrecognized_language: "\"%{language}\" no es un lenguaje reconocido. ¿Insertar de todos modos?"
-
-    # Video dialog
+      title: Bloque de Código
+      language_label: Lenguaje (Tab para autocompletar)
+      language_placeholder: javascript, python, ruby...
+      code_label: Código (opcional) — Tab para indentar, Ctrl+Enter para insertar
+      use_tabs: Usar tabulaciones
+      code_placeholder: Pega o escribe tu código aquí...
+      insert_code: Insertar Código
+      unrecognized_language: '"%{language}" no es un lenguaje reconocido. ¿Insertar de todos modos?'
     video:
-      title: "Insertar Video"
-      tab_url: "URL / Archivo"
-      tab_search: "Buscar en YouTube"
-      url_label: "URL o Ruta del Video"
-      url_placeholder: "URL de YouTube o ruta del archivo de video..."
-      url_hint_youtube: "YouTube: https://youtube.com/watch?v=... o https://youtu.be/..."
-      url_hint_file: "Archivo de video: /ruta/al/video.mp4, .webm, .mkv, .mov, .avi"
-      preview_hint: "Ingresa una URL para ver la vista previa"
-      unknown_format: "Formato desconocido. Ingresa una URL de YouTube o ruta de archivo de video."
-      insert_video: "Insertar Video"
-      use_hugo_shortcode: "Usar shortcode de Hugo en lugar de HTML embed"
-      # YouTube search
-      youtube_api_required: "Se Requiere Clave de API de YouTube"
-      youtube_api_description: "Para buscar videos de YouTube, necesitas configurar una clave de API de YouTube Data."
-      quick_setup: "Configuración rápida:"
-      setup_step_1: "Edita el archivo .fed en tu carpeta de notas"
-      setup_step_2: "Agrega: youtube_api_key = TU_CLAVE"
-      view_setup_instructions: "Ver instrucciones completas en GitHub"
-      search_youtube: "Buscar en YouTube"
-      search_placeholder: "Ingresa palabras clave..."
-      search_status: "Ingresa palabras clave y haz clic en Buscar o presiona Enter"
-      no_videos_found: "No se encontraron videos"
-
-    # Image picker dialog
+      title: Insertar Video
+      tab_url: URL / Archivo
+      tab_search: Buscar en YouTube
+      url_label: URL o Ruta del Video
+      url_placeholder: URL de YouTube o ruta del archivo de video...
+      url_hint_youtube: 'YouTube: https://youtube.com/watch?v=... o https://youtu.be/...'
+      url_hint_file: 'Archivo de video: /ruta/al/video.mp4, .webm, .mkv, .mov, .avi'
+      preview_hint: Ingresa una URL para ver la vista previa
+      unknown_format: Formato desconocido. Ingresa una URL de YouTube o ruta de archivo de video.
+      insert_video: Insertar Video
+      use_hugo_shortcode: Usar shortcode de Hugo en lugar de HTML embed
+      youtube_api_required: Se Requiere Clave de API de YouTube
+      youtube_api_description: Para buscar videos de YouTube, necesitas configurar una clave de API de YouTube Data.
+      quick_setup: 'Configuración rápida:'
+      setup_step_1: Edita el archivo .fed en tu carpeta de notas
+      setup_step_2: 'Agrega: youtube_api_key = TU_CLAVE'
+      view_setup_instructions: Ver instrucciones completas en GitHub
+      search_youtube: Buscar en YouTube
+      search_placeholder: Ingresa palabras clave...
+      search_status: Ingresa palabras clave y haz clic en Buscar o presiona Enter
+      no_videos_found: No se encontraron videos
     image_picker:
-      title: "Insertar Imagen"
-      tab_local: "Local"
-      tab_folder: "Carpeta"
-      tab_web: "Búsqueda Web"
-      tab_google: "Google"
-      tab_pinterest: "Pinterest"
-      tab_ai: "Generar con IA"
-      insert_image: "Insertar Imagen"
-      selected: "Seleccionado:"
-      alt_label: "Texto Alternativo (opcional)"
-      alt_placeholder: "Describe la imagen..."
-      link_label: "URL del Enlace (opcional, hace la imagen clickeable)"
-      link_placeholder: "https://..."
-      uploading_to_s3: "Subiendo a S3..."
-      # Local images
-      local_path_required: "Se Requiere Ruta de Imágenes Locales"
-      local_path_description: "Para explorar imágenes locales, configura una ruta de directorio de imágenes."
-      local_setup_step_1: "Edita .fed en tu carpeta de notas"
-      local_setup_step_2: "Agrega: images_path = /ruta/a/imagenes"
-      search_images_placeholder: "Buscar imágenes por nombre de archivo..."
-      # Folder images
-      filesystem_api_required: "Se Requiere API de Acceso al Sistema de Archivos"
-      filesystem_api_description: "Esta función requiere la API de Acceso al Sistema de Archivos, que puede estar deshabilitada en tu navegador."
-      enable_in_brave: "Para habilitar en Brave:"
-      brave_step_1: "Ve a brave://flags"
-      brave_step_2: "Busca File System Access API"
-      brave_step_3: "Configura como Habilitado"
-      brave_step_4: "Reinicia tu navegador"
-      supported_browsers: "Navegadores compatibles:"
-      supported_browsers_list: "Chrome 86+, Edge 86+, Opera 72+, Brave (con flag)"
-      not_supported_note: "Firefox y Safari no soportan esta API."
-      select_folder_prompt: "Selecciona una carpeta de tu computadora para explorar imágenes"
-      browse_folder: "Explorar Carpeta..."
-      no_folder_selected: "Ninguna carpeta seleccionada"
-      change_folder: "Cambiar carpeta..."
-      # Web search
-      search_web_placeholder: "Buscar imágenes en la web..."
-      search_status: "Ingresa palabras clave y haz clic en Buscar o presiona Enter"
-      # Google images
-      google_api_required: "Se Requiere Configuración de API de Google"
-      google_api_description: "Para buscar en Google Imágenes, necesitas configurar una clave de API de Google y un ID de Motor de Búsqueda Personalizado."
-      google_setup_step_2: "Agrega: google_api_key = TU_CLAVE"
-      google_setup_step_3: "Agrega: google_cse_id = TU_CSE_ID"
-      search_google_placeholder: "Buscar en Google Imágenes..."
-      # Pinterest
-      search_pinterest_placeholder: "Buscar en Pinterest..."
-      # AI Generate
-      gemini_api_required: "Se Requiere Clave de API de Gemini"
-      gemini_api_description: "La generación de imágenes con IA usa los modelos Imagen de Google y requiere una clave de API de Gemini."
-      gemini_setup_step_1: "Obtén una clave de API en aistudio.google.com"
-      gemini_setup_step_2: "Edita .fed en tu carpeta de notas"
-      gemini_setup_step_3: "Agrega: gemini_api_key = TU_CLAVE"
-      model_label: "Modelo:"
-      reference_image_label: "Imagen de referencia (opcional) - guía la generación con una imagen existente"
-      remove_reference: "Eliminar referencia"
-      search_reference_placeholder: "Buscar imágenes de referencia..."
-      prompt_label: "Describe la imagen que quieres generar"
-      prompt_placeholder: "Una imagen fotorrealista de un paisaje montañoso al atardecer con nubes dramáticas..."
-      generate_image: "Generar Imagen"
-      generating_with: "Generando imagen con"
-      generated_image: "Imagen Generada"
-      revised_prompt: "Prompt revisado por IA"
-      save_to: "Guardar en:"
-      save_local: "directorio notes/images/"
-      save_s3: "AWS S3"
-
-    # S3 option
+      title: Insertar Imagen
+      tab_local: Local
+      tab_folder: Carpeta
+      tab_web: Búsqueda Web
+      tab_google: Google
+      tab_pinterest: Pinterest
+      tab_ai: Generar con IA
+      insert_image: Insertar Imagen
+      selected: 'Seleccionado:'
+      alt_label: Texto Alternativo (opcional)
+      alt_placeholder: Describe la imagen...
+      link_label: URL del Enlace (opcional, hace la imagen clickeable)
+      link_placeholder: https://...
+      uploading_to_s3: Subiendo a S3...
+      local_path_required: Se Requiere Ruta de Imágenes Locales
+      local_path_description: Para explorar imágenes locales, configura una ruta de directorio de imágenes.
+      local_setup_step_1: Edita .fed en tu carpeta de notas
+      local_setup_step_2: 'Agrega: images_path = /ruta/a/imagenes'
+      search_images_placeholder: Buscar imágenes por nombre de archivo...
+      filesystem_api_required: Se Requiere API de Acceso al Sistema de Archivos
+      filesystem_api_description: Esta función requiere la API de Acceso al Sistema de Archivos, que puede estar deshabilitada en tu navegador.
+      enable_in_brave: 'Para habilitar en Brave:'
+      brave_step_1: Ve a brave://flags
+      brave_step_2: Busca File System Access API
+      brave_step_3: Configura como Habilitado
+      brave_step_4: Reinicia tu navegador
+      supported_browsers: 'Navegadores compatibles:'
+      supported_browsers_list: Chrome 86+, Edge 86+, Opera 72+, Brave (con flag)
+      not_supported_note: Firefox y Safari no soportan esta API.
+      select_folder_prompt: Selecciona una carpeta de tu computadora para explorar imágenes
+      browse_folder: Explorar Carpeta...
+      no_folder_selected: Ninguna carpeta seleccionada
+      change_folder: Cambiar carpeta...
+      search_web_placeholder: Buscar imágenes en la web...
+      search_status: Ingresa palabras clave y haz clic en Buscar o presiona Enter
+      google_api_required: Se Requiere Configuración de API de Google
+      google_api_description: Para buscar en Google Imágenes, necesitas configurar una clave de API de Google y un ID de Motor de Búsqueda Personalizado.
+      google_setup_step_2: 'Agrega: google_api_key = TU_CLAVE'
+      google_setup_step_3: 'Agrega: google_cse_id = TU_CSE_ID'
+      search_google_placeholder: Buscar en Google Imágenes...
+      search_pinterest_placeholder: Buscar en Pinterest...
+      gemini_api_required: Se Requiere Clave de API de Gemini
+      gemini_api_description: La generación de imágenes con IA usa los modelos Imagen de Google y requiere una clave de API de Gemini.
+      gemini_setup_step_1: Obtén una clave de API en aistudio.google.com
+      gemini_setup_step_2: Edita .fed en tu carpeta de notas
+      gemini_setup_step_3: 'Agrega: gemini_api_key = TU_CLAVE'
+      model_label: 'Modelo:'
+      reference_image_label: Imagen de referencia (opcional) - guía la generación con una imagen existente
+      remove_reference: Eliminar referencia
+      search_reference_placeholder: Buscar imágenes de referencia...
+      prompt_label: Describe la imagen que quieres generar
+      prompt_placeholder: Una imagen fotorrealista de un paisaje montañoso al atardecer con nubes dramáticas...
+      generate_image: Generar Imagen
+      generating_with: Generando imagen con
+      generated_image: Imagen Generada
+      revised_prompt: Prompt revisado por IA
+      save_to: 'Guardar en:'
+      save_local: directorio notes/images/
+      save_s3: AWS S3
     s3_option:
-      upload_to_s3: "Subir a AWS S3"
-      reupload_to_s3: "Descargar y re-subir a AWS S3"
-      upload_description: "La imagen se subirá a S3 y se usará la URL en lugar de la ruta local"
-      reupload_description: "La imagen se descargará y subirá a tu S3, usando tu URL en lugar de la original"
-      resize: "Redimensionar:"
-      none: "Ninguno (tamaño original)"
-      quarter_size: "1/4 del tamaño (25%)"
-      half_size: "1/2 del tamaño (50%)"
-      two_thirds_size: "2/3 del tamaño (67%)"
+      upload_to_s3: Subir a AWS S3
+      reupload_to_s3: Descargar y re-subir a AWS S3
+      upload_description: La imagen se subirá a S3 y se usará la URL en lugar de la ruta local
+      reupload_description: La imagen se descargará y subirá a tu S3, usando tu URL en lugar de la original
+      resize: 'Redimensionar:'
+      none: Ninguno (tamaño original)
+      quarter_size: 1/4 del tamaño (25%)
+      half_size: 1/2 del tamaño (50%)
+      two_thirds_size: 2/3 del tamaño (67%)
       compress: "+ comprimir"
-
-    # Help dialog
     help:
-      title: "Ayuda"
-      toggle_hint: "Presiona F1 para alternar"
-      tab_markdown: "Markdown"
-      tab_shortcuts: "Atajos de Teclado"
-      headings: "Encabezados"
-      emphasis: "Énfasis"
-      lists: "Listas"
-      task_list: "Lista de Tareas"
-      links_images: "Enlaces e Imágenes"
-      blockquote: "Cita"
-      code_block: "Bloque de Código"
-      table: "Tabla"
-      horizontal_rule: "Línea Horizontal"
+      title: Ayuda
+      toggle_hint: Presiona F1 para alternar
+      tab_markdown: Markdown
+      tab_shortcuts: Atajos de Teclado
+      headings: Encabezados
+      emphasis: Énfasis
+      lists: Listas
+      task_list: Lista de Tareas
+      links_images: Enlaces e Imágenes
+      blockquote: Cita
+      code_block: Bloque de Código
+      table: Tabla
+      horizontal_rule: Línea Horizontal
       shortcuts:
-        file_operations: "Operaciones de Archivo"
-        save: "Guardar archivo"
-        new_note: "Nueva nota"
-        file_finder: "Buscar archivo"
-        search_files: "Buscar en archivos"
-        editor: "Editor"
-        toggle_sidebar: "Alternar barra lateral"
-        toggle_preview: "Alternar vista previa"
-        typewriter_mode: "Modo máquina de escribir"
-        toggle_line_numbers: "Alternar números de línea"
-        increase_width: "Aumentar ancho del editor"
-        decrease_width: "Disminuir ancho del editor"
-        indent: "Indentar línea/bloque"
-        unindent: "Quitar indentación"
-        insert: "Insertar"
-        emoji_picker: "Selector de emoji"
-        format_menu: "Menú de formato"
-        context_menu: "Menú contextual (con selección)"
-        text_format: "Menú de Formato"
-        bold: "Negrita"
-        italic: "Cursiva"
-        strikethrough: "Tachado"
-        highlight: "Resaltado"
-        subscript: "Subíndice"
-        superscript: "Superíndice"
-        link: "Enlace"
-        dialogs: "Diálogos"
-        help: "Ayuda"
-        log_viewer: "Visor de registros"
-        close_dialog: "Cerrar diálogo"
-        switch_tabs: "Cambiar pestañas (con pestaña enfocada)"
-        navigate_items: "Navegar elementos"
-        select_confirm: "Seleccionar/confirmar"
-
-    # Customize dialog (editor settings)
+        file_operations: Operaciones de Archivo
+        save: Guardar archivo
+        new_note: Nueva nota
+        file_finder: Buscar archivo
+        search_files: Buscar en archivos
+        editor: Editor
+        toggle_sidebar: Alternar barra lateral
+        toggle_preview: Alternar vista previa
+        typewriter_mode: Modo máquina de escribir
+        toggle_line_numbers: Alternar números de línea
+        increase_width: Aumentar ancho del editor
+        decrease_width: Disminuir ancho del editor
+        indent: Indentar línea/bloque
+        unindent: Quitar indentación
+        insert: Insertar
+        emoji_picker: Selector de emoji
+        format_menu: Menú de formato
+        context_menu: Menú contextual (con selección)
+        text_format: Menú de Formato
+        bold: Negrita
+        italic: Cursiva
+        strikethrough: Tachado
+        highlight: Resaltado
+        subscript: Subíndice
+        superscript: Superíndice
+        link: Enlace
+        dialogs: Diálogos
+        help: Ayuda
+        log_viewer: Visor de registros
+        close_dialog: Cerrar diálogo
+        switch_tabs: Cambiar pestañas (con pestaña enfocada)
+        navigate_items: Navegar elementos
+        select_confirm: Seleccionar/confirmar
     customize:
-      title: "Configuración del Editor"
-      font_family: "Familia de Fuente"
-      font_size: "Tamaño de Fuente"
-      preview: "Vista Previa"
-
-    # About dialog
+      title: Configuración del Editor
+      font_family: Familia de Fuente
+      font_size: Tamaño de Fuente
+      preview: Vista Previa
     about:
-      description: "Un editor de markdown moderno para tus notas"
-      copyright: "Todos los derechos reservados."
-      view_github: "Ver en GitHub"
-
-    # AI diff dialog
+      description: Un editor de markdown moderno para tus notas
+      copyright: Todos los derechos reservados.
+      view_github: Ver en GitHub
     ai_diff:
-      title: "Revisión Gramatical con IA"
-      config_required: "Se Requiere Configuración de IA"
-      config_description: "Configura uno de los siguientes proveedores en tu archivo .fed."
-      priority_note: "Prioridad (modo auto): Ollama → OpenRouter → Anthropic → Gemini → OpenAI"
-      ollama_title: "Ollama (Local, Gratis)"
-      ollama_description: "Ejecuta IA localmente en tu máquina:"
-      openrouter_title: "OpenRouter"
-      openrouter_description: "Accede a múltiples proveedores de IA:"
-      anthropic_title: "Anthropic (Claude)"
-      anthropic_description: "Usa modelos Claude:"
-      gemini_title: "Google Gemini"
-      gemini_description: "Usa modelos Gemini:"
-      openai_title: "OpenAI"
-      openai_description: "Usa modelos GPT:"
-      provider_selection: "Selección de Proveedor"
-      provider_override: "Anular detección automática:"
-      original: "Original"
+      title: Revisión Gramatical con IA
+      config_required: Se Requiere Configuración de IA
+      config_description: Configura uno de los siguientes proveedores en tu archivo .fed.
+      priority_note: 'Prioridad (modo auto): Ollama → OpenRouter → Anthropic → Gemini → OpenAI'
+      ollama_title: Ollama (Local, Gratis)
+      ollama_description: 'Ejecuta IA localmente en tu máquina:'
+      openrouter_title: OpenRouter
+      openrouter_description: 'Accede a múltiples proveedores de IA:'
+      anthropic_title: Anthropic (Claude)
+      anthropic_description: 'Usa modelos Claude:'
+      gemini_title: Google Gemini
+      gemini_description: 'Usa modelos Gemini:'
+      openai_title: OpenAI
+      openai_description: 'Usa modelos GPT:'
+      provider_selection: Selección de Proveedor
+      provider_override: 'Anular detección automática:'
+      original: Original
       deletions_hint: "(eliminaciones en rojo)"
-      corrected: "Corregido"
+      corrected: Corregido
       additions_hint: "(adiciones en verde)"
-      accept_changes: "Aceptar Cambios"
-
+      accept_changes: Aceptar Cambios
     jump_to_line:
-      title: "Ir a la línea"
-      placeholder: "ej. 10, +5, -5, -1"
-      hint: "Número de línea; +N/-N relativo; -1 al final"
-      go: "Ir"
-
+      title: Ir a la línea
+      placeholder: ej. 10, +5, -5, -1
+      hint: Número de línea; +N/-N relativo; -1 al final
+      go: Ir
     find_replace:
-      tab_find: "Buscar"
-      tab_replace: "Reemplazar"
-      find_placeholder: "Buscar..."
-      replace_placeholder: "Reemplazar con..."
-      previous: "Anterior"
-      next: "Siguiente"
-      replace: "Reemplazar"
-      replace_all: "Todo"
-      replace_one_title: "Reemplazar coincidencia actual"
-      replace_all_title: "Reemplazar todas las coincidencias"
-      skip: "Saltar"
-      case_sensitive: "Distinguir mayúsculas (Aa)"
-      use_regex: "Usar expresión regular (.*)"
-      no_results: "Sin resultados"
+      tab_find: Buscar
+      tab_replace: Reemplazar
+      find_placeholder: Buscar...
+      replace_placeholder: Reemplazar con...
+      previous: Anterior
+      next: Siguiente
+      replace: Reemplazar
+      replace_all: Todo
+      replace_one_title: Reemplazar coincidencia actual
+      replace_all_title: Reemplazar todas las coincidencias
+      skip: Saltar
+      case_sensitive: Distinguir mayúsculas (Aa)
+      use_regex: Usar expresión regular (.*)
+      no_results: Sin resultados
       match_count: "%{current} de %{total}"
       replaced_count: "%{count} reemplazado(s)"
-      open_dialog: "Abrir cuadro de búsqueda"
-
-    # File finder dialog
+      open_dialog: Abrir cuadro de búsqueda
     file_finder:
-      placeholder: "Escribe para buscar archivos..."
-      esc_to_close: "esc para cerrar"
-
-    # Content search dialog
+      placeholder: Escribe para buscar archivos...
+      esc_to_close: esc para cerrar
     content_search:
-      placeholder: "Buscar en archivos (soporta regex)..."
-      status: "Escribe para buscar en el contenido (soporta regex)"
-      literal_text: "texto literal"
-      or_operator: "O"
-      one_or_more: "uno o más"
-      any_chars: "cualquier carácter"
-      start_of_line: "inicio de línea"
-      end_of_line: "fin de línea"
-      digits: "dígitos"
-      whole_word: "palabra completa"
-
-    # Text format menu
+      placeholder: Buscar en archivos (soporta regex)...
+      status: Escribe para buscar en el contenido (soporta regex)
+      literal_text: texto literal
+      or_operator: O
+      one_or_more: uno o más
+      any_chars: cualquier carácter
+      start_of_line: inicio de línea
+      end_of_line: fin de línea
+      digits: dígitos
+      whole_word: palabra completa
     text_format:
-      bold: "Negrita"
-      italic: "Cursiva"
-      strikethrough: "Tachado"
-      highlight: "Resaltado"
-      subscript: "Subíndice"
-      superscript: "Superíndice"
-      link: "Enlace"
-
-    # Emoji picker
+      bold: Negrita
+      italic: Cursiva
+      strikethrough: Tachado
+      highlight: Resaltado
+      subscript: Subíndice
+      superscript: Superíndice
+      link: Enlace
     emoji_picker:
-      title: "Selector de Emoji"
-      search_placeholder: "Buscar emojis..."
-      tab_emoji: "Emoji"
-      tab_emoticons: "Emoticones"
-
-    # Recovery diff dialog
+      title: Selector de Emoji
+      search_placeholder: Buscar emojis...
+      tab_emoji: Emoji
+      tab_emoticons: Emoticones
     recovery:
-      title: "Recuperación de Copia de Seguridad Offline"
-      server_version: "Versión del Servidor"
-      backup_version: "Copia de Seguridad Local"
+      title: Recuperación de Copia de Seguridad Offline
+      server_version: Versión del Servidor
+      backup_version: Copia de Seguridad Local
       server_hint: "(archivo actual)"
       backup_hint: "(guardado offline)"
-      use_server: "Usar Versión del Servidor"
-      restore_backup: "Restaurar Copia de Seguridad"
-
-  # Error messages
+      use_server: Usar Versión del Servidor
+      restore_backup: Restaurar Copia de Seguridad
+    custom_ai:
+      title: Varita Mágica
+      prompt_label: 'Instrucciones para IA:'
+      placeholder: ej. Traducir al español, Hacerlo más profesional...
+      generate: Generar
+      hint_document: No hay texto seleccionado. Analizando documento completo...
+      hint_selection: Analizando selección resaltada...
   errors:
-    note_not_found: "Nota no encontrada"
-    note_already_exists: "La nota ya existe"
-    note_is_empty: "La nota está vacía"
-    folder_not_found: "Carpeta no encontrada"
-    folder_already_exists: "La carpeta ya existe"
-    file_not_found: "Este archivo ya no existe o fue eliminado."
-    no_file_open: "Ningún archivo abierto"
-    no_text_to_check: "No hay texto para revisar"
-    no_file_provided: "No se proporcionó ruta de archivo"
-    no_image_data: "No se proporcionaron datos de imagen"
-    no_prompt_provided: "No se proporcionó prompt"
-    no_file_upload: "No se proporcionó archivo"
-    query_required: "Se requiere consulta"
-    url_required: "Se requiere URL"
-    s3_not_configured: "S3 no configurado"
-    images_not_configured: "Imágenes no configuradas"
-    youtube_not_configured: "Clave de API de YouTube no configurada"
-    google_not_configured: "Búsqueda Personalizada de Google no configurada"
-    no_valid_settings: "No se proporcionaron configuraciones válidas"
-    upload_failed: "Error al subir"
-    search_failed: "Error en la búsqueda"
-    failed_to_move: "Error al mover"
-    failed_to_load: "Error al cargar nota"
-    failed_to_save: "Error al guardar"
-    failed_to_create: "Error al crear"
-    failed_to_rename: "Error al renombrar"
-    failed_to_delete: "Error al eliminar"
-    failed_to_upload: "Error al subir"
-    failed_to_process_ai: "Error al procesar texto con IA"
-
-  # Confirm messages
+    note_not_found: Nota no encontrada
+    note_already_exists: La nota ya existe
+    note_is_empty: La nota está vacía
+    folder_not_found: Carpeta no encontrada
+    folder_already_exists: La carpeta ya existe
+    file_not_found: Este archivo ya no existe o fue eliminado.
+    no_file_open: Ningún archivo abierto
+    no_text_to_check: No hay texto para revisar
+    no_file_provided: No se proporcionó ruta de archivo
+    no_image_data: No se proporcionaron datos de imagen
+    no_prompt_provided: No se proporcionó prompt
+    no_file_upload: No se proporcionó archivo
+    query_required: Se requiere consulta
+    url_required: Se requiere URL
+    s3_not_configured: S3 no configurado
+    images_not_configured: Imágenes no configuradas
+    youtube_not_configured: Clave de API de YouTube no configurada
+    google_not_configured: Búsqueda Personalizada de Google no configurada
+    no_valid_settings: No se proporcionaron configuraciones válidas
+    upload_failed: Error al subir
+    search_failed: Error en la búsqueda
+    failed_to_move: Error al mover
+    failed_to_load: Error al cargar nota
+    failed_to_save: Error al guardar
+    failed_to_create: Error al crear
+    failed_to_rename: Error al renombrar
+    failed_to_delete: Error al eliminar
+    failed_to_upload: Error al subir
+    failed_to_process_ai: Error al procesar texto con IA
   confirm:
     delete_note: "¿Estás seguro de que quieres eliminar esta nota?"
     delete_folder: "¿Estás seguro de que quieres eliminar esta carpeta y todo su contenido?"
-
-  # Success messages
   success:
-    note_created: "Nota creada"
-    note_saved: "Nota guardada"
-    note_deleted: "Nota eliminada"
-    note_renamed: "Nota renombrada"
-    folder_created: "Carpeta creada"
-    folder_deleted: "Carpeta eliminada"
-    folder_renamed: "Carpeta renombrada"
-    settings_saved: "Configuración guardada"
+    note_created: Nota creada
+    note_saved: Nota guardada
+    note_deleted: Nota eliminada
+    note_renamed: Nota renombrada
+    folder_created: Carpeta creada
+    folder_deleted: Carpeta eliminada
+    folder_renamed: Carpeta renombrada
+    settings_saved: Configuración guardada
+  notes:
+    show:
+      ai_error: 'Error de IA: %{message}'

@@ -59,8 +59,10 @@
   <!-- Main Content -->
   <div class="flex-1 flex overflow-hidden">
     <%= render "notes/sidebar" %>
-    <%= render "notes/editor_panel" %>
-    <%= render "notes/preview_panel" %>
+    <div class="flex-1 flex overflow-hidden" data-controller="split-pane">
+      <%= render "notes/editor_panel" %>
+      <%= render "notes/preview_panel" %>
+    </div>
   </div>
 
   <!-- File Operations (context menu + dialogs) -->

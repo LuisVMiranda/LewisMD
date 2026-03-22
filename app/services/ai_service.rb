@@ -69,6 +69,27 @@ class AiService
       { error: "AI processing failed: #{e.message}" }
     end
 
+    def generate_custom_prompt(text, prompt)
+      return { error: "AI not configured" } unless enabled?
+      return { error: "No text provided" } if text.blank?
+      return { error: "No prompt provided" } if prompt.blank?
+
+      provider = current_provider
+      model = current_model
+
+      return { error: "No AI provider available" } unless provider && model
+
+      configure_client
+      chat = RubyLLM.chat(model: model, provider: provider.to_sym, assume_model_exists: provider == "ollama")
+      chat.with_instructions(prompt)
+      response = chat.ask(text)
+
+      { corrected: response.content, provider: provider, model: model }
+    rescue StandardError => e
+      Rails.logger.error "AI Custom error (#{provider}/#{model}): #{e.class} - #{e.message}"
+      { error: "AI processing failed: #{e.message}" }
+    end
+
     # Get provider info for frontend display
     def provider_info
       {

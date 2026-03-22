@@ -142,6 +142,33 @@ export default class extends Controller {
     }
   }
 
+  // Called by custom_ai_prompt_controller
+  openWithCustomResponse(original, corrected, provider, model, range = null) {
+    this.replacementRange = range
+
+    if (this.hasProviderBadgeTarget && provider && model) {
+      this.providerBadgeTarget.textContent = `${provider}: ${model}`
+      this.providerBadgeTarget.classList.remove("hidden")
+    }
+
+    this.configNoticeTarget.classList.add("hidden")
+    this.diffContentTarget.classList.remove("hidden")
+    this.diffContentTarget.classList.add("flex")
+
+    const diff = computeWordDiff(original, corrected)
+    this.originalTextTarget.innerHTML = this.renderDiffOriginal(diff)
+    this.correctedDiffTarget.innerHTML = this.renderDiffCorrected(diff)
+    this.correctedTextTarget.value = corrected
+
+    this.correctedDiffTarget.classList.remove("hidden")
+    this.correctedTextTarget.classList.add("hidden")
+    if (this.hasEditToggleTarget) {
+      this.editToggleTarget.textContent = window.t("common.edit")
+    }
+
+    this.dialogTarget.showModal()
+  }
+
   cleanup() {
     document.removeEventListener("keydown", this.boundHandleEscKey)
     this.aiAbortController = null
@@ -177,7 +204,8 @@ export default class extends Controller {
 
   accept() {
     const correctedText = this.correctedTextTarget.value
-    this.dispatch("accepted", { detail: { correctedText } })
+    this.dispatch("accepted", { detail: { correctedText, range: this.replacementRange } })
+    this.replacementRange = null
     this.close()
   }
 

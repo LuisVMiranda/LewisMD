@@ -1,0 +1,64 @@
+/* ===== Print / PDF Export ===== */
+/* Applied when frankmd-printing class is on <html> via app_controller#printNote */
+
+@media print {
+  html.frankmd-printing * {
+    visibility: hidden;
+  }
+
+  /* Reveal only the preview content */
+  html.frankmd-printing [data-app-target~="previewContent"],
+  html.frankmd-printing [data-app-target~="previewContent"] * {
+    visibility: visible;
+  }
+
+  html.frankmd-printing [data-app-target~="previewContent"] {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 2rem 3rem;
+    overflow: visible;
+    max-width: 100% !important;
+    font-size: 12pt;
+    line-height: 1.6;
+    color: #000 !important;
+    background: #fff !important;
+  }
+
+  /* Readable code blocks */
+  html.frankmd-printing .prose pre,
+  html.frankmd-printing .prose code {
+    border: 1px solid #ccc;
+    background: #f5f5f5 !important;
+    color: #000 !important;
+    white-space: pre-wrap;
+  }
+
+  /* Print full URLs after links */
+  html.frankmd-printing .prose a::after {
+    content: " (" attr(href) ")";
+    font-size: 0.8em;
+    color: #555;
+  }
+
+  /* Images and page break hints */
+  html.frankmd-printing .prose img {
+    max-width: 100%;
+    page-break-inside: avoid;
+  }
+
+  html.frankmd-printing .prose h1,
+  html.frankmd-printing .prose h2,
+  html.frankmd-printing .prose h3 {
+    page-break-after: avoid;
+  }
+
+  html.frankmd-printing .prose p,
+  html.frankmd-printing .prose blockquote,
+  html.frankmd-printing .prose li {
+    page-break-inside: avoid;
+    orphans: 3;
+    widows: 3;
+  }
+}

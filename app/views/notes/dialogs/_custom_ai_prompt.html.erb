@@ -1,0 +1,48 @@
+<!-- Custom AI Prompt Dialog -->
+<div data-controller="custom-ai-prompt"
+     data-action="custom-ai-prompt:processing-started->app#onAiProcessingStarted custom-ai-prompt:processing-ended->app#onAiProcessingEnded">
+  
+  <dialog
+    data-custom-ai-prompt-target="dialog"
+    data-action="keydown->custom-ai-prompt#handleKeydown"
+    class="w-[90vw] max-w-lg p-0 rounded-lg shadow-xl bg-[var(--theme-bg-primary)] text-[var(--theme-text-primary)] backdrop:bg-black/50 border border-[var(--theme-border)]"
+  >
+    <!-- Header -->
+    <div class="flex items-center justify-between px-6 py-4 border-b border-[var(--theme-border)]">
+      <h2 class="text-lg font-semibold"><%= t('dialogs.custom_ai.title', default: 'Magic Wand') %></h2>
+      <%= render "shared/dialog_close_button", action: "click->custom-ai-prompt#close", size: "h-5 w-5", padding: "p-2", hover_bg: "hover:bg-[var(--theme-bg-secondary)]" %>
+    </div>
+    
+    <!-- Body -->
+    <div class="p-6">
+      <div class="mb-4">
+        <label for="custom_ai_prompt_input" class="block text-sm font-medium text-[var(--theme-text-secondary)] mb-2">
+          <%= t('dialogs.custom_ai.prompt_label', default: 'Instructions for AI:') %>
+        </label>
+        <textarea
+          id="custom_ai_prompt_input"
+          data-custom-ai-prompt-target="promptInput"
+          class="w-full text-sm font-mono bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] rounded border border-[var(--theme-border)] p-3 focus:outline-none focus:ring-1 focus:ring-[var(--theme-accent)] resize-none"
+          rows="3"
+          placeholder="<%= t('dialogs.custom_ai.placeholder', default: 'e.g., Translate to Spanish, Make it more professional...') %>"
+        ></textarea>
+      </div>
+      <p class="text-xs text-[var(--theme-text-muted)] italic mb-2" data-custom-ai-prompt-target="selectionHint">
+        <!-- Replaced via JS based on selection -->
+      </p>
+    </div>
+
+    <!-- Footer -->
+    <div class="flex items-center justify-between px-6 py-4 bg-[var(--theme-bg-secondary)] rounded-b-lg border-t border-[var(--theme-border)]">
+      <span data-custom-ai-prompt-target="providerBadge" class="hidden text-xs px-2 py-1 rounded bg-[var(--theme-bg-tertiary)] text-[var(--theme-text-muted)]"></span>
+      <div class="flex gap-2 ml-auto">
+        <button type="button" data-action="click->custom-ai-prompt#close" class="px-4 py-2 text-sm rounded bg-transparent hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-secondary)]">
+          <%= t('common.cancel') %>
+        </button>
+        <button type="button" data-action="click->custom-ai-prompt#generate" class="px-4 py-2 text-sm rounded bg-[var(--theme-accent)] text-[var(--theme-accent-text)] hover:bg-[var(--theme-accent-hover)]">
+          <%= t('dialogs.custom_ai.generate', default: 'Generate') %>
+        </button>
+      </div>
+    </div>
+  </dialog>
+</div>

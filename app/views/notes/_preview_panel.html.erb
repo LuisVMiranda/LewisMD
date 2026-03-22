@@ -1,9 +1,16 @@
 <aside data-controller="preview"
         data-preview-zoom-value="<%= @config&.dig('preview_zoom') || 100 %>"
         data-action="preview:zoom-changed->app#onPreviewZoomChanged preview:toggled->app#onPreviewToggled preview:toggled->scroll-sync#onPreviewToggled preview:scroll->scroll-sync#onPreviewScroll"
-        class="flex-none w-[40%] border-l border-[var(--theme-border)] flex-col bg-[var(--theme-bg-primary)] hidden"
+        class="flex-none border-l border-[var(--theme-border)] flex-col bg-[var(--theme-bg-primary)] hidden relative"
+        style="width: var(--preview-width, 40%);"
         data-preview-target="panel"
-        data-app-target="previewPanel">
+        data-app-target="previewPanel"
+        data-split-pane-target="rightPane">
+    <!-- Draggable Gutter Overlaying the left border -->
+    <div class="absolute left-0 top-0 bottom-0 w-2 -ml-1 cursor-col-resize hover:bg-[var(--theme-border)] z-50 transition-colors"
+         data-split-pane-target="gutter"
+         data-action="pointerdown->split-pane#startDrag"></div>
+    
     <!-- Preview Header -->
     <div class="flex-none h-10 border-b border-[var(--theme-border)] flex items-center justify-between px-4">
       <span class="text-xs font-medium text-[var(--theme-text-muted)] uppercase tracking-wide"><%= t('preview.title') %></span>

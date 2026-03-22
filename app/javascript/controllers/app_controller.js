@@ -33,7 +33,10 @@ export default class extends Controller {
     "sidebarToggle",
     "aiButton",
     "editorWrapper",
-    "editorBody"
+    "editorBody",
+    "editorPanel",
+    "previewPanel",
+    "previewContent"
   ]
 
   static outlets = [
@@ -589,9 +592,43 @@ export default class extends Controller {
       return
     }
 
+    // State cohesion loop: Reading Mode -> Typewriter Mode
+    if (this.readingModeActive) {
+      this.toggleReadingMode() // Cleanly exit Reading Mode
+
+      const isTypewriterOn = document.body.classList.contains("typewriter-mode")
+      if (!isTypewriterOn) {
+        this.toggleTypewriterMode()
+      } else {
+        const previewController = this.getPreviewController()
+        if (previewController && previewController.isVisible) {
+          previewController.hide()
+
+          // Fallback check: if no reading mode, no preview, engage Typewriter
+          if (!this.readingModeActive) {
+            const typewriterController = this.getTypewriterController()
+            if (typewriterController && !typewriterController.enabledValue) {
+              typewriterController.toggle()
+            }
+          }
+        }
+      }
+      return
+    }
+
     const previewController = this.getPreviewController()
     if (previewController) {
       previewController.toggle()
+      
+      // If preview was just toggled OFF, fallback to Typewriter
+      if (!previewController.isVisible) {
+        if (!this.readingModeActive) {
+          const typewriterController = this.getTypewriterController()
+          if (typewriterController && !typewriterController.enabledValue) {
+            typewriterController.toggle()
+          }
+        }
+      }
     }
   }
 
@@ -865,6 +902,145 @@ export default class extends Controller {
     }
   }
 
+  // === Reading Mode Toggle ===
+  toggleReadingMode(event) {
+    this.readingModeActive = !this.readingModeActive
+
+    if (this.readingModeActive) {
+      // Enter Reading Mode: Hide Editor Panel
+      this.editorPanelTarget.classList.add("hidden")
+
+      // Ensure preview is visible if it was hidden
+      const previewController = this.getPreviewController()
+      if (previewController && !previewController.isVisible) {
+        previewController.toggle()
+      }
+      
+      // Expand Preview Width Priority
+      if (this.hasPreviewPanelTarget) {
+        this.previewPanelTarget.classList.add("!w-full")
+      }
+
+      // Apply Typography Constraints for Reading Mode
+      if (this.hasPreviewContentTarget) {
+        this.previewContentTarget.classList.remove("max-w-none")
+        this.previewContentTarget.classList.add("max-w-4xl", "mx-auto", "px-8")
+      }
+
+      // Explicit Typography Safeguard: Ensure Editor Target NEVER inherits these classes
+      if (this.hasEditorTarget) {
+        this.editorTarget.classList.remove("max-w-4xl", "mx-auto", "px-8")
+      }
+      if (this.hasEditorPanelTarget) {
+        this.editorPanelTarget.classList.remove("max-w-4xl", "mx-auto", "px-8")
+      }
+    } else {
+      // Exit Reading Mode: Show Editor Panel
+      this.editorPanelTarget.classList.remove("hidden")
+
+      // Restore Preview Width
+      if (this.hasPreviewPanelTarget) {
+        this.previewPanelTarget.classList.remove("!w-full")
+      }
+
+      // Restore Typography Defaults
+      if (this.hasPreviewContentTarget) {
+        this.previewContentTarget.classList.remove("max-w-4xl", "mx-auto", "px-8")
+        this.previewContentTarget.classList.add("max-w-none")
+      }
+
+      // Fallback check: if returning to an empty mode (preview is off), engage Typewriter
+      const previewController = this.getPreviewController()
+      if (!previewController || !previewController.isVisible) {
+        const typewriterController = this.getTypewriterController()
+        if (typewriterController && !typewriterController.enabledValue) {
+          typewriterController.toggle()
+        }
+      }
+
+      // Handle Typewriter scroll collision (needs slight delay for DOM to un-hide constraints)
+      if (this.isMarkdownFile()) {
+        setTimeout(() => {
+          this.maintainTypewriterScroll()
+        }, 10)
+      }
+    }
+  }
+
+  // === Print / Export as PDF ===
+  printNote() {
+    const previewController = this.getPreviewController()
+    if (!previewController) return
+
+    const wasVisible = previewController.isVisible
+    const wasReadingMode = this.readingModeActive
+
+    // Ensure preview is rendered — show it temporarily if not
+    if (!wasVisible) {
+      previewController.show()
+      // Give marked.js a tick to render fully before printing
+    }
+
+    const doprint = () => {
+      document.documentElement.classList.add("frankmd-printing")
+
+      const cleanup = () => {
+        document.documentElement.classList.remove("frankmd-printing")
+        window.removeEventListener("afterprint", cleanup)
+
+        // Restore state that existed before print
+        if (!wasVisible && !wasReadingMode) {
+          previewController.hide()
+        }
+      }
+
+      window.addEventListener("afterprint", cleanup)
+      window.print()
+    }
+
+    // Delay slightly so preview panel renders if it was just shown
+    if (!wasVisible) {
+      setTimeout(doprint, 150)
+    } else {
+      doprint()
+    }
+  }
+
+  // === Export as Clipboard (Rich HTML) ===
+  async copyHtmlToClipboard(event) {
+    const previewController = this.getPreviewController()
+    if (!previewController || !previewController.hasContentTarget) return
+
+    const btn = event.currentTarget
+    const originalHtml = btn.innerHTML
+
+    try {
+      // Get the rendered HTML content
+      const htmlContent = previewController.contentTarget.innerHTML
+      // Create a plain text version by stripping tags
+      const plainContent = previewController.contentTarget.innerText || ""
+
+      // Write both HTML and Plain Text formats
+      const clipboardItem = new ClipboardItem({
+        "text/html": new Blob([htmlContent], { type: "text/html" }),
+        "text/plain": new Blob([plainContent], { type: "text/plain" })
+      })
+
+      await navigator.clipboard.write([clipboardItem])
+
+      // Visual feedback: Change icon to checkmark temporarily
+      btn.innerHTML = `<svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>`
+    } catch (err) {
+      console.error("Failed to copy note to clipboard", err)
+      // Visual feedback: Change icon to X temporarily
+      btn.innerHTML = `<svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>`
+    }
+
+    setTimeout(() => {
+      btn.innerHTML = originalHtml
+    }, 2000)
+  }
+
   // === Typewriter Mode - Delegates to typewriter_controller ===
 
   initializeTypewriterMode() {
@@ -885,6 +1061,20 @@ export default class extends Controller {
 
     const typewriterController = this.getTypewriterController()
     if (typewriterController) {
+      // ALWAYS exit Reading Mode first, regardless of Typewriter's current state.
+      // This ensures pressing Typewriter while in Reading Mode always restores the editor.
+      if (this.readingModeActive) {
+        this.toggleReadingMode()
+      }
+
+      if (!typewriterController.enabledValue) {
+        // Enabling Typewriter: also hide preview for distraction-free writing
+        const previewController = this.getPreviewController()
+        if (previewController && previewController.isVisible) {
+          previewController.hide()
+        }
+      }
+
       typewriterController.toggle()
     }
   }
@@ -900,13 +1090,9 @@ export default class extends Controller {
       previewController.setTypewriterMode(enabled)
     }
 
-    // Typewriter mode: hide sidebar and preview for distraction-free writing
-    // Editor is centered on screen with content width control
+    // Typewriter mode: hide preview for distraction-free writing
+    // Sidebar is intentionally left untouched — it is user-controlled only
     if (enabled) {
-      // Hide explorer
-      this.sidebarVisible = false
-      this.applySidebarVisibility()
-
       // Hide preview (keep editor only for focused writing)
       if (previewController && previewController.isVisible) {
         previewController.hide()
@@ -915,10 +1101,6 @@ export default class extends Controller {
       // Add typewriter body class for full-width editor centering
       document.body.classList.add("typewriter-mode")
     } else {
-      // Show explorer
-      this.sidebarVisible = true
-      this.applySidebarVisibility()
-
       // Remove typewriter body class
       document.body.classList.remove("typewriter-mode")
     }
@@ -1192,6 +1374,16 @@ export default class extends Controller {
     if (this.hasAiGrammarOutlet) this.aiGrammarOutlet.open(this.currentFile)
   }
 
+  openCustomAiDialog() {
+    const el = document.querySelector('[data-controller~="custom-ai-prompt"]')
+    if (el) {
+      const ctrl = this.application.getControllerForElementAndIdentifier(el, 'custom-ai-prompt')
+      if (ctrl) {
+        ctrl.openModal()
+      }
+    }
+  }
+
   // Handle AI processing started event - disable editor and show button loading state
   onAiProcessingStarted() {
     const codemirrorController = this.getCodemirrorController()
@@ -1227,11 +1419,28 @@ export default class extends Controller {
 
   // Handle AI correction accepted event - update editor with corrected text
   onAiAccepted(event) {
-    const { correctedText } = event.detail
+    const { correctedText, range } = event.detail
     const codemirrorController = this.getCodemirrorController()
     if (codemirrorController) {
-      codemirrorController.setValue(correctedText)
+      // Phase 3 Fix: Sanitize incoming AI payload bounds
+      const sanitizedText = correctedText.replace(/\r/g, "").trim()
+
+      if (range && range.from !== undefined && range.to !== undefined) {
+        codemirrorController.editor.dispatch({
+          changes: {from: range.from, to: range.to, insert: sanitizedText}
+        })
+      } else {
+        codemirrorController.setValue(sanitizedText)
+      }
+
       this.onEditorChange({ detail: { docChanged: true } })
+
+      // Force Line Counter to recalculate dynamically by hijacking native textarea
+      if (this.hasTextareaTarget) {
+        this.textareaTarget.value = codemirrorController.getValue()
+        this.textareaTarget.dispatchEvent(new Event('input', { bubbles: true }))
+        this.textareaTarget.dispatchEvent(new Event('change', { bubbles: true }))
+      }
     }
   }
 
@@ -1385,6 +1594,7 @@ export default class extends Controller {
       save: () => this.getAutosaveController()?.saveNow(),
       // Note: bold and italic are handled by CodeMirror's keymap (codemirror_extensions.js)
       togglePreview: () => this.togglePreview(),
+      toggleReadingMode: () => this.toggleReadingMode(),
       findInFile: () => this.openFindReplace(),
       findReplace: () => this.openFindReplace({ tab: "replace" }),
       jumpToLine: () => this.openJumpToLine(),

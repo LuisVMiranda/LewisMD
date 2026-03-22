@@ -42,6 +42,33 @@ class AiController < ApplicationController
     end
   end
 
+  # POST /ai/generate_custom
+  def generate_custom
+    text = params[:selected_text].to_s
+    prompt = params[:prompt].to_s
+
+    if text.blank?
+      return render json: { error: t("errors.no_text_selected") }, status: :bad_request
+    end
+
+    if prompt.blank?
+      return render json: { error: t("errors.no_prompt_provided") }, status: :bad_request
+    end
+
+    result = AiService.generate_custom_prompt(text, prompt)
+
+    if result[:error]
+      render json: { error: result[:error] }, status: :unprocessable_entity
+    else
+      render json: {
+        original: text,
+        corrected: result[:corrected],
+        provider: result[:provider],
+        model: result[:model]
+      }
+    end
+  end
+
   # GET /ai/image_config
   def image_config
     render json: AiService.image_generation_info

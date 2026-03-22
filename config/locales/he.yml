@@ -1,461 +1,406 @@
+---
 he:
-  # מטא-נתוני האפליקציה
   app:
-    name: "FrankMD"
-    tagline: "עורך מרקדאון מודרני להערות שלך"
-
-  # פעולות נפוצות באפליקציה
+    name: LewisMD
+    tagline: עורך מרקדאון מודרני להערות שלך
   common:
-    cancel: "ביטול"
-    apply: "החל"
-    save: "שמור"
-    create: "צור"
-    delete: "מחק"
-    rename: "שנה שם"
-    close: "סגור"
-    search: "חפש"
-    insert: "הוסף"
-    edit: "ערוך"
-    ok: "אישור"
-
-  # שפות
+    cancel: ביטול
+    apply: החל
+    save: שמור
+    create: צור
+    delete: מחק
+    rename: שנה שם
+    close: סגור
+    search: חפש
+    insert: הוסף
+    edit: ערוך
+    ok: אישור
   languages:
-    en: "English"
-    pt_BR: "Português (Brasil)"
-    pt_PT: "Português (Portugal)"
-    es: "Español"
-    he: "עברית"
-    ja: "日本語"
-    ko: "한국어"
-
-  # אזור הכותרת
+    en: English
+    pt_BR: Português (Brasil)
+    pt_PT: Português (Portugal)
+    es: Español
+    he: עברית
+    ja: 日本語
+    ko: 한국어
   header:
-    toggle_explorer: "הצג/הסתר סייר (Ctrl+E)"
-    toggle_typewriter: "הצג/הסתר מצב מכונת כתיבה (Ctrl+B)"
-    toggle_preview: "הצג/הסתר תצוגה מקדימה (Ctrl+Shift+P)"
-    change_theme: "שנה ערכת נושא"
-    change_language: "שנה שפה"
-    about_app: "אודות FrankMD"
-    click_to_copy_path: "לחץ להעתקת הנתיב"
-
-  # אזור סרגל הצד/סייר
+    toggle_explorer: הצג/הסתר סייר (Ctrl+E)
+    toggle_typewriter: הצג/הסתר מצב מכונת כתיבה (Ctrl+B)
+    toggle_preview: הצג/הסתר תצוגה מקדימה (Ctrl+Shift+P)
+    change_theme: שנה ערכת נושא
+    change_language: שנה שפה
+    about_app: אודות LewisMD
+    click_to_copy_path: לחץ להעתקת הנתיב
   sidebar:
-    explorer: "סייר"
-    new_note: "הערה חדשה (Ctrl+N)"
-    new_folder: "תיקייה חדשה"
-    find_file: "חפש קובץ (Ctrl+P)"
-    search_in_files: "חפש בקבצים (Ctrl+Shift+F)"
-    no_notes_yet: "אין עדיין הערות"
-    no_files_found: "לא נמצאו קבצים"
-    # סטטיסטיקות מסמך
-    words: "מילים"
-    characters: "תווים"
-    size: "גודל"
-    read_time: "קריאה"
-
-  # אזור העורך
+    explorer: סייר
+    new_note: הערה חדשה (Ctrl+N)
+    new_folder: תיקייה חדשה
+    find_file: חפש קובץ (Ctrl+P)
+    search_in_files: חפש בקבצים (Ctrl+Shift+F)
+    no_notes_yet: אין עדיין הערות
+    no_files_found: לא נמצאו קבצים
+    words: מילים
+    characters: תווים
+    size: גודל
+    read_time: קריאה
   editor:
-    select_note: "בחר או צור הערה"
-    select_note_description: "בחר הערה לעריכה"
-    select_note_hint: "או לחץ Ctrl+N ליצירת הערה חדשה"
-    start_writing: "התחל לכתוב..."
-    cursor_in_table: "סמן בטבלה - לחץ לעריכה"
-    # סרגל כלים העורך
+    select_note: בחר או צור הערה
+    select_note_description: בחר הערה לעריכה
+    select_note_hint: או לחץ Ctrl+N ליצירת הערה חדשה
+    start_writing: התחל לכתוב...
+    cursor_in_table: סמן בטבלה - לחץ לעריכה
     toolbar:
-      help: "עזרה"
-      help_title: "עזרת מרקדאון (F1)"
-      table: "טבלה"
-      table_title: "הוסף/ערוך טבלה"
-      image: "תמונה"
-      image_title: "הוסף תמונה"
-      video: "סרטון"
-      video_title: "הוסף סרטון"
-      code: "קוד"
-      code_title: "הוסף/ערוך בלוק קוד"
-      font: "גופן"
-      font_title: "הגדרות עורך"
-      ai: "AI"
-      ai_title: "בדיקת דקדוק עם AI"
-      emoji: "אימוג'י"
-      emoji_title: "הוסף אימוג'י (Ctrl+Shift+E)"
-    # שכבת עיבוד AI
-    processing_with: "מעבד עם"
-    press_esc_to_cancel: "לחץ ESC לביטול"
-
-  # לוח תצוגה מקדימה
+      help: עזרה
+      help_title: עזרת מרקדאון (F1)
+      table: טבלה
+      table_title: הוסף/ערוך טבלה
+      image: תמונה
+      image_title: הוסף תמונה
+      video: סרטון
+      video_title: הוסף סרטון
+      code: קוד
+      code_title: הוסף/ערוך בלוק קוד
+      font: גופן
+      font_title: הגדרות עורך
+      ai: AI
+      ai_title: בדיקת דקדוק עם AI
+      emoji: אימוג'י
+      emoji_title: הוסף אימוג'י (Ctrl+Shift+E)
+      custom_ai_prompt: הנחיה
+      custom_ai_title: הנחיית AI מותאמת אישית
+    processing_with: מעבד עם
+    press_esc_to_cancel: לחץ ESC לביטול
   preview:
-    title: "תצוגה מקדימה"
-    zoom_in: "הגדל"
-    zoom_out: "הקטן"
-
-  # תפריט הקשר
+    title: תצוגה מקדימה
+    zoom_in: הגדל
+    zoom_out: הקטן
   context_menu:
-    new_note: "הערה חדשה"
-    new_folder: "תיקייה חדשה"
-    rename: "שנה שם"
-    delete: "מחק"
-
-  # הודעות סטטוס
+    new_note: הערה חדשה
+    new_folder: תיקייה חדשה
+    rename: שנה שם
+    delete: מחק
   status:
-    copied_to_clipboard: "התוכן הועתק ללוח"
-    saved: "נשמר"
-    unsaved: "שינויים לא שמורים"
-    error_saving: "שגיאה בשמירה"
-    error_loading: "שגיאה בטעינת הערה"
-    searching: "מחפש..."
-    no_matches: "לא נמצאו תוצאות"
-    search_error: "שגיאת חיפוש"
+    copied_to_clipboard: התוכן הועתק ללוח
+    saved: נשמר
+    unsaved: שינויים לא שמורים
+    error_saving: שגיאה בשמירה
+    error_loading: שגיאה בטעינת הערה
+    searching: מחפש...
+    no_matches: לא נמצאו תוצאות
+    search_error: שגיאת חיפוש
     matches_found: "%{count} תוצאות ב-%{files} קבצים"
-    config_applied: "הגדרות הוחלו"
-    found_videos: "נמצאו %{count} סרטונים - לחץ להוספה או השתמש בחצים"
-    please_enter_keywords: "אנא הזן מילות מפתח"
-    youtube_not_configured_js: "API של YouTube לא מוגדר. הגדר את משתנה YOUTUBE_API_KEY."
-    no_videos_found: "לא נמצאו סרטונים"
-    search_failed_retry: "החיפוש נכשל. נסה שוב."
-    enter_keywords_search: "הזן מילות מפתח ולחץ חפש או Enter"
-    type_to_search_regex: "הקלד לחיפוש בתוכן הקבצים (תומך בregex)"
-    processing: "מעבד..."
-    content_loss_warning: "זוהתה מחיקת תוכן גדולה. לחץ Ctrl+Z לביטול אם זה היה בטעות."
-    undo: "בטל"
-    save_anyway: "שמור בכל זאת"
-    offline_backup_saved: "גיבוי מקומי נשמר"
-
-  # כותרות ותוכן דיאלוגים
+    config_applied: הגדרות הוחלו
+    found_videos: נמצאו %{count} סרטונים - לחץ להוספה או השתמש בחצים
+    please_enter_keywords: אנא הזן מילות מפתח
+    youtube_not_configured_js: API של YouTube לא מוגדר. הגדר את משתנה YOUTUBE_API_KEY.
+    no_videos_found: לא נמצאו סרטונים
+    search_failed_retry: החיפוש נכשל. נסה שוב.
+    enter_keywords_search: הזן מילות מפתח ולחץ חפש או Enter
+    type_to_search_regex: הקלד לחיפוש בתוכן הקבצים (תומך בregex)
+    processing: מעבד...
+    content_loss_warning: זוהתה מחיקת תוכן גדולה. לחץ Ctrl+Z לביטול אם זה היה בטעות.
+    undo: בטל
+    save_anyway: שמור בכל זאת
+    offline_backup_saved: גיבוי מקומי נשמר
   dialogs:
-    # דיאלוג שינוי שם
     rename:
-      title: "שנה שם"
-      placeholder: "שם חדש"
-
-    # דיאלוג פריט חדש
+      title: שנה שם
+      placeholder: שם חדש
     new_item:
-      new_note: "הערה חדשה"
-      new_folder: "תיקייה חדשה"
-      placeholder: "שם"
-      note_placeholder: "שם ההערה"
-      folder_placeholder: "שם התיקייה"
-
-    # דיאלוג סוג הערה
+      new_note: הערה חדשה
+      new_folder: תיקייה חדשה
+      placeholder: שם
+      note_placeholder: שם ההערה
+      folder_placeholder: שם התיקייה
     note_type:
-      title: "הערה חדשה"
-      empty_document: "מסמך ריק"
-      empty_description: "קובץ מרקדאון פשוט"
-      hugo_post: "פוסט בלוג Hugo"
-      hugo_description: "YYYY/MM/DD/slug/index.md"
-      new_hugo_post: "פוסט בלוג Hugo חדש"
-
-    # דיאלוג עורך טבלה
+      title: הערה חדשה
+      empty_document: מסמך ריק
+      empty_description: קובץ מרקדאון פשוט
+      hugo_post: פוסט בלוג Hugo
+      hugo_description: YYYY/MM/DD/slug/index.md
+      new_hugo_post: פוסט בלוג Hugo חדש
     table_editor:
-      title: "עורך טבלאות"
-      add_column: "הוסף עמודה"
-      remove_column: "הסר עמודה"
-      add_row: "הוסף שורה"
-      remove_row: "הסר שורה"
-      column: "עמודה"
-      row: "שורה"
-      move_left: "הזז שמאלה"
-      move_right: "הזז ימינה"
-      move_up: "הזז למעלה"
-      move_down: "הזז למטה"
-      delete_column: "מחק עמודה"
-      delete_row: "מחק שורה"
-      insert_table: "הוסף טבלה"
-      header: "כותרת"
-      header_n: "כותרת %{n}"
-
-    # דיאלוג קוד
+      title: עורך טבלאות
+      add_column: הוסף עמודה
+      remove_column: הסר עמודה
+      add_row: הוסף שורה
+      remove_row: הסר שורה
+      column: עמודה
+      row: שורה
+      move_left: הזז שמאלה
+      move_right: הזז ימינה
+      move_up: הזז למעלה
+      move_down: הזז למטה
+      delete_column: מחק עמודה
+      delete_row: מחק שורה
+      insert_table: הוסף טבלה
+      header: כותרת
+      header_n: כותרת %{n}
     code:
-      title: "בלוק קוד"
-      language_label: "שפה (Tab להשלמה אוטומטית)"
-      language_placeholder: "javascript, python, ruby..."
-      code_label: "קוד (אופציונלי) — Tab להזחה, Ctrl+Enter להוספה"
-      use_tabs: "השתמש בטאבים"
-      code_placeholder: "הדבק או הקלד את הקוד שלך כאן..."
-      insert_code: "הוסף קוד"
-      unrecognized_language: "\"%{language}\" אינה שפה מוכרת. להוסיף בכל זאת?"
-
-    # דיאלוג סרטון
+      title: בלוק קוד
+      language_label: שפה (Tab להשלמה אוטומטית)
+      language_placeholder: javascript, python, ruby...
+      code_label: קוד (אופציונלי) — Tab להזחה, Ctrl+Enter להוספה
+      use_tabs: השתמש בטאבים
+      code_placeholder: הדבק או הקלד את הקוד שלך כאן...
+      insert_code: הוסף קוד
+      unrecognized_language: '"%{language}" אינה שפה מוכרת. להוסיף בכל זאת?'
     video:
-      title: "הוסף סרטון"
-      tab_url: "URL / קובץ"
-      tab_search: "חיפוש YouTube"
-      url_label: "URL או נתיב סרטון"
-      url_placeholder: "URL של YouTube או נתיב לקובץ סרטון..."
-      url_hint_youtube: "YouTube: https://youtube.com/watch?v=... או https://youtu.be/..."
-      url_hint_file: "קובץ סרטון: /path/to/video.mp4, .webm, .mkv, .mov, .avi"
-      preview_hint: "הזן URL לתצוגה מקדימה"
-      unknown_format: "פורמט לא ידוע. הזן URL של YouTube או נתיב לקובץ סרטון."
-      insert_video: "הוסף סרטון"
-      use_hugo_shortcode: "השתמש ב-shortcode של Hugo במקום HTML embed"
-      # חיפוש YouTube
-      youtube_api_required: "נדרש מפתח API של YouTube"
-      youtube_api_description: "לחיפוש סרטוני YouTube, עליך להגדיר מפתח API של YouTube Data."
-      quick_setup: "הגדרה מהירה:"
-      setup_step_1: "ערוך את קובץ .fed בתיקיית ההערות שלך"
-      setup_step_2: "הוסף: youtube_api_key = YOUR_KEY"
-      view_setup_instructions: "ראה הוראות מלאות ב-GitHub"
-      search_youtube: "חפש ב-YouTube"
-      search_placeholder: "הזן מילות מפתח..."
-      search_status: "הזן מילות מפתח ולחץ חפש או Enter"
-      no_videos_found: "לא נמצאו סרטונים"
-
-    # דיאלוג בוחר תמונות
+      title: הוסף סרטון
+      tab_url: URL / קובץ
+      tab_search: חיפוש YouTube
+      url_label: URL או נתיב סרטון
+      url_placeholder: URL של YouTube או נתיב לקובץ סרטון...
+      url_hint_youtube: 'YouTube: https://youtube.com/watch?v=... או https://youtu.be/...'
+      url_hint_file: 'קובץ סרטון: /path/to/video.mp4, .webm, .mkv, .mov, .avi'
+      preview_hint: הזן URL לתצוגה מקדימה
+      unknown_format: פורמט לא ידוע. הזן URL של YouTube או נתיב לקובץ סרטון.
+      insert_video: הוסף סרטון
+      use_hugo_shortcode: השתמש ב-shortcode של Hugo במקום HTML embed
+      youtube_api_required: נדרש מפתח API של YouTube
+      youtube_api_description: לחיפוש סרטוני YouTube, עליך להגדיר מפתח API של YouTube Data.
+      quick_setup: 'הגדרה מהירה:'
+      setup_step_1: ערוך את קובץ .fed בתיקיית ההערות שלך
+      setup_step_2: 'הוסף: youtube_api_key = YOUR_KEY'
+      view_setup_instructions: ראה הוראות מלאות ב-GitHub
+      search_youtube: חפש ב-YouTube
+      search_placeholder: הזן מילות מפתח...
+      search_status: הזן מילות מפתח ולחץ חפש או Enter
+      no_videos_found: לא נמצאו סרטונים
     image_picker:
-      title: "הוסף תמונה"
-      tab_local: "מקומי"
-      tab_folder: "תיקייה"
-      tab_web: "חיפוש באינטרנט"
-      tab_google: "Google"
-      tab_pinterest: "Pinterest"
-      tab_ai: "יצירת AI"
-      insert_image: "הוסף תמונה"
-      selected: "נבחר:"
-      alt_label: "טקסט חלופי (אופציונלי)"
-      alt_placeholder: "תאר את התמונה..."
-      link_label: "URL קישור (אופציונלי, הופך את התמונה ללחיצה)"
-      link_placeholder: "https://..."
-      uploading_to_s3: "מעלה ל-S3..."
-      # תמונות מקומיות
-      local_path_required: "נדרש נתיב לתמונות מקומיות"
-      local_path_description: "לעיון בתמונות מקומיות, הגדר נתיב לתיקיית תמונות."
-      local_setup_step_1: "ערוך .fed בתיקיית ההערות שלך"
-      local_setup_step_2: "הוסף: images_path = /path/to/images"
-      search_images_placeholder: "חפש תמונות לפי שם קובץ..."
-      # תמונות מתיקייה
-      filesystem_api_required: "נדרש API לגישה למערכת קבצים"
-      filesystem_api_description: "תכונה זו דורשת את ה-File System Access API, שעשוי להיות מושבת בדפדפן שלך."
-      enable_in_brave: "להפעלה ב-Brave:"
-      brave_step_1: "עבור אל brave://flags"
-      brave_step_2: "חפש File System Access API"
-      brave_step_3: "הגדר כ-Enabled"
-      brave_step_4: "הפעל מחדש את הדפדפן"
-      supported_browsers: "דפדפנים נתמכים:"
-      supported_browsers_list: "Chrome 86+, Edge 86+, Opera 72+, Brave (עם flag)"
-      not_supported_note: "Firefox ו-Safari אינם תומכים ב-API זה."
-      select_folder_prompt: "בחר תיקייה מהמחשב שלך לעיון בתמונות"
-      browse_folder: "בחר תיקייה..."
-      no_folder_selected: "לא נבחרה תיקייה"
-      change_folder: "שנה תיקייה..."
-      # חיפוש באינטרנט
-      search_web_placeholder: "חפש תמונות באינטרנט..."
-      search_status: "הזן מילות מפתח ולחץ חפש או Enter"
-      # תמונות Google
-      google_api_required: "נדרשת הגדרת API של Google"
-      google_api_description: "לחיפוש ב-Google Images, עליך להגדיר מפתח API של Google ו-Custom Search Engine ID."
-      google_setup_step_2: "הוסף: google_api_key = YOUR_KEY"
-      google_setup_step_3: "הוסף: google_cse_id = YOUR_CSE_ID"
-      search_google_placeholder: "חפש ב-Google Images..."
-      # Pinterest
-      search_pinterest_placeholder: "חפש ב-Pinterest..."
-      # יצירת AI
-      gemini_api_required: "נדרש מפתח API של Gemini"
-      gemini_api_description: "יצירת תמונות AI משתמשת במודלי Imagen של Google ודורשת מפתח API של Gemini."
-      gemini_setup_step_1: "קבל מפתח API מ-aistudio.google.com"
-      gemini_setup_step_2: "ערוך .fed בתיקיית ההערות שלך"
-      gemini_setup_step_3: "הוסף: gemini_api_key = YOUR_KEY"
-      model_label: "מודל:"
-      reference_image_label: "תמונת ייחוס (אופציונלי) - הנחה את היצירה עם תמונה קיימת"
-      remove_reference: "הסר ייחוס"
-      search_reference_placeholder: "חפש תמונות ייחוס..."
-      prompt_label: "תאר את התמונה שברצונך ליצור"
-      prompt_placeholder: "תמונה פוטוריאליסטית של נוף הרים בשקיעה עם עננים דרמטיים..."
-      generate_image: "צור תמונה"
-      generating_with: "יוצר תמונה עם"
-      generated_image: "תמונה שנוצרה"
-      revised_prompt: "פרומפט מתוקן על ידי AI"
-      save_to: "שמור ב:"
-      save_local: "תיקיית notes/images/"
-      save_s3: "AWS S3"
-
-    # אפשרות S3
+      title: הוסף תמונה
+      tab_local: מקומי
+      tab_folder: תיקייה
+      tab_web: חיפוש באינטרנט
+      tab_google: Google
+      tab_pinterest: Pinterest
+      tab_ai: יצירת AI
+      insert_image: הוסף תמונה
+      selected: 'נבחר:'
+      alt_label: טקסט חלופי (אופציונלי)
+      alt_placeholder: תאר את התמונה...
+      link_label: URL קישור (אופציונלי, הופך את התמונה ללחיצה)
+      link_placeholder: https://...
+      uploading_to_s3: מעלה ל-S3...
+      local_path_required: נדרש נתיב לתמונות מקומיות
+      local_path_description: לעיון בתמונות מקומיות, הגדר נתיב לתיקיית תמונות.
+      local_setup_step_1: ערוך .fed בתיקיית ההערות שלך
+      local_setup_step_2: 'הוסף: images_path = /path/to/images'
+      search_images_placeholder: חפש תמונות לפי שם קובץ...
+      filesystem_api_required: נדרש API לגישה למערכת קבצים
+      filesystem_api_description: תכונה זו דורשת את ה-File System Access API, שעשוי להיות מושבת בדפדפן שלך.
+      enable_in_brave: 'להפעלה ב-Brave:'
+      brave_step_1: עבור אל brave://flags
+      brave_step_2: חפש File System Access API
+      brave_step_3: הגדר כ-Enabled
+      brave_step_4: הפעל מחדש את הדפדפן
+      supported_browsers: 'דפדפנים נתמכים:'
+      supported_browsers_list: Chrome 86+, Edge 86+, Opera 72+, Brave (עם flag)
+      not_supported_note: Firefox ו-Safari אינם תומכים ב-API זה.
+      select_folder_prompt: בחר תיקייה מהמחשב שלך לעיון בתמונות
+      browse_folder: בחר תיקייה...
+      no_folder_selected: לא נבחרה תיקייה
+      change_folder: שנה תיקייה...
+      search_web_placeholder: חפש תמונות באינטרנט...
+      search_status: הזן מילות מפתח ולחץ חפש או Enter
+      google_api_required: נדרשת הגדרת API של Google
+      google_api_description: לחיפוש ב-Google Images, עליך להגדיר מפתח API של Google ו-Custom Search Engine ID.
+      google_setup_step_2: 'הוסף: google_api_key = YOUR_KEY'
+      google_setup_step_3: 'הוסף: google_cse_id = YOUR_CSE_ID'
+      search_google_placeholder: חפש ב-Google Images...
+      search_pinterest_placeholder: חפש ב-Pinterest...
+      gemini_api_required: נדרש מפתח API של Gemini
+      gemini_api_description: יצירת תמונות AI משתמשת במודלי Imagen של Google ודורשת מפתח API של Gemini.
+      gemini_setup_step_1: קבל מפתח API מ-aistudio.google.com
+      gemini_setup_step_2: ערוך .fed בתיקיית ההערות שלך
+      gemini_setup_step_3: 'הוסף: gemini_api_key = YOUR_KEY'
+      model_label: 'מודל:'
+      reference_image_label: תמונת ייחוס (אופציונלי) - הנחה את היצירה עם תמונה קיימת
+      remove_reference: הסר ייחוס
+      search_reference_placeholder: חפש תמונות ייחוס...
+      prompt_label: תאר את התמונה שברצונך ליצור
+      prompt_placeholder: תמונה פוטוריאליסטית של נוף הרים בשקיעה עם עננים דרמטיים...
+      generate_image: צור תמונה
+      generating_with: יוצר תמונה עם
+      generated_image: תמונה שנוצרה
+      revised_prompt: פרומפט מתוקן על ידי AI
+      save_to: 'שמור ב:'
+      save_local: תיקיית notes/images/
+      save_s3: AWS S3
     s3_option:
-      upload_to_s3: "העלה ל-AWS S3"
-      reupload_to_s3: "הורד והעלה מחדש ל-AWS S3"
-      upload_description: "התמונה תועלה ל-S3 וה-URL ישמש במקום הנתיב המקומי"
-      reupload_description: "התמונה תורד ותועלה ל-S3 שלך, תוך שימוש ב-URL שלך במקום המקורי"
-      resize: "שנה גודל:"
-      none: "ללא (גודל מקורי)"
-      quarter_size: "רבע גודל (25%)"
-      half_size: "חצי גודל (50%)"
-      two_thirds_size: "שני שלישים (67%)"
+      upload_to_s3: העלה ל-AWS S3
+      reupload_to_s3: הורד והעלה מחדש ל-AWS S3
+      upload_description: התמונה תועלה ל-S3 וה-URL ישמש במקום הנתיב המקומי
+      reupload_description: התמונה תורד ותועלה ל-S3 שלך, תוך שימוש ב-URL שלך במקום המקורי
+      resize: 'שנה גודל:'
+      none: ללא (גודל מקורי)
+      quarter_size: רבע גודל (25%)
+      half_size: חצי גודל (50%)
+      two_thirds_size: שני שלישים (67%)
       compress: "+ דחוס"
-
-    # דיאלוג עזרה
     help:
-      title: "עזרה"
-      toggle_hint: "לחץ F1 להחלפה"
-      tab_markdown: "מרקדאון"
-      tab_shortcuts: "קיצורי מקלדת"
-      headings: "כותרות"
-      emphasis: "הדגשה"
-      lists: "רשימות"
-      task_list: "רשימת משימות"
-      links_images: "קישורים ותמונות"
-      blockquote: "ציטוט"
-      code_block: "בלוק קוד"
-      table: "טבלה"
-      horizontal_rule: "קו אופקי"
+      title: עזרה
+      toggle_hint: לחץ F1 להחלפה
+      tab_markdown: מרקדאון
+      tab_shortcuts: קיצורי מקלדת
+      headings: כותרות
+      emphasis: הדגשה
+      lists: רשימות
+      task_list: רשימת משימות
+      links_images: קישורים ותמונות
+      blockquote: ציטוט
+      code_block: בלוק קוד
+      table: טבלה
+      horizontal_rule: קו אופקי
       shortcuts:
-        file_operations: "פעולות קובץ"
-        save: "שמור קובץ"
-        new_note: "הערה חדשה"
-        file_finder: "חפש קובץ"
-        search_files: "חפש בקבצים"
-        editor: "עורך"
-        toggle_sidebar: "הצג/הסתר סרגל צד"
-        toggle_preview: "הצג/הסתר תצוגה מקדימה"
-        typewriter_mode: "מצב מכונת כתיבה"
-        toggle_line_numbers: "הצג/הסתר מספרי שורות"
-        increase_width: "הגדל רוחב עורך"
-        decrease_width: "הקטן רוחב עורך"
-        indent: "הזח שורה/בלוק"
-        unindent: "הסר הזחה"
-        insert: "הוסף"
-        emoji_picker: "בוחר אימוג'י"
-        format_menu: "תפריט עיצוב טקסט"
-        context_menu: "תפריט הקשר (עם בחירה)"
-        text_format: "תפריט עיצוב טקסט"
-        bold: "מודגש"
-        italic: "נטוי"
-        strikethrough: "קו חוצה"
-        highlight: "הדגשה"
-        subscript: "כתב תחתי"
-        superscript: "כתב עילי"
-        link: "קישור"
-        dialogs: "דיאלוגים"
-        help: "עזרה"
-        log_viewer: "מציג יומן"
-        close_dialog: "סגור דיאלוג"
-        switch_tabs: "החלף לשוניות (כאשר לשונית בפוקוס)"
-        navigate_items: "נווט פריטים"
-        select_confirm: "בחר/אשר"
-
-    # דיאלוג התאמה אישית (הגדרות עורך)
+        file_operations: פעולות קובץ
+        save: שמור קובץ
+        new_note: הערה חדשה
+        file_finder: חפש קובץ
+        search_files: חפש בקבצים
+        editor: עורך
+        toggle_sidebar: הצג/הסתר סרגל צד
+        toggle_preview: הצג/הסתר תצוגה מקדימה
+        typewriter_mode: מצב מכונת כתיבה
+        toggle_line_numbers: הצג/הסתר מספרי שורות
+        increase_width: הגדל רוחב עורך
+        decrease_width: הקטן רוחב עורך
+        indent: הזח שורה/בלוק
+        unindent: הסר הזחה
+        insert: הוסף
+        emoji_picker: בוחר אימוג'י
+        format_menu: תפריט עיצוב טקסט
+        context_menu: תפריט הקשר (עם בחירה)
+        text_format: תפריט עיצוב טקסט
+        bold: מודגש
+        italic: נטוי
+        strikethrough: קו חוצה
+        highlight: הדגשה
+        subscript: כתב תחתי
+        superscript: כתב עילי
+        link: קישור
+        dialogs: דיאלוגים
+        help: עזרה
+        log_viewer: מציג יומן
+        close_dialog: סגור דיאלוג
+        switch_tabs: החלף לשוניות (כאשר לשונית בפוקוס)
+        navigate_items: נווט פריטים
+        select_confirm: בחר/אשר
     customize:
-      title: "הגדרות עורך"
-      font_family: "משפחת גופנים"
-      font_size: "גודל גופן"
-      preview: "תצוגה מקדימה"
-
-    # דיאלוג אודות
+      title: הגדרות עורך
+      font_family: משפחת גופנים
+      font_size: גודל גופן
+      preview: תצוגה מקדימה
     about:
-      description: "עורך מרקדאון מודרני להערות שלך"
-      copyright: "כל הזכויות שמורות."
-      view_github: "צפה ב-GitHub"
-
-    # דיאלוג השוואת AI
+      description: עורך מרקדאון מודרני להערות שלך
+      copyright: כל הזכויות שמורות.
+      view_github: צפה ב-GitHub
     ai_diff:
-      title: "בדיקת דקדוק עם AI"
-      config_required: "נדרשת הגדרת AI"
-      config_description: "הגדר אחד מהספקים הבאים בקובץ .fed שלך."
-      priority_note: "עדיפות (מצב אוטומטי): Ollama → OpenRouter → Anthropic → Gemini → OpenAI"
-      ollama_title: "Ollama (מקומי, חינם)"
-      ollama_description: "הפעל AI מקומית על המחשב שלך:"
-      openrouter_title: "OpenRouter"
-      openrouter_description: "גישה למספר ספקי AI:"
-      anthropic_title: "Anthropic (Claude)"
-      anthropic_description: "השתמש במודלי Claude:"
-      gemini_title: "Google Gemini"
-      gemini_description: "השתמש במודלי Gemini:"
-      openai_title: "OpenAI"
-      openai_description: "השתמש במודלי GPT:"
-      provider_selection: "בחירת ספק"
-      provider_override: "עקוף זיהוי אוטומטי:"
-      original: "מקורי"
+      title: בדיקת דקדוק עם AI
+      config_required: נדרשת הגדרת AI
+      config_description: הגדר אחד מהספקים הבאים בקובץ .fed שלך.
+      priority_note: 'עדיפות (מצב אוטומטי): Ollama → OpenRouter → Anthropic → Gemini → OpenAI'
+      ollama_title: Ollama (מקומי, חינם)
+      ollama_description: 'הפעל AI מקומית על המחשב שלך:'
+      openrouter_title: OpenRouter
+      openrouter_description: 'גישה למספר ספקי AI:'
+      anthropic_title: Anthropic (Claude)
+      anthropic_description: 'השתמש במודלי Claude:'
+      gemini_title: Google Gemini
+      gemini_description: 'השתמש במודלי Gemini:'
+      openai_title: OpenAI
+      openai_description: 'השתמש במודלי GPT:'
+      provider_selection: בחירת ספק
+      provider_override: 'עקוף זיהוי אוטומטי:'
+      original: מקורי
       deletions_hint: "(מחיקות באדום)"
-      corrected: "מתוקן"
+      corrected: מתוקן
       additions_hint: "(הוספות בירוק)"
-      accept_changes: "קבל שינויים"
-
-    # דיאלוג מוצא קבצים
+      accept_changes: קבל שינויים
     file_finder:
-      placeholder: "הקלד לחיפוש קבצים..."
-      esc_to_close: "esc לסגירה"
-
-    # דיאלוג חיפוש תוכן
+      placeholder: הקלד לחיפוש קבצים...
+      esc_to_close: esc לסגירה
     content_search:
-      placeholder: "חפש בקבצים (תומך בregex)..."
-      status: "הקלד לחיפוש בתוכן הקבצים (תומך בregex)"
-      literal_text: "טקסט מילולי"
-      or_operator: "או"
-      one_or_more: "אחד או יותר"
-      any_chars: "כל תווים"
-      start_of_line: "תחילת שורה"
-      end_of_line: "סוף שורה"
-      digits: "ספרות"
-      whole_word: "מילה שלמה"
-
-    # תפריט עיצוב טקסט
+      placeholder: חפש בקבצים (תומך בregex)...
+      status: הקלד לחיפוש בתוכן הקבצים (תומך בregex)
+      literal_text: טקסט מילולי
+      or_operator: או
+      one_or_more: אחד או יותר
+      any_chars: כל תווים
+      start_of_line: תחילת שורה
+      end_of_line: סוף שורה
+      digits: ספרות
+      whole_word: מילה שלמה
     text_format:
-      bold: "מודגש"
-      italic: "נטוי"
-      strikethrough: "קו חוצה"
-      highlight: "הדגשה"
-      subscript: "כתב תחתי"
-      superscript: "כתב עילי"
-      link: "קישור"
-
-    # בוחר אימוג'י
+      bold: מודגש
+      italic: נטוי
+      strikethrough: קו חוצה
+      highlight: הדגשה
+      subscript: כתב תחתי
+      superscript: כתב עילי
+      link: קישור
     emoji_picker:
-      title: "בוחר אימוג'י"
-      search_placeholder: "חפש אימוג'ים..."
-      tab_emoji: "אימוג'י"
-      tab_emoticons: "אמוטיקונים"
-
-    # Recovery diff dialog
+      title: בוחר אימוג'י
+      search_placeholder: חפש אימוג'ים...
+      tab_emoji: אימוג'י
+      tab_emoticons: אמוטיקונים
     recovery:
-      title: "שחזור גיבוי לא מקוון"
-      server_version: "גרסת השרת"
-      backup_version: "גיבוי מקומי"
+      title: שחזור גיבוי לא מקוון
+      server_version: גרסת השרת
+      backup_version: גיבוי מקומי
       server_hint: "(קובץ נוכחי)"
       backup_hint: "(נשמר במצב לא מקוון)"
-      use_server: "השתמש בגרסת השרת"
-      restore_backup: "שחזר גיבוי"
-
-  # הודעות שגיאה
+      use_server: השתמש בגרסת השרת
+      restore_backup: שחזר גיבוי
+    custom_ai:
+      title: שרביט קסמים
+      prompt_label: 'הוראות ל-AI:'
+      placeholder: 'לדוגמה: תרגם לספרדית, הפוך למקצועי יותר...'
+      generate: צור
+      hint_document: לא נבחר טקסט. מנתח את המסמך כולו...
+      hint_selection: מנתח את הבחירה המודגשת...
   errors:
-    note_not_found: "ההערה לא נמצאה"
-    note_already_exists: "ההערה כבר קיימת"
-    note_is_empty: "ההערה ריקה"
-    folder_not_found: "התיקייה לא נמצאה"
-    folder_already_exists: "התיקייה כבר קיימת"
-    file_not_found: "קובץ זה כבר לא קיים או נמחק."
-    no_file_open: "אין קובץ פתוח"
-    no_text_to_check: "אין טקסט לבדיקה"
-    no_file_provided: "לא סופק נתיב לקובץ"
-    no_image_data: "לא סופקו נתוני תמונה"
-    no_prompt_provided: "לא סופק פרומפט"
-    no_file_upload: "לא סופק קובץ"
-    query_required: "נדרשת שאילתה"
-    url_required: "נדרש URL"
-    s3_not_configured: "S3 לא מוגדר"
-    images_not_configured: "תמונות לא מוגדרות"
-    youtube_not_configured: "מפתח API של YouTube לא מוגדר"
-    google_not_configured: "Google Custom Search לא מוגדר"
-    no_valid_settings: "לא סופקו הגדרות תקינות"
-    upload_failed: "ההעלאה נכשלה"
-    search_failed: "החיפוש נכשל"
-    failed_to_move: "נכשל בהעברה"
-    failed_to_load: "נכשל בטעינת הערה"
-    failed_to_save: "נכשל בשמירה"
-    failed_to_create: "נכשל ביצירה"
-    failed_to_rename: "נכשל בשינוי שם"
-    failed_to_delete: "נכשל במחיקה"
-    failed_to_upload: "נכשל בהעלאה"
-    failed_to_process_ai: "נכשל בעיבוד טקסט עם AI"
-
-  # הודעות אישור
+    note_not_found: ההערה לא נמצאה
+    note_already_exists: ההערה כבר קיימת
+    note_is_empty: ההערה ריקה
+    folder_not_found: התיקייה לא נמצאה
+    folder_already_exists: התיקייה כבר קיימת
+    file_not_found: קובץ זה כבר לא קיים או נמחק.
+    no_file_open: אין קובץ פתוח
+    no_text_to_check: אין טקסט לבדיקה
+    no_file_provided: לא סופק נתיב לקובץ
+    no_image_data: לא סופקו נתוני תמונה
+    no_prompt_provided: לא סופק פרומפט
+    no_file_upload: לא סופק קובץ
+    query_required: נדרשת שאילתה
+    url_required: נדרש URL
+    s3_not_configured: S3 לא מוגדר
+    images_not_configured: תמונות לא מוגדרות
+    youtube_not_configured: מפתח API של YouTube לא מוגדר
+    google_not_configured: Google Custom Search לא מוגדר
+    no_valid_settings: לא סופקו הגדרות תקינות
+    upload_failed: ההעלאה נכשלה
+    search_failed: החיפוש נכשל
+    failed_to_move: נכשל בהעברה
+    failed_to_load: נכשל בטעינת הערה
+    failed_to_save: נכשל בשמירה
+    failed_to_create: נכשל ביצירה
+    failed_to_rename: נכשל בשינוי שם
+    failed_to_delete: נכשל במחיקה
+    failed_to_upload: נכשל בהעלאה
+    failed_to_process_ai: נכשל בעיבוד טקסט עם AI
   confirm:
-    delete_note: "האם אתה בטוח שברצונך למחוק הערה זו?"
-    delete_folder: "האם אתה בטוח שברצונך למחוק תיקייה זו וכל תוכנה?"
-
-  # הודעות הצלחה
+    delete_note: האם אתה בטוח שברצונך למחוק הערה זו?
+    delete_folder: האם אתה בטוח שברצונך למחוק תיקייה זו וכל תוכנה?
   success:
-    note_created: "ההערה נוצרה"
-    note_saved: "ההערה נשמרה"
-    note_deleted: "ההערה נמחקה"
-    note_renamed: "שם ההערה שונה"
-    folder_created: "התיקייה נוצרה"
-    folder_deleted: "התיקייה נמחקה"
-    folder_renamed: "שם התיקייה שונה"
-    settings_saved: "ההגדרות נשמרו"
+    note_created: ההערה נוצרה
+    note_saved: ההערה נשמרה
+    note_deleted: ההערה נמחקה
+    note_renamed: שם ההערה שונה
+    folder_created: התיקייה נוצרה
+    folder_deleted: התיקייה נמחקה
+    folder_renamed: שם התיקייה שונה
+    settings_saved: ההגדרות נשמרו
+  notes:
+    show:
+      ai_error: 'שגיאת AI: %{message}'
