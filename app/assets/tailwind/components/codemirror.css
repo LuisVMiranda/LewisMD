@@ -5,6 +5,7 @@
  */
 
 @layer components {
+
   /* Container styling */
   .cm-editor-container {
     position: relative;
@@ -332,7 +333,8 @@
     /* Don't stretch to full width, let content determine width */
     flex: 0 1 auto;
     width: 100%;
-    max-width: calc(var(--editor-width, 72ch) + 4rem); /* Content width + padding */
+    max-width: calc(var(--editor-width, 72ch) + 4rem);
+    /* Content width + padding */
   }
 
   body.typewriter-mode .cm-editor-container {

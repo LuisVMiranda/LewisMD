@@ -13,7 +13,29 @@
     
     <!-- Preview Header -->
     <div class="flex-none h-10 border-b border-[var(--theme-border)] flex items-center justify-between px-4">
-      <span class="text-xs font-medium text-[var(--theme-text-muted)] uppercase tracking-wide"><%= t('preview.title') %></span>
+      <span data-app-target="previewTitle" class="text-xs font-medium text-[var(--theme-text-muted)] uppercase tracking-wide"><%= t('preview.title') %></span>
+
+      <!-- Reading Mode Overlay Pill (Visible only on hover during Reading Mode) -->
+      <div data-controller="fade-overlay" data-fade-overlay-target="overlay" data-action="pointermove@window->fade-overlay#onPointerMove" class="absolute bottom-6 right-6 flex items-center gap-1 bg-[var(--theme-bg-secondary)] border border-[var(--theme-border)] shadow-lg rounded-full px-3 py-1.5 opacity-0 pointer-events-none transition-opacity duration-100 z-50">
+        <!-- Group: Text Width Adjuster -->
+        <div class="flex items-center text-xs" data-controller="text-width">
+          <button type="button" data-action="click->text-width#decrease" class="p-1 hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-muted)] rounded transition-colors" title="Decrease Text Width">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/></svg>
+          </button>
+          <span class="px-1 min-w-[2.5rem] text-center text-[var(--theme-text-muted)] font-medium cursor-default" data-text-width-target="display">100%</span>
+          <button type="button" data-action="click->text-width#increase" class="p-1 hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-muted)] rounded transition-colors" title="Increase Text Width">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          </button>
+        </div>
+        <div class="h-4 w-px bg-[var(--theme-border)] mx-1 shrink-0"></div>
+        <!-- Group: Settings & Help -->
+        <button type="button" data-action="click->app#openCustomize" class="p-1.5 rounded-full hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-muted)]" title="<%= t('editor.toolbar.font_title') %>">
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+        </button>
+        <button type="button" data-action="click->app#openHelp" class="p-1.5 rounded-full hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-muted)]" title="<%= t('editor.toolbar.help_title') %>">
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        </button>
+      </div>
       <div class="flex items-center gap-1">
         <button
           type="button"

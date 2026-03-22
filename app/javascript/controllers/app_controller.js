@@ -36,7 +36,8 @@ export default class extends Controller {
     "editorBody",
     "editorPanel",
     "previewPanel",
-    "previewContent"
+    "previewContent",
+    "previewTitle"
   ]
 
   static outlets = [
@@ -619,7 +620,7 @@ export default class extends Controller {
     const previewController = this.getPreviewController()
     if (previewController) {
       previewController.toggle()
-      
+
       // If preview was just toggled OFF, fallback to Typewriter
       if (!previewController.isVisible) {
         if (!this.readingModeActive) {
@@ -910,12 +911,20 @@ export default class extends Controller {
       // Enter Reading Mode: Hide Editor Panel
       this.editorPanelTarget.classList.add("hidden")
 
+      // Mark body so fade-overlay controller knows reading mode is active
+      document.body.classList.add("reading-mode-active")
+
+      // Update Preview header title to 'Reading Mode'
+      if (this.hasPreviewTitleTarget) {
+        this.previewTitleTarget.textContent = "Reading Mode"
+      }
+
       // Ensure preview is visible if it was hidden
       const previewController = this.getPreviewController()
       if (previewController && !previewController.isVisible) {
         previewController.toggle()
       }
-      
+
       // Expand Preview Width Priority
       if (this.hasPreviewPanelTarget) {
         this.previewPanelTarget.classList.add("!w-full")
@@ -937,6 +946,14 @@ export default class extends Controller {
     } else {
       // Exit Reading Mode: Show Editor Panel
       this.editorPanelTarget.classList.remove("hidden")
+
+      // Remove body class so fade-overlay pill stops listening
+      document.body.classList.remove("reading-mode-active")
+
+      // Restore Preview header title to 'Preview'
+      if (this.hasPreviewTitleTarget) {
+        this.previewTitleTarget.textContent = "Preview"
+      }
 
       // Restore Preview Width
       if (this.hasPreviewPanelTarget) {
@@ -1422,24 +1439,29 @@ export default class extends Controller {
     const { correctedText, range } = event.detail
     const codemirrorController = this.getCodemirrorController()
     if (codemirrorController) {
-      // Phase 3 Fix: Sanitize incoming AI payload bounds
-      const sanitizedText = correctedText.replace(/\r/g, "").trim()
+      // Sanitize incoming AI payload — strip carriage returns but preserve newlines
+      const sanitizedText = correctedText.replace(/\r\n/g, "\n").replace(/\r/g, "\n")
 
       if (range && range.from !== undefined && range.to !== undefined) {
         codemirrorController.editor.dispatch({
-          changes: {from: range.from, to: range.to, insert: sanitizedText}
+          changes: { from: range.from, to: range.to, insert: sanitizedText }
         })
       } else {
         codemirrorController.setValue(sanitizedText)
       }
 
-      this.onEditorChange({ detail: { docChanged: true } })
+      // Force the preview to re-render with the new content
+      const previewController = this.getPreviewController()
+      if (previewController && previewController.isVisible) {
+        previewController.renderContent(codemirrorController.getValue())
+      }
 
-      // Force Line Counter to recalculate dynamically by hijacking native textarea
-      if (this.hasTextareaTarget) {
-        this.textareaTarget.value = codemirrorController.getValue()
-        this.textareaTarget.dispatchEvent(new Event('input', { bubbles: true }))
-        this.textareaTarget.dispatchEvent(new Event('change', { bubbles: true }))
+      // Fix: Directly update stats panel via the Stimulus outlet.
+      // This ensures the line counter recalculates immediately after AI text insertion
+      // (CodeMirror's doc.lines is always accurate post-dispatch).
+      if (this.hasStatsPanelOutlet) {
+        const cursorInfo = codemirrorController.getCursorInfo()
+        this.statsPanelOutlet.update(codemirrorController.getValue(), cursorInfo)
       }
     }
   }
