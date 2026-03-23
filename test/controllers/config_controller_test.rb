@@ -26,7 +26,10 @@ class ConfigControllerTest < ActionDispatch::IntegrationTest
     assert settings.key?("editor_font")
     assert settings.key?("editor_font_size")
     assert settings.key?("preview_zoom")
+    assert settings.key?("preview_width")
+    assert settings.key?("preview_font_family")
     assert settings.key?("sidebar_visible")
+    assert settings.key?("active_mode")
     assert settings.key?("typewriter_mode")
 
     # Should include features
@@ -48,7 +51,10 @@ class ConfigControllerTest < ActionDispatch::IntegrationTest
     assert_equal "cascadia-code", settings["editor_font"]
     assert_equal 14, settings["editor_font_size"]
     assert_equal 100, settings["preview_zoom"]
+    assert_equal 40, settings["preview_width"]
+    assert_equal "sans", settings["preview_font_family"]
     assert_equal true, settings["sidebar_visible"]
+    assert_nil settings["active_mode"]
     assert_equal false, settings["typewriter_mode"]
   end
 
@@ -56,6 +62,9 @@ class ConfigControllerTest < ActionDispatch::IntegrationTest
     @test_notes_dir.join(".fed").write(<<~CONFIG)
       theme = gruvbox
       editor_font = hack
+      preview_width = 55
+      preview_font_family = serif
+      active_mode = preview
       typewriter_mode = true
     CONFIG
 
@@ -67,24 +76,33 @@ class ConfigControllerTest < ActionDispatch::IntegrationTest
 
     assert_equal "gruvbox", settings["theme"]
     assert_equal "hack", settings["editor_font"]
+    assert_equal 55, settings["preview_width"]
+    assert_equal "serif", settings["preview_font_family"]
+    assert_equal "preview", settings["active_mode"]
     assert_equal true, settings["typewriter_mode"]
   end
 
   # === update ===
 
   test "update saves UI settings" do
-    patch config_url, params: { theme: "dark", editor_font_size: 18 }, as: :json
+    patch config_url, params: { theme: "dark", editor_font_size: 18, preview_font_family: "serif", preview_width: 58, active_mode: "reading" }, as: :json
     assert_response :success
 
     data = JSON.parse(response.body)
     assert_equal "dark", data["settings"]["theme"]
     assert_equal 18, data["settings"]["editor_font_size"]
+    assert_equal "serif", data["settings"]["preview_font_family"]
+    assert_equal 58, data["settings"]["preview_width"]
+    assert_equal "reading", data["settings"]["active_mode"]
 
     # Verify persistence
     get config_url, as: :json
     data = JSON.parse(response.body)
     assert_equal "dark", data["settings"]["theme"]
     assert_equal 18, data["settings"]["editor_font_size"]
+    assert_equal "serif", data["settings"]["preview_font_family"]
+    assert_equal 58, data["settings"]["preview_width"]
+    assert_equal "reading", data["settings"]["active_mode"]
   end
 
   test "update rejects non-UI settings" do
@@ -142,13 +160,14 @@ class ConfigControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "update writes font settings to file" do
-    patch config_url, params: { editor_font: "hack", editor_font_size: 20 }, as: :json
+    patch config_url, params: { editor_font: "hack", editor_font_size: 20, preview_font_family: "serif" }, as: :json
     assert_response :success
 
     # Verify the file actually contains the new values
     content = @test_notes_dir.join(".fed").read
     assert_includes content, "editor_font = hack"
     assert_includes content, "editor_font_size = 20"
+    assert_includes content, "preview_font_family = serif"
   end
 
   test "update preserves existing file content when adding new settings" do
@@ -178,6 +197,9 @@ class ConfigControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "data-editor-config-font-size-value"
     assert_includes response.body, "data-editor-config-editor-width-value"
     assert_includes response.body, "data-editor-config-preview-zoom-value"
+    assert_includes response.body, "data-editor-config-preview-width-value"
+    assert_includes response.body, "data-editor-config-preview-font-family-value"
+    assert_includes response.body, "data-editor-config-active-mode-value"
     assert_includes response.body, "data-editor-config-theme-value"
   end
 
@@ -185,6 +207,9 @@ class ConfigControllerTest < ActionDispatch::IntegrationTest
     @test_notes_dir.join(".fed").write(<<~CONFIG)
       editor_font = hack
       editor_font_size = 20
+      preview_width = 52
+      preview_font_family = mono
+      active_mode = preview
       theme = gruvbox
     CONFIG
 
@@ -193,6 +218,9 @@ class ConfigControllerTest < ActionDispatch::IntegrationTest
 
     assert_includes response.body, 'data-editor-config-font-value="hack"'
     assert_includes response.body, 'data-editor-config-font-size-value="20"'
+    assert_includes response.body, 'data-editor-config-preview-width-value="52"'
+    assert_includes response.body, 'data-editor-config-preview-font-family-value="mono"'
+    assert_includes response.body, 'data-editor-config-active-mode-value="preview"'
     assert_includes response.body, 'data-editor-config-theme-value="gruvbox"'
   end
 
@@ -204,5 +232,8 @@ class ConfigControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, 'data-editor-config-font-size-value="14"'
     assert_includes response.body, 'data-editor-config-editor-width-value="72"'
     assert_includes response.body, 'data-editor-config-preview-zoom-value="100"'
+    assert_includes response.body, 'data-editor-config-preview-width-value="40"'
+    assert_includes response.body, 'data-editor-config-preview-font-family-value="sans"'
+    assert_includes response.body, 'data-editor-config-active-mode-value=""'
   end
 end

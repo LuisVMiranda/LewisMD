@@ -42,6 +42,15 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, 'data-type="file"'
   end
 
+  test "index renders localized reading mode and text width tooltips" do
+    get root_url(locale: "pt-BR")
+    assert_response :success
+
+    assert_includes response.body, I18n.t("header.toggle_reading", locale: :"pt-BR")
+    assert_includes response.body, I18n.t("preview.decrease_text_width", locale: :"pt-BR")
+    assert_includes response.body, I18n.t("preview.increase_text_width", locale: :"pt-BR")
+  end
+
   # === tree ===
 
   test "tree returns HTML file tree" do
@@ -145,6 +154,30 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
   end
 
+  test "create from template_path copies template content into a new note" do
+    TemplatesService.new(base_path: @test_notes_dir).write("team/retro", "# Retro Template\n\n- Wins")
+
+    post create_note_url(path: "retro-notes"), params: { template_path: "team/retro" }, as: :json
+    assert_response :created
+
+    assert_equal "# Retro Template\n\n- Wins", File.read(@test_notes_dir.join("retro-notes.md"))
+  end
+
+  test "create from template_path works in nested folders" do
+    create_test_folder("work")
+    TemplatesService.new(base_path: @test_notes_dir).write("meeting", "# Meeting\n\n## Notes")
+
+    post create_note_url(path: "work/weekly-sync"), params: { template_path: "meeting.md" }, as: :json
+    assert_response :created
+
+    assert_equal "# Meeting\n\n## Notes", File.read(@test_notes_dir.join("work/weekly-sync.md"))
+  end
+
+  test "create from template_path returns not found for missing template" do
+    post create_note_url(path: "ghost-note"), params: { template_path: "missing-template.md" }, as: :json
+    assert_response :not_found
+  end
+
   # === create with Hugo template ===
 
   test "create with hugo template generates date-based path" do
@@ -227,6 +260,18 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
     refute @test_notes_dir.join("to_delete.md").exist?
   end
 
+  test "destroy removes template link but keeps template file" do
+    create_test_note("to_delete.md", "Keep template")
+    templates = TemplatesService.new(base_path: @test_notes_dir)
+    templates.save_from_note(note_path: "to_delete.md", template_path: "saved/to-delete-template")
+
+    delete destroy_note_url(path: "to_delete.md"), as: :json
+    assert_response :success
+
+    refute templates.template_linked?("to_delete.md")
+    assert templates.exists?("saved/to-delete-template.md")
+  end
+
   test "destroy returns 404 for missing note" do
     delete destroy_note_url(path: "nonexistent.md"), as: :json
     assert_response :not_found
@@ -258,6 +303,18 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
   test "rename returns 404 for missing note" do
     post rename_note_url(path: "nonexistent.md"), params: { new_path: "new.md" }, as: :json
     assert_response :not_found
+  end
+
+  test "rename preserves linked template status for the moved note" do
+    create_test_note("old.md", "Content")
+    templates = TemplatesService.new(base_path: @test_notes_dir)
+    templates.save_from_note(note_path: "old.md", template_path: "saved/linked-template")
+
+    post rename_note_url(path: "old.md"), params: { new_path: "renamed.md" }, as: :json
+    assert_response :success
+
+    refute templates.template_linked?("old.md")
+    assert_equal "saved/linked-template.md", templates.linked_template_path_for("renamed.md")
   end
 
   # === search ===

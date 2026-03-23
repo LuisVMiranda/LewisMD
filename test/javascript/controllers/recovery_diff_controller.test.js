@@ -94,6 +94,21 @@ describe("RecoveryDiffController", () => {
 
       expect(dialog.showModal).toHaveBeenCalled()
     })
+
+    it("dispatches opened event with the current path", () => {
+      const dispatchSpy = vi.spyOn(controller, "dispatch")
+
+      controller.open({
+        path: "test.md",
+        serverContent: "server",
+        backupContent: "backup",
+        backupTimestamp: Date.now()
+      })
+
+      expect(dispatchSpy).toHaveBeenCalledWith("opened", {
+        detail: { path: "test.md" }
+      })
+    })
   })
 
   describe("acceptServer()", () => {

@@ -4,7 +4,7 @@
 # Provides defaults from ENV variables that can be overridden per-folder.
 class Config
   CONFIG_FILE = ".fed"
-  CONFIG_VERSION = 2  # Increment when adding new settings
+  CONFIG_VERSION = 4  # Increment when adding new settings
 
   # All configurable options with their defaults and types
   SCHEMA = {
@@ -14,7 +14,10 @@ class Config
     "editor_font" => { default: "cascadia-code", type: :string, env: nil },
     "editor_font_size" => { default: 14, type: :integer, env: nil },
     "preview_zoom" => { default: 100, type: :integer, env: nil },
+    "preview_width" => { default: 40, type: :integer, env: nil },
+    "preview_font_family" => { default: "sans", type: :string, env: nil },
     "sidebar_visible" => { default: true, type: :boolean, env: nil },
+    "active_mode" => { default: nil, type: :string, env: nil },
     "typewriter_mode" => { default: false, type: :boolean, env: nil },
     "editor_indent" => { default: 2, type: :integer, env: nil },
     "editor_line_numbers" => { default: 0, type: :integer, env: nil },
@@ -22,6 +25,7 @@ class Config
 
     # Paths (ENV defaults)
     "images_path" => { default: nil, type: :string, env: "IMAGES_PATH" },
+    "templates_path" => { default: nil, type: :string, env: nil },
 
     # AWS S3 Settings (ENV defaults)
     "aws_access_key_id" => { default: nil, type: :string, env: "AWS_ACCESS_KEY_ID" },
@@ -76,7 +80,10 @@ class Config
     editor_font
     editor_font_size
     preview_zoom
+    preview_width
+    preview_font_family
     sidebar_visible
+    active_mode
     typewriter_mode
     editor_indent
     editor_line_numbers
@@ -126,7 +133,11 @@ class Config
         "",
         "# editor_font_size = 14",
         "# preview_zoom = 100",
+        "# preview_width = 40",
+        "# Preview/reading font family: sans, serif, mono",
+        "# preview_font_family = sans",
         "# sidebar_visible = true",
+        "# active_mode = raw",
         "# typewriter_mode = false",
         "",
         "# Editor indent: 0 = tab, 1-6 = spaces (default: 2)",
@@ -143,7 +154,18 @@ class Config
         "",
         "# Local Images",
         "",
+        "# App-managed local images default to .frankmd/images inside notes path.",
         "# images_path = /path/to/images"
+      ]
+    },
+    {
+      marker: "# Templates",
+      lines: [
+        "",
+        "# Templates",
+        "",
+        "# Markdown templates directory (defaults to .frankmd/templates inside notes path)",
+        "# templates_path = /path/to/templates"
       ]
     },
     {
@@ -565,31 +587,40 @@ class Config
     content = config_file_path.read
     existing_lines = content.lines.map(&:chomp)
 
-    # Only upgrade with truly new sections - currently just AI/LLM
-    # We check for any AI-related key to determine if the section exists
     ai_keys = %w[ai_provider ai_model ollama_api_base ollama_model
                  openrouter_api_key openrouter_model anthropic_api_key anthropic_model
                  gemini_api_key gemini_model openai_api_key openai_model]
+    new_lines = existing_lines.dup
+    changed = false
 
-    ai_section_present = existing_lines.any? do |line|
-      line.include?("# AI/LLM") ||
-        ai_keys.any? { |key| line =~ /^#?\s*#{key}\s*=/i }
+    unless section_present?(existing_lines, "# Templates", %w[templates_path])
+      new_lines << "" if new_lines.last&.strip&.present?
+      new_lines.concat(section_lines("# Templates"))
+      changed = true
     end
 
-    return if ai_section_present
+    unless section_present?(existing_lines, "# AI/LLM", ai_keys)
+      new_lines << "" if new_lines.last&.strip&.present?
+      new_lines.concat(section_lines("# AI/LLM"))
+      changed = true
+    end
 
-    # Add AI section at the end
-    ai_section = TEMPLATE_SECTIONS.find { |s| s[:marker] == "# AI/LLM" }
-    return unless ai_section
-
-    new_lines = existing_lines.dup
-    new_lines << "" if new_lines.last&.strip&.present?
-    new_lines.concat(ai_section[:lines])
+    return unless changed
 
     config_file_path.write(new_lines.join("\n") + "\n")
-    Rails.logger.info("Upgraded .fed config with AI/LLM section")
+    Rails.logger.info("Upgraded .fed config with new sections")
   rescue => e
     Rails.logger.warn("Failed to upgrade .fed config: #{e.message}")
+  end
+
+  def section_present?(lines, marker, keys)
+    lines.any? do |line|
+      line.include?(marker) || keys.any? { |key| line =~ /^#?\s*#{Regexp.escape(key)}\s*=/i }
+    end
+  end
+
+  def section_lines(marker)
+    TEMPLATE_SECTIONS.find { |section| section[:marker] == marker }&.fetch(:lines, []) || []
   end
 
   def generate_template_lines

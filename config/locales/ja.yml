@@ -27,8 +27,14 @@ ja:
     toggle_explorer: エクスプローラー切替 (Ctrl+E)
     toggle_typewriter: タイプライターモード切替 (Ctrl+B)
     toggle_preview: プレビュー切替 (Ctrl+Shift+P)
+    toggle_reading: 読書モード切替 (Ctrl+Shift+Y)
+    save_as_template: テンプレートとして保存
     change_theme: テーマ変更
     change_language: 言語変更
+    exports: エクスポート
+    share: 共有
+    open_exports: エクスポートと共有アクションを開く
+    open_share_menu: 共有、書き出し、コピーの操作を開く
     about_app: LewisMDについて
     click_to_copy_path: クリックでパスをコピー
   sidebar:
@@ -39,6 +45,8 @@ ja:
     search_in_files: ファイル内検索 (Ctrl+Shift+F)
     no_notes_yet: ノートがありません
     no_files_found: ファイルが見つかりません
+    outline: アウトライン
+    no_headings_yet: 見出しはまだありません
     words: 単語数
     characters: 文字数
     size: サイズ
@@ -77,13 +85,19 @@ ja:
     title: プレビュー
     zoom_in: 拡大
     zoom_out: 縮小
+    decrease_text_width: テキスト幅を狭くする
+    increase_text_width: テキスト幅を広くする
   context_menu:
     new_note: 新規ノート
     new_folder: 新規フォルダ
     rename: 名前変更
+    save_as_template: テンプレートとして保存
+    delete_template: テンプレートを削除
     delete: 削除
   status:
     copied_to_clipboard: クリップボードにコピーしました
+    copy_failed: コピーに失敗しました
+    export_failed: エクスポートに失敗しました
     saved: 保存済み
     unsaved: 未保存の変更
     error_saving: 保存エラー
@@ -104,13 +118,63 @@ ja:
     content_loss_warning: 大量のコンテンツ削除が検出されました。誤操作の場合はCtrl+Zで元に戻してください。
     undo: 元に戻す
     save_anyway: そのまま保存
-    offline_backup_saved: ローカルにバックアップしました
+    share_link_created: 共有リンクを作成してコピーしました
+    share_link_copied: 共有リンクをコピーしました
+    share_link_refreshed: 共有スナップショットを更新しました
+    share_link_disabled: 共有リンクを無効にしました
+    share_failed: 共有リンクを更新できませんでした
+  status_strip:
+    mode_prefix: モード
+    recovery_available: 復旧データがあります
+    modes:
+      raw: プレーン
+      preview: プレビュー
+      reading: 読書
+      typewriter: タイプライター
+    save:
+      saved: 保存済み
+      unsaved: 未保存
+      offline: オフライン
+      error: 保存エラー
+    metrics:
+      line: Ln
+      selection: Sel
+      zoom: Zoom
+  export_menu:
+    copy_note: ノートをコピー (Ctrl+C)
+    copy_markdown: Markdownをコピー
+    export_files: ファイルを書き出す
+    export_html: HTMLを書き出す
+    export_txt: TXTを書き出す
+    export_pdf: PDFを書き出す
+
+    copy_formatted_html: クリップボードにコピー
+    create_share_link: 共有リンクを作成
+    copy_share_link: 共有リンクをコピー
+    refresh_share_link: 共有スナップショットを更新
+    disable_share_link: 共有リンクを無効化
+  share_view:
+    label: 共有ノート
+    open_exports: エクスポート操作を開く
+    zoom: ズーム
+    zoom_in: 拡大
+    zoom_out: 縮小
+    width: 幅
+    width_narrower: テキスト列を狭くする
+    width_wider: テキスト列を広くする
+    font_family: フォント
+    font_default: 既定
+    font_sans: Sans
+    font_serif: Serif
+    font_mono: Mono
+    iframe_title: 共有ノートのプレビュー
   dialogs:
     rename:
       title: 名前変更
       placeholder: 新しい名前
     new_item:
       new_note: 新規ノート
+      new_note_from_template: テンプレートから新規ノート
       new_folder: 新規フォルダ
       placeholder: 名前
       note_placeholder: ノート名
@@ -119,9 +183,47 @@ ja:
       title: 新規ノート
       empty_document: 空のドキュメント
       empty_description: プレーンなマークダウンファイル
+      template: テンプレート
+      template_description: 保存済みのマークダウンテンプレートから開始
       hugo_post: Hugoブログ記事
       hugo_description: YYYY/MM/DD/slug/index.md
       new_hugo_post: 新規Hugoブログ記事
+    templates:
+      title: テンプレートを選択
+      subtitle: 開始するマークダウンテンプレートを選択してください
+      manage_action: テンプレート管理
+      manage_title: テンプレート管理
+      manage_subtitle: マークダウンテンプレートの作成、編集、更新、削除
+      loading: テンプレートを読み込み中...
+      empty: 利用可能なテンプレートはまだありません
+      new_button: 新規テンプレート
+      refresh_button: 一覧を更新
+      new_title: 新規テンプレート
+      edit_title: テンプレートを編集
+      save_from_note_title: ノートをテンプレートとして保存
+      save_from_note_update_title: リンク済みテンプレートを更新
+      path_label: テンプレートパス
+      path_placeholder: 例 team/retro
+      content_label: マークダウン内容
+      content_placeholder: ここにテンプレートのマークダウンを書いてください...
+      delete_confirm: テンプレート「%{name}」を削除しますか？
+      delete_linked_confirm: リンク済みテンプレート「%{name}」を削除しますか？
+      built_ins:
+        daily_note:
+          name: デイリーノート
+          description: 優先事項、メモ、成果、明日の予定
+        meeting_note:
+          name: 会議ノート
+          description: 議題、メモ、決定事項、アクション項目
+        article_draft:
+          name: 記事ドラフト
+          description: 要約、構成、下書き、参考資料
+        journal_entry:
+          name: 日記エントリー
+          description: 気分、出来事、振り返り、感謝
+        changelog:
+          name: 変更履歴
+          description: 未公開の変更を種類ごとに整理
     table_editor:
       title: テーブルエディタ
       add_column: 列を追加
@@ -293,6 +395,8 @@ ja:
       title: エディタ設定
       font_family: フォントファミリー
       font_size: フォントサイズ
+      preview_reading_font: プレビューと読書用フォント
+      preview_zoom_hint: プレビューと読書モードではこのフォントを共有します。そこでの文字サイズは引き続きプレビューのズーム操作で調整します。
       preview: プレビュー
     about:
       description: モダンなマークダウンノートエディタ
@@ -383,6 +487,7 @@ ja:
       prompt_label: 'AIへの指示:'
       placeholder: 例：スペイン語に翻訳、もっと専門的にする...
       generate: 生成
+      processing_provider: AI（カスタムプロンプト）
       hint_document: テキストが選択されていません。ドキュメント全体を分析中...
       hint_selection: ハイライトされた選択範囲を分析中...
   errors:
@@ -394,6 +499,9 @@ ja:
     file_not_found: このファイルは存在しないか、削除されました。
     no_file_open: ファイルが開かれていません
     no_text_to_check: チェックするテキストがありません
+    no_text_selected: テキストが選択されていません
+    ai_markdown_only: AIはMarkdownファイルでのみ利用できます
+    connection_lost: 接続が失われました。インターネット接続を確認して、もう一度プロンプトを試してください。
     no_file_provided: ファイルパスが指定されていません
     no_image_data: 画像データが指定されていません
     no_prompt_provided: プロンプトが指定されていません
@@ -409,11 +517,13 @@ ja:
     search_failed: 検索に失敗しました
     failed_to_move: 移動に失敗しました
     failed_to_load: ノートの読み込みに失敗しました
+    failed_to_load_templates: テンプレートの読み込みに失敗しました
     failed_to_save: 保存に失敗しました
     failed_to_create: 作成に失敗しました
     failed_to_rename: 名前変更に失敗しました
     failed_to_delete: 削除に失敗しました
     failed_to_upload: アップロードに失敗しました
+    templates_markdown_only: テンプレートはMarkdownノートでのみ利用できます
     failed_to_process_ai: AIでのテキスト処理に失敗しました
   confirm:
     delete_note: このノートを削除してもよろしいですか？
@@ -426,6 +536,8 @@ ja:
     folder_created: フォルダを作成しました
     folder_deleted: フォルダを削除しました
     folder_renamed: フォルダの名前を変更しました
+    template_saved: テンプレートを保存しました
+    template_deleted: テンプレートを削除しました
     settings_saved: 設定を保存しました
   notes:
     show:

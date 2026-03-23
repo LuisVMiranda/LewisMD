@@ -27,8 +27,14 @@ he:
     toggle_explorer: הצג/הסתר סייר (Ctrl+E)
     toggle_typewriter: הצג/הסתר מצב מכונת כתיבה (Ctrl+B)
     toggle_preview: הצג/הסתר תצוגה מקדימה (Ctrl+Shift+P)
+    toggle_reading: החלף מצב קריאה (Ctrl+Shift+Y)
+    save_as_template: שמור כתבנית
     change_theme: שנה ערכת נושא
     change_language: שנה שפה
+    exports: ייצוא
+    share: שיתוף
+    open_exports: פתח פעולות ייצוא ושיתוף
+    open_share_menu: פתח פעולות שיתוף, ייצוא והעתקה
     about_app: אודות LewisMD
     click_to_copy_path: לחץ להעתקת הנתיב
   sidebar:
@@ -39,6 +45,8 @@ he:
     search_in_files: חפש בקבצים (Ctrl+Shift+F)
     no_notes_yet: אין עדיין הערות
     no_files_found: לא נמצאו קבצים
+    outline: מתאר
+    no_headings_yet: עדיין אין כותרות
     words: מילים
     characters: תווים
     size: גודל
@@ -74,13 +82,19 @@ he:
     title: תצוגה מקדימה
     zoom_in: הגדל
     zoom_out: הקטן
+    decrease_text_width: הקטן את רוחב הטקסט
+    increase_text_width: הגדל את רוחב הטקסט
   context_menu:
     new_note: הערה חדשה
     new_folder: תיקייה חדשה
     rename: שנה שם
+    save_as_template: שמור כתבנית
+    delete_template: מחק תבנית
     delete: מחק
   status:
     copied_to_clipboard: התוכן הועתק ללוח
+    copy_failed: ההעתקה נכשלה
+    export_failed: ייצוא התוכן נכשל
     saved: נשמר
     unsaved: שינויים לא שמורים
     error_saving: שגיאה בשמירה
@@ -101,13 +115,63 @@ he:
     content_loss_warning: זוהתה מחיקת תוכן גדולה. לחץ Ctrl+Z לביטול אם זה היה בטעות.
     undo: בטל
     save_anyway: שמור בכל זאת
-    offline_backup_saved: גיבוי מקומי נשמר
+    share_link_created: קישור השיתוף נוצר והועתק
+    share_link_copied: קישור השיתוף הועתק
+    share_link_refreshed: תמונת המצב המשותפת עודכנה
+    share_link_disabled: קישור השיתוף הושבת
+    share_failed: לא ניתן לעדכן את קישור השיתוף
+  status_strip:
+    mode_prefix: מצב
+    recovery_available: שחזור זמין
+    modes:
+      raw: גולמי
+      preview: תצוגה מקדימה
+      reading: קריאה
+      typewriter: מכונת כתיבה
+    save:
+      saved: נשמר
+      unsaved: לא נשמר
+      offline: לא מקוון
+      error: שגיאת שמירה
+    metrics:
+      line: שו׳
+      selection: בחירה
+      zoom: זום
+  export_menu:
+    copy_note: העתק הערה (Ctrl+C)
+    copy_markdown: העתק Markdown
+    export_files: ייצוא קבצים
+    export_html: ייצוא HTML
+    export_txt: ייצוא TXT
+    export_pdf: ייצוא PDF
+
+    copy_formatted_html: העתק ללוח
+    create_share_link: צור קישור שיתוף
+    copy_share_link: העתק קישור שיתוף
+    refresh_share_link: רענן תמונת מצב משותפת
+    disable_share_link: השבת קישור שיתוף
+  share_view:
+    label: הערה משותפת
+    open_exports: פתח פעולות ייצוא
+    zoom: זום
+    zoom_in: התקרב
+    zoom_out: התרחק
+    width: רוחב
+    width_narrower: הפוך את עמודת הטקסט לצרה יותר
+    width_wider: הפוך את עמודת הטקסט לרחבה יותר
+    font_family: גופן
+    font_default: ברירת מחדל
+    font_sans: Sans
+    font_serif: Serif
+    font_mono: Mono
+    iframe_title: תצוגה מקדימה של ההערה המשותפת
   dialogs:
     rename:
       title: שנה שם
       placeholder: שם חדש
     new_item:
       new_note: הערה חדשה
+      new_note_from_template: הערה חדשה מתוך תבנית
       new_folder: תיקייה חדשה
       placeholder: שם
       note_placeholder: שם ההערה
@@ -116,9 +180,47 @@ he:
       title: הערה חדשה
       empty_document: מסמך ריק
       empty_description: קובץ מרקדאון פשוט
+      template: תבנית
+      template_description: התחלה מתבנית מרקדאון שמורה
       hugo_post: פוסט בלוג Hugo
       hugo_description: YYYY/MM/DD/slug/index.md
       new_hugo_post: פוסט בלוג Hugo חדש
+    templates:
+      title: בחירת תבנית
+      subtitle: בחר תבנית מרקדאון להתחלה
+      manage_action: ניהול תבניות
+      manage_title: ניהול תבניות
+      manage_subtitle: צור, ערוך, רענן או מחק תבניות מרקדאון
+      loading: טוען תבניות...
+      empty: עדיין אין תבניות זמינות
+      new_button: תבנית חדשה
+      refresh_button: רענון רשימה
+      new_title: תבנית חדשה
+      edit_title: עריכת תבנית
+      save_from_note_title: שמור הערה כתבנית
+      save_from_note_update_title: עדכן תבנית מקושרת
+      path_label: נתיב התבנית
+      path_placeholder: למשל team/retro
+      content_label: תוכן מרקדאון
+      content_placeholder: כתוב כאן את המרקדאון של התבנית...
+      delete_confirm: למחוק את התבנית \"%{name}\"?
+      delete_linked_confirm: למחוק את התבנית המקושרת \"%{name}\"?
+      built_ins:
+        daily_note:
+          name: הערה יומית
+          description: סדרי עדיפויות, הערות, הישגים ומחר
+        meeting_note:
+          name: הערת פגישה
+          description: סדר יום, הערות, החלטות ומשימות
+        article_draft:
+          name: טיוטת מאמר
+          description: תקציר, מתווה, טיוטה ומקורות
+        journal_entry:
+          name: רשומת יומן
+          description: מצב רוח, אירועים, מחשבות ותודה
+        changelog:
+          name: יומן שינויים
+          description: שינויים שלא פורסמו לפי סוג
     table_editor:
       title: עורך טבלאות
       add_column: הוסף עמודה
@@ -290,6 +392,8 @@ he:
       title: הגדרות עורך
       font_family: משפחת גופנים
       font_size: גודל גופן
+      preview_reading_font: גופן לתצוגה מקדימה וקריאה
+      preview_zoom_hint: התצוגה המקדימה ומצב הקריאה משתמשים באותו גופן. גודל הטקסט שם עדיין נשלט באמצעות זום התצוגה המקדימה.
       preview: תצוגה מקדימה
     about:
       description: עורך מרקדאון מודרני להערות שלך
@@ -357,6 +461,7 @@ he:
       prompt_label: 'הוראות ל-AI:'
       placeholder: 'לדוגמה: תרגם לספרדית, הפוך למקצועי יותר...'
       generate: צור
+      processing_provider: AI (הנחיה מותאמת אישית)
       hint_document: לא נבחר טקסט. מנתח את המסמך כולו...
       hint_selection: מנתח את הבחירה המודגשת...
   errors:
@@ -368,6 +473,9 @@ he:
     file_not_found: קובץ זה כבר לא קיים או נמחק.
     no_file_open: אין קובץ פתוח
     no_text_to_check: אין טקסט לבדיקה
+    no_text_selected: לא נבחר טקסט
+    ai_markdown_only: AI זמין רק עבור קובצי markdown
+    connection_lost: החיבור אבד. בדוק את האינטרנט ונסה שוב את ההנחיה.
     no_file_provided: לא סופק נתיב לקובץ
     no_image_data: לא סופקו נתוני תמונה
     no_prompt_provided: לא סופק פרומפט
@@ -383,11 +491,13 @@ he:
     search_failed: החיפוש נכשל
     failed_to_move: נכשל בהעברה
     failed_to_load: נכשל בטעינת הערה
+    failed_to_load_templates: טעינת התבניות נכשלה
     failed_to_save: נכשל בשמירה
     failed_to_create: נכשל ביצירה
     failed_to_rename: נכשל בשינוי שם
     failed_to_delete: נכשל במחיקה
     failed_to_upload: נכשל בהעלאה
+    templates_markdown_only: תבניות זמינות רק עבור הערות markdown
     failed_to_process_ai: נכשל בעיבוד טקסט עם AI
   confirm:
     delete_note: האם אתה בטוח שברצונך למחוק הערה זו?
@@ -400,6 +510,8 @@ he:
     folder_created: התיקייה נוצרה
     folder_deleted: התיקייה נמחקה
     folder_renamed: שם התיקייה שונה
+    template_saved: התבנית נשמרה
+    template_deleted: התבנית נמחקה
     settings_saved: ההגדרות נשמרו
   notes:
     show:

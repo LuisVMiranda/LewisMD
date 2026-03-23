@@ -25,11 +25,32 @@ describe("FileOperationsController", () => {
           <button data-action="click->file-operations#deleteItem">Delete</button>
           <button data-action="click->file-operations#newNoteInFolder">New Note</button>
           <button data-action="click->file-operations#newFolderInFolder">New Folder</button>
+          <button data-file-operations-target="templateNoteMenuItem" class="hidden">
+            <span data-file-operations-target="templateNoteMenuLabel"></span>
+          </button>
         </div>
         <dialog data-file-operations-target="renameDialog">
           <input data-file-operations-target="renameInput" type="text" />
         </dialog>
+        <dialog data-file-operations-target="saveTemplateDialog">
+          <h3 data-file-operations-target="saveTemplateTitle"></h3>
+          <p data-file-operations-target="saveTemplateNotePath"></p>
+          <input data-file-operations-target="saveTemplateInput" type="text" />
+        </dialog>
         <dialog data-file-operations-target="noteTypeDialog"></dialog>
+        <dialog data-file-operations-target="templateDialog">
+          <div data-file-operations-target="templateLoading" class="hidden"></div>
+          <div data-file-operations-target="templateEmpty" class="hidden"></div>
+          <div data-file-operations-target="templateList"></div>
+        </dialog>
+        <dialog data-file-operations-target="templateManagerDialog">
+          <div data-file-operations-target="templateManagerList"></div>
+          <p data-file-operations-target="templateManagerNotice" class="hidden"></p>
+          <h4 data-file-operations-target="templateFormTitle"></h4>
+          <input data-file-operations-target="templatePathInput" type="text" />
+          <textarea data-file-operations-target="templateContentInput"></textarea>
+          <button data-file-operations-target="templateDeleteButton" class="hidden">Delete</button>
+        </dialog>
         <dialog data-file-operations-target="newItemDialog">
           <h3 data-file-operations-target="newItemTitle"></h3>
           <input data-file-operations-target="newItemInput" type="text" />
@@ -46,15 +67,95 @@ describe("FileOperationsController", () => {
     })
 
     // Mock fetch
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      headers: { get: () => "application/json" },
-      json: () => Promise.resolve({ path: "test.md" }),
-      text: () => Promise.resolve('{"path": "test.md"}')
+    global.fetch = vi.fn((url, options = {}) => {
+      if (url === "/templates/status/test.md") {
+        return Promise.resolve({
+          ok: true,
+          headers: { get: () => "application/json" },
+          json: () => Promise.resolve({
+            note_path: "test.md",
+            linked: false,
+            template_path: null
+          }),
+          text: () => Promise.resolve("{}")
+        })
+      }
+
+      if (url === "/templates/status/linked.md") {
+        return Promise.resolve({
+          ok: true,
+          headers: { get: () => "application/json" },
+          json: () => Promise.resolve({
+            note_path: "linked.md",
+            linked: true,
+            template_path: "templates/linked.md"
+          }),
+          text: () => Promise.resolve("{}")
+        })
+      }
+
+      if (url === "/templates") {
+        return Promise.resolve({
+          ok: true,
+          headers: { get: () => "application/json" },
+          json: () => Promise.resolve([
+            { path: "article-draft.md", name: "article-draft", directory: "" },
+            { path: "team/retro.md", name: "retro", directory: "team" }
+          ]),
+          text: () => Promise.resolve("[]")
+        })
+      }
+
+      if (url === "/templates/article-draft.md" || url === "/templates/team/retro.md") {
+        const path = url.replace("/templates/", "")
+        return Promise.resolve({
+          ok: true,
+          headers: { get: () => "application/json" },
+          json: () => Promise.resolve({
+            path,
+            content: path === "article-draft.md" ? "# Article Draft" : "# Retro\n\n## Wins"
+          }),
+          text: () => Promise.resolve("{}")
+        })
+      }
+
+      if (url === "/templates/save_from_note" && options.method === "POST") {
+        return Promise.resolve({
+          ok: true,
+          headers: { get: () => "application/json" },
+          json: () => Promise.resolve({
+            note_path: "test.md",
+            path: "saved-template.md",
+            linked: true
+          }),
+          text: () => Promise.resolve("{}")
+        })
+      }
+
+      if (url === "/templates/save_from_note" && options.method === "DELETE") {
+        return Promise.resolve({
+          ok: true,
+          headers: { get: () => "application/json" },
+          json: () => Promise.resolve({
+            note_path: "linked.md",
+            path: "templates/linked.md",
+            linked: false
+          }),
+          text: () => Promise.resolve("{}")
+        })
+      }
+
+      return Promise.resolve({
+        ok: true,
+        headers: { get: () => "application/json" },
+        json: () => Promise.resolve({ path: "test.md" }),
+        text: () => Promise.resolve('{"path": "test.md"}')
+      })
     })
 
     // Mock confirm
     global.confirm = vi.fn().mockReturnValue(true)
+    global.alert = vi.fn()
 
     element = document.querySelector('[data-controller="file-operations"]')
     application = Application.start()
@@ -119,7 +220,11 @@ describe("FileOperationsController", () => {
 
       controller.showContextMenu(event)
 
-      expect(controller.contextItem).toEqual({ path: "folder/test.md", type: "file" })
+      expect(controller.contextItem).toEqual({
+        path: "folder/test.md",
+        type: "file",
+        fileType: undefined
+      })
     })
 
     it("does not show for config files", () => {
@@ -136,6 +241,25 @@ describe("FileOperationsController", () => {
       controller.showContextMenu(event)
 
       expect(controller.contextMenuTarget.classList.contains("hidden")).toBe(true)
+    })
+
+    it("shows save-as-template for markdown notes without a linked template", async () => {
+      const event = {
+        preventDefault: vi.fn(),
+        stopPropagation: vi.fn(),
+        clientX: 100,
+        clientY: 200,
+        currentTarget: {
+          dataset: { path: "test.md", type: "file", fileType: "markdown" }
+        }
+      }
+
+      controller.showContextMenu(event)
+      await new Promise((resolve) => setTimeout(resolve, 0))
+
+      expect(global.fetch).toHaveBeenCalledWith("/templates/status/test.md", expect.any(Object))
+      expect(controller.templateNoteMenuItemTarget.classList.contains("hidden")).toBe(false)
+      expect(controller.templateNoteMenuLabelTarget.textContent).toBe("context_menu.save_as_template")
     })
   })
 
@@ -185,6 +309,17 @@ describe("FileOperationsController", () => {
 
       expect(controller.noteTypeDialogTarget.close).toHaveBeenCalled()
       expect(openSpy).toHaveBeenCalledWith("note", "", "hugo")
+    })
+  })
+
+  describe("selectNoteTypeTemplate()", () => {
+    it("closes note type dialog and loads the template picker", async () => {
+      const openSpy = vi.spyOn(controller, "openTemplateDialog")
+
+      await controller.selectNoteTypeTemplate()
+
+      expect(controller.noteTypeDialogTarget.close).toHaveBeenCalled()
+      expect(openSpy).toHaveBeenCalled()
     })
   })
 
@@ -254,6 +389,205 @@ describe("FileOperationsController", () => {
 
       expect(controller.newItemTitleTarget.textContent).toBe("dialogs.new_item.new_folder")
     })
+
+    it("sets template title for notes created from templates", () => {
+      controller.openNewItemDialog("note", "", "article-draft.md")
+
+      expect(controller.newItemTitleTarget.textContent).toBe("dialogs.new_item.new_note_from_template")
+    })
+  })
+
+  describe("openTemplateDialog()", () => {
+    it("shows the template dialog", async () => {
+      await controller.openTemplateDialog()
+
+      expect(controller.templateDialogTarget.showModal).toHaveBeenCalled()
+    })
+
+    it("loads templates from the server", async () => {
+      await controller.openTemplateDialog()
+
+      expect(global.fetch).toHaveBeenCalledWith("/templates", expect.any(Object))
+      expect(controller.templateListTarget.innerHTML).toContain("dialogs.templates.built_ins.article_draft.name")
+      expect(controller.templateListTarget.innerHTML).toContain("Retro")
+    })
+  })
+
+  describe("selectTemplate()", () => {
+    it("opens the new note dialog with a suggested filename", () => {
+      controller.templates = [
+        { path: "article-draft.md", name: "article-draft", directory: "" }
+      ]
+
+      controller.selectTemplate({
+        currentTarget: {
+          dataset: { templatePath: "article-draft.md" }
+        }
+      })
+
+      expect(controller.templateDialogTarget.close).toHaveBeenCalled()
+      expect(controller.newItemDialogTarget.showModal).toHaveBeenCalled()
+      expect(controller.newItemInputTarget.value).toBe("article-draft")
+    })
+  })
+
+  describe("template manager", () => {
+    it("opens the template manager dialog and loads templates", async () => {
+      controller.templateDialogTarget.open = true
+
+      await controller.openTemplateManager()
+
+      expect(controller.templateManagerDialogTarget.showModal).toHaveBeenCalled()
+      expect(controller.templateManagerListTarget.innerHTML).toContain("dialogs.templates.built_ins.article_draft.name")
+    })
+
+    it("keeps the new-template form when an earlier refresh resolves late", async () => {
+      let resolveTemplates
+      global.fetch = vi.fn(() => new Promise((resolve) => {
+        resolveTemplates = resolve
+      }))
+
+      const openPromise = controller.openTemplateManager()
+      controller.newTemplate()
+
+      resolveTemplates({
+        ok: true,
+        headers: { get: () => "application/json" },
+        json: () => Promise.resolve([
+          { path: "article-draft.md", name: "article-draft", directory: "" }
+        ]),
+        text: () => Promise.resolve("[]")
+      })
+
+      await openPromise
+
+      expect(controller.currentTemplatePath).toBeNull()
+      expect(controller.templateFormTitleTarget.textContent).toBe("dialogs.templates.new_title")
+      expect(controller.templatePathInputTarget.readOnly).toBe(false)
+    })
+
+    it("prepares a blank form for a new template", () => {
+      controller.newTemplate()
+
+      expect(controller.currentTemplatePath).toBeNull()
+      expect(controller.templatePathInputTarget.readOnly).toBe(false)
+      expect(controller.templateDeleteButtonTarget.classList.contains("hidden")).toBe(true)
+    })
+
+    it("loads a template for editing", async () => {
+      await controller.loadTemplateForEditing("team/retro.md")
+
+      expect(controller.currentTemplatePath).toBe("team/retro.md")
+      expect(controller.templatePathInputTarget.value).toBe("team/retro.md")
+      expect(controller.templatePathInputTarget.readOnly).toBe(true)
+      expect(controller.templateContentInputTarget.value).toContain("## Wins")
+      expect(controller.templateDeleteButtonTarget.classList.contains("hidden")).toBe(false)
+    })
+
+    it("saves a new template via the templates API", async () => {
+      controller.newTemplate()
+      controller.templatePathInputTarget.value = "team/retro"
+      controller.templateContentInputTarget.value = "# Retro"
+
+      await controller.submitTemplateSave()
+
+      expect(global.fetch).toHaveBeenCalledWith("/templates", expect.objectContaining({
+        method: "POST",
+        body: expect.stringContaining('"path":"team/retro"')
+      }))
+    })
+
+    it("shows success feedback after saving a template", async () => {
+      controller.newTemplate()
+      controller.templatePathInputTarget.value = "team/retro"
+      controller.templateContentInputTarget.value = "# Retro"
+
+      await controller.submitTemplateSave()
+
+      expect(controller.templateManagerNoticeTarget.textContent).toBe("success.template_saved")
+      expect(controller.templateManagerNoticeTarget.classList.contains("hidden")).toBe(false)
+    })
+
+    it("updates an existing template via the templates API", async () => {
+      controller.currentTemplatePath = "team/retro.md"
+      controller.templatePathInputTarget.value = "team/retro.md"
+      controller.templateContentInputTarget.value = "# Updated"
+
+      await controller.submitTemplateSave()
+
+      expect(global.fetch).toHaveBeenCalledWith("/templates/team/retro.md", expect.objectContaining({
+        method: "PATCH",
+        body: expect.stringContaining('"content":"# Updated"')
+      }))
+    })
+
+    it("deletes an existing template", async () => {
+      controller.currentTemplatePath = "team/retro.md"
+
+      await controller.deleteTemplate()
+
+      expect(global.fetch).toHaveBeenCalledWith("/templates/team/retro.md", expect.objectContaining({
+        method: "DELETE"
+      }))
+    })
+
+    it("shows success feedback after deleting a template", async () => {
+      controller.currentTemplatePath = "team/retro.md"
+
+      await controller.deleteTemplate()
+
+      expect(controller.templateManagerNoticeTarget.textContent).toBe("success.template_deleted")
+      expect(controller.templateManagerNoticeTarget.classList.contains("hidden")).toBe(false)
+    })
+  })
+
+  describe("save current note as template", () => {
+    it("opens the save dialog with the default template path for an unlinked note", async () => {
+      await controller.openSaveTemplateFromNoteDialog("test.md")
+
+      expect(global.fetch).toHaveBeenCalledWith("/templates/status/test.md", expect.any(Object))
+      expect(controller.saveTemplateDialogTarget.showModal).toHaveBeenCalled()
+      expect(controller.saveTemplateTitleTarget.textContent).toBe("dialogs.templates.save_from_note_title")
+      expect(controller.saveTemplateNotePathTarget.textContent).toBe("test.md")
+      expect(controller.saveTemplateInputTarget.value).toBe("test")
+    })
+
+    it("uses the linked template path when the note already has one", async () => {
+      await controller.openSaveTemplateFromNoteDialog("linked.md")
+
+      expect(controller.saveTemplateTitleTarget.textContent).toBe("dialogs.templates.save_from_note_update_title")
+      expect(controller.saveTemplateInputTarget.value).toBe("templates/linked")
+    })
+
+    it("submits the note save request and closes the dialog", async () => {
+      controller.currentTemplateSourceNotePath = "test.md"
+      controller.saveTemplateInputTarget.value = "saved-template"
+
+      await controller.submitSaveTemplateFromNote()
+
+      expect(global.fetch).toHaveBeenCalledWith("/templates/save_from_note", expect.objectContaining({
+        method: "POST",
+        body: expect.stringContaining('"note_path":"test.md"')
+      }))
+      expect(global.fetch).toHaveBeenCalledWith("/templates/save_from_note", expect.objectContaining({
+        method: "POST",
+        body: expect.stringContaining('"template_path":"saved-template"')
+      }))
+      expect(controller.saveTemplateDialogTarget.close).toHaveBeenCalled()
+      expect(controller.currentTemplateSourceNotePath).toBeNull()
+      expect(controller.currentTemplateLinkedPath).toBeNull()
+    })
+
+    it("deletes a linked template from the note context action", async () => {
+      await controller.deleteTemplateForNote("linked.md")
+
+      expect(global.fetch).toHaveBeenCalledWith("/templates/save_from_note", expect.objectContaining({
+        method: "DELETE",
+        body: expect.stringContaining('"note_path":"linked.md"')
+      }))
+      expect(controller.contextItemTemplateLinked).toBe(false)
+      expect(controller.contextItemTemplatePath).toBeNull()
+    })
   })
 
   describe("closeNewItemDialog()", () => {
@@ -296,6 +630,18 @@ describe("FileOperationsController", () => {
       }))
     })
 
+    it("creates template-based note via API", async () => {
+      controller.openNewItemDialog("note", "", "team/retro.md")
+      controller.newItemInputTarget.value = "retro"
+
+      await controller.submitNewItem()
+
+      expect(global.fetch).toHaveBeenCalledWith("/notes/retro.md", expect.objectContaining({
+        method: "POST",
+        body: expect.stringContaining('"template_path":"team/retro.md"')
+      }))
+    })
+
     it("creates folder via API", async () => {
       controller.openNewItemDialog("folder", "")
       controller.newItemInputTarget.value = "newfolder"
@@ -330,6 +676,12 @@ describe("FileOperationsController", () => {
       await controller.submitNewItem()
 
       expect(handler).toHaveBeenCalled()
+    })
+  })
+
+  describe("humanizeTemplateName()", () => {
+    it("preserves accented words without uppercasing trailing letters", () => {
+      expect(controller.humanizeTemplateName("reunião wise up")).toBe("Reunião Wise Up")
     })
   })
 

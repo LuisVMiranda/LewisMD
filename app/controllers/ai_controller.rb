@@ -47,10 +47,6 @@ class AiController < ApplicationController
     text = params[:selected_text].to_s
     prompt = params[:prompt].to_s
 
-    if text.blank?
-      return render json: { error: t("errors.no_text_selected") }, status: :bad_request
-    end
-
     if prompt.blank?
       return render json: { error: t("errors.no_prompt_provided") }, status: :bad_request
     end

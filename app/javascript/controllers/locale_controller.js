@@ -3,7 +3,10 @@ import { get, patch } from "@rails/request.js"
 
 export default class extends Controller {
   static targets = ["menu", "currentLocale"]
-  static values = { initial: String }
+  static values = {
+    initial: String,
+    persist: { type: Boolean, default: true }
+  }
 
   // Available locales
   static locales = [
@@ -20,7 +23,7 @@ export default class extends Controller {
     // Load initial locale from server config
     this.currentLocaleId = this.hasInitialValue && this.initialValue ? this.initialValue : "en"
     this.translations = null
-    this.loadTranslations()
+    this.loadTranslations(this.currentLocaleId)
     this.renderMenu()
     this.setupClickOutside()
     this.setupConfigListener()
@@ -39,9 +42,9 @@ export default class extends Controller {
   }
 
   // Load translations from server
-  async loadTranslations() {
+  async loadTranslations(localeId = this.currentLocaleId) {
     try {
-      const response = await get("/translations", { responseKind: "json" })
+      const response = await get(`/translations?locale=${encodeURIComponent(localeId)}`, { responseKind: "json" })
       if (response.ok) {
         const data = await response.json
         this.translations = data.translations
@@ -62,11 +65,13 @@ export default class extends Controller {
 
   // Listen for config changes (when .fed file is edited)
   setupConfigListener() {
+    if (!this.persistValue) return
+
     this.boundConfigListener = (event) => {
       const { locale } = event.detail
       if (locale && locale !== this.currentLocaleId) {
         this.currentLocaleId = locale
-        this.loadTranslations()
+        this.loadTranslations(locale)
         this.renderMenu()
       }
     }
@@ -84,11 +89,17 @@ export default class extends Controller {
       this.menuTarget.classList.add("hidden")
       return
     }
-    this.currentLocaleId = localeId
-    this.updateDisplay()
-    this.renderMenu()
+    if (this.persistValue) {
+      this.currentLocaleId = localeId
+      this.updateDisplay()
+      this.renderMenu()
+      this.menuTarget.classList.add("hidden")
+      this.saveLocaleConfig(localeId)
+      return
+    }
+
     this.menuTarget.classList.add("hidden")
-    this.saveLocaleConfig(localeId)
+    this.navigateToLocale(localeId)
   }
 
   // Save locale to server config and reload page to apply translations
@@ -112,6 +123,16 @@ export default class extends Controller {
 
   reloadPage() {
     window.location.reload()
+  }
+
+  navigateToLocale(localeId) {
+    window.location.assign(this.buildLocaleUrl(localeId))
+  }
+
+  buildLocaleUrl(localeId) {
+    const url = new URL(window.location.href)
+    url.searchParams.set("locale", localeId)
+    return url.toString()
   }
 
   updateDisplay() {

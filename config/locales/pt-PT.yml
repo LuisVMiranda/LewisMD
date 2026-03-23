@@ -27,8 +27,14 @@ pt-PT:
     toggle_explorer: Alternar Explorador (Ctrl+E)
     toggle_typewriter: Alternar Modo Máquina de Escrever (Ctrl+B)
     toggle_preview: Alternar Pré-visualização (Ctrl+Shift+P)
+    toggle_reading: Alternar Modo de Leitura (Ctrl+Shift+Y)
+    save_as_template: Guardar como Modelo
     change_theme: Alterar Tema
     change_language: Alterar Idioma
+    exports: Exportar
+    share: Partilhar
+    open_exports: Abrir ações de exportação e partilha
+    open_share_menu: Abrir ações de partilha, exportação e cópia
     about_app: Acerca do LewisMD
     click_to_copy_path: Clique para copiar o caminho
   sidebar:
@@ -39,6 +45,8 @@ pt-PT:
     search_in_files: Pesquisar em Ficheiros (Ctrl+Shift+F)
     no_notes_yet: Ainda não há notas
     no_files_found: Nenhum ficheiro encontrado
+    outline: Estrutura
+    no_headings_yet: Ainda não há títulos
     words: Palavras
     characters: Caracteres
     size: Tamanho
@@ -77,13 +85,19 @@ pt-PT:
     title: Pré-visualização
     zoom_in: Aumentar Zoom
     zoom_out: Diminuir Zoom
+    decrease_text_width: Diminuir largura do texto
+    increase_text_width: Aumentar largura do texto
   context_menu:
     new_note: Nova Nota
     new_folder: Nova Pasta
     rename: Renomear
+    save_as_template: Guardar como Modelo
+    delete_template: Eliminar Modelo
     delete: Eliminar
   status:
     copied_to_clipboard: Conteúdo copiado para a área de transferência
+    copy_failed: Falha ao copiar conteúdo
+    export_failed: Falha ao exportar conteúdo
     saved: Guardado
     unsaved: Alterações por guardar
     error_saving: Erro ao guardar
@@ -104,13 +118,63 @@ pt-PT:
     content_loss_warning: Grande eliminação de conteúdo detetada. Prima Ctrl+Z para desfazer se foi acidental.
     undo: Desfazer
     save_anyway: Guardar Mesmo Assim
-    offline_backup_saved: Cópia de segurança local guardada
+    share_link_created: Ligação partilhada criada e copiada
+    share_link_copied: Ligação partilhada copiada
+    share_link_refreshed: Instantâneo partilhado atualizado
+    share_link_disabled: Ligação partilhada desativada
+    share_failed: Falha ao atualizar a ligação partilhada
+  status_strip:
+    mode_prefix: Modo
+    recovery_available: Recuperação disponível
+    modes:
+      raw: Cru
+      preview: Pré-visualização
+      reading: Leitura
+      typewriter: Máquina de escrever
+    save:
+      saved: Guardado
+      unsaved: Por guardar
+      offline: Offline
+      error: Erro ao guardar
+    metrics:
+      line: Ln
+      selection: Sel
+      zoom: Zoom
+  export_menu:
+    copy_note: Copiar Nota (Ctrl+C)
+    copy_markdown: Copiar Markdown
+    export_files: Exportar ficheiros
+    export_html: Exportar HTML
+    export_txt: Exportar TXT
+    export_pdf: Exportar PDF
+
+    copy_formatted_html: Copiar para a área de transferência
+    create_share_link: Criar ligação partilhada
+    copy_share_link: Copiar ligação partilhada
+    refresh_share_link: Atualizar instantâneo partilhado
+    disable_share_link: Desativar ligação partilhada
+  share_view:
+    label: Nota partilhada
+    open_exports: Abrir ações de exportação
+    zoom: Zoom
+    zoom_in: Aumentar zoom
+    zoom_out: Diminuir zoom
+    width: Largura
+    width_narrower: Tornar a coluna de texto mais estreita
+    width_wider: Tornar a coluna de texto mais larga
+    font_family: Tipo de letra
+    font_default: Predefinido
+    font_sans: Sans
+    font_serif: Serif
+    font_mono: Mono
+    iframe_title: Pré-visualização da nota partilhada
   dialogs:
     rename:
       title: Renomear
       placeholder: Novo nome
     new_item:
       new_note: Nova Nota
+      new_note_from_template: Nova Nota a partir de Modelo
       new_folder: Nova Pasta
       placeholder: Nome
       note_placeholder: Nome da nota
@@ -119,9 +183,47 @@ pt-PT:
       title: Nova Nota
       empty_document: Documento Vazio
       empty_description: Ficheiro markdown simples
+      template: Modelo
+      template_description: Começar a partir de um modelo markdown guardado
       hugo_post: Artigo Hugo Blog
       hugo_description: AAAA/MM/DD/slug/index.md
       new_hugo_post: Novo Artigo Hugo Blog
+    templates:
+      title: Escolher Modelo
+      subtitle: Selecione um modelo markdown para começar
+      manage_action: Gerir Modelos
+      manage_title: Gerir Modelos
+      manage_subtitle: Crie, edite, atualize ou elimine modelos markdown
+      loading: A carregar modelos...
+      empty: Ainda não existem modelos disponíveis
+      new_button: Novo Modelo
+      refresh_button: Atualizar Lista
+      new_title: Novo Modelo
+      edit_title: Editar Modelo
+      save_from_note_title: Guardar Nota como Modelo
+      save_from_note_update_title: Atualizar Modelo Ligado
+      path_label: Caminho do modelo
+      path_placeholder: ex. equipa/retro
+      content_label: Conteúdo markdown
+      content_placeholder: Escreva aqui o markdown do modelo...
+      delete_confirm: Eliminar o modelo \"%{name}\"?
+      delete_linked_confirm: Eliminar o modelo ligado \"%{name}\"?
+      built_ins:
+        daily_note:
+          name: Nota Diária
+          description: Prioridades, notas, conquistas e amanhã
+        meeting_note:
+          name: Nota de Reunião
+          description: Agenda, notas, decisões e ações
+        article_draft:
+          name: Rascunho de Artigo
+          description: Resumo, estrutura, texto e referências
+        journal_entry:
+          name: Entrada de Diário
+          description: Humor, acontecimentos, reflexões e gratidão
+        changelog:
+          name: Registo de Alterações
+          description: Alterações por lançar agrupadas por tipo
     table_editor:
       title: Editor de Tabela
       add_column: Adicionar Coluna
@@ -293,6 +395,8 @@ pt-PT:
       title: Definições do Editor
       font_family: Família do Tipo de Letra
       font_size: Tamanho do Tipo de Letra
+      preview_reading_font: Tipo de letra da Pré-visualização e Leitura
+      preview_zoom_hint: A Pré-visualização e o Modo de Leitura partilham este tipo de letra. O tamanho do texto aí continua a usar o controlo de zoom da pré-visualização.
       preview: Pré-visualização
     about:
       description: Um editor markdown moderno para as suas notas
@@ -383,6 +487,7 @@ pt-PT:
       prompt_label: 'Instruções para IA:'
       placeholder: ex. Traduzir para Espanhol, Tornar mais profissional...
       generate: Gerar
+      processing_provider: IA (Prompt Personalizado)
       hint_document: Nenhum texto selecionado. A analisar todo o documento...
       hint_selection: A analisar a seleção destacada...
   errors:
@@ -394,6 +499,9 @@ pt-PT:
     file_not_found: Este ficheiro já não existe ou foi eliminado.
     no_file_open: Nenhum ficheiro aberto
     no_text_to_check: Nenhum texto para verificar
+    no_text_selected: Nenhum texto selecionado
+    ai_markdown_only: A IA está disponível apenas para ficheiros markdown
+    connection_lost: Ligação perdida. Verifique a internet e tente novamente o prompt.
     no_file_provided: Nenhum caminho de ficheiro fornecido
     no_image_data: Nenhum dado de imagem fornecido
     no_prompt_provided: Nenhum prompt fornecido
@@ -409,11 +517,13 @@ pt-PT:
     search_failed: Falha na pesquisa
     failed_to_move: Falha ao mover
     failed_to_load: Falha ao carregar nota
+    failed_to_load_templates: Falha ao carregar modelos
     failed_to_save: Falha ao guardar
     failed_to_create: Falha ao criar
     failed_to_rename: Falha ao renomear
     failed_to_delete: Falha ao eliminar
     failed_to_upload: Falha ao enviar
+    templates_markdown_only: Os modelos estão disponíveis apenas para notas markdown
     failed_to_process_ai: Falha ao processar texto com IA
   confirm:
     delete_note: Tem a certeza que deseja eliminar esta nota?
@@ -426,6 +536,8 @@ pt-PT:
     folder_created: Pasta criada
     folder_deleted: Pasta eliminada
     folder_renamed: Pasta renomeada
+    template_saved: Modelo guardado
+    template_deleted: Modelo eliminado
     settings_saved: Definições guardadas
   notes:
     show:

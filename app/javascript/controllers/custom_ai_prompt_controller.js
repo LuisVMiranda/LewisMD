@@ -15,7 +15,7 @@ export default class extends Controller {
     
     // Only allow for markdown files
     if (!appController.isMarkdownFile()) {
-      appController.showTemporaryMessage(window.t("errors.ai_markdown_only") || "AI is only available for markdown files")
+      appController.showTemporaryMessage(window.t("errors.ai_markdown_only"))
       return
     }
 
@@ -27,11 +27,11 @@ export default class extends Controller {
     if (selection.empty) {
       this.selectedText = editor.state.doc.toString()
       this.selectionRange = { from: 0, to: editor.state.doc.length }
-      this.selectionHintTarget.textContent = window.t("dialogs.custom_ai.hint_document", { default: "No text selected. Analzying entire document..." })
+      this.selectionHintTarget.textContent = window.t("dialogs.custom_ai.hint_document")
     } else {
       this.selectedText = editor.state.sliceDoc(selection.from, selection.to)
       this.selectionRange = { from: selection.from, to: selection.to }
-      this.selectionHintTarget.textContent = window.t("dialogs.custom_ai.hint_selection", { default: "Analyzing highlighted selection..." })
+      this.selectionHintTarget.textContent = window.t("dialogs.custom_ai.hint_selection")
     }
 
     this.promptInputTarget.value = ""
@@ -53,7 +53,7 @@ export default class extends Controller {
   async generate() {
     const prompt = this.promptInputTarget.value.trim()
     if (!prompt) {
-      alert(window.t("errors.no_prompt_provided") || "Please provide AI instructions.")
+      alert(window.t("errors.no_prompt_provided"))
       return
     }
 
@@ -71,7 +71,7 @@ export default class extends Controller {
     aiGrammarController.dispatch("processing-started")
     if (aiGrammarController.hasProcessingOverlayTarget) {
       if (aiGrammarController.hasProcessingProviderTarget) {
-        aiGrammarController.processingProviderTarget.textContent = "AI (Custom Prompt)"
+        aiGrammarController.processingProviderTarget.textContent = window.t("dialogs.custom_ai.processing_provider")
       }
       aiGrammarController.processingOverlayTarget.classList.remove("hidden")
     }
@@ -92,7 +92,7 @@ export default class extends Controller {
       const data = await response.json
 
       if (data.error) {
-        alert(`${window.t("errors.failed_to_process_ai") || "AI Request Failed"}: ${data.error}`)
+        alert(`${window.t("errors.failed_to_process_ai")}: ${data.error}`)
         aiGrammarController.cleanup()
         return
       }
@@ -119,7 +119,7 @@ export default class extends Controller {
         console.log("AI prompt cancelled")
       } else {
         console.error("AI prompt failed:", e)
-        alert(window.t("errors.connection_lost") || "Connection lost. Please check your internet and try your prompt again.")
+        alert(window.t("errors.connection_lost"))
       }
       aiGrammarController.cleanup()
     } finally {

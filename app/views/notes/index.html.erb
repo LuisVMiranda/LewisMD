@@ -1,11 +1,12 @@
 <div class="h-screen w-full flex flex-col bg-[var(--theme-bg-primary)] text-[var(--theme-text-primary)]"
-     data-controller="app autosave scroll-sync connection-monitor typewriter"
-     data-action="connection-monitor:offline->autosave#onConnectionLost connection-monitor:online->autosave#onConnectionRestored autosave:config-saved->app#onAutosaveConfigSaved autosave:offline-changed->app#onAutosaveOfflineChanged typewriter:toggled->app#onTypewriterToggled typewriter:toggled->scroll-sync#onTypewriterToggled"
+     data-controller="app autosave scroll-sync connection-monitor typewriter status-strip"
+     data-action="connection-monitor:offline->autosave#onConnectionLost connection-monitor:online->autosave#onConnectionRestored autosave:config-saved->app#onAutosaveConfigSaved autosave:offline-changed->app#onAutosaveOfflineChanged autosave:status->status-strip#onAutosaveStatus app:state-changed->status-strip#onStateChanged codemirror:ready->app#onCodeMirrorReady preview:scroll->app#onPreviewScrolled outline:selected->app#onOutlineSelected split-pane:width-changed->app#onPreviewWidthChanged typewriter:toggled->app#onTypewriterToggled typewriter:toggled->scroll-sync#onTypewriterToggled"
      data-app-initial-path-value="<%= @initial_path %>"
      data-app-initial-note-value="<%= (@initial_note || {}).to_json %>"
      data-app-codemirror-outlet='[data-controller~="codemirror"]'
      data-app-preview-outlet='[data-controller~="preview"]'
      data-app-typewriter-outlet='[data-controller~="typewriter"]'
+     data-app-split-pane-outlet='[data-controller~="split-pane"]'
      data-app-stats-panel-outlet='[data-controller~="stats-panel"]'
      data-app-path-display-outlet='[data-controller~="path-display"]'
      data-app-text-format-outlet='[data-controller~="text-format"]'
@@ -22,6 +23,8 @@
      data-app-find-replace-outlet='[data-controller~="find-replace"]'
      data-app-jump-to-line-outlet='[data-controller~="jump-to-line"]'
      data-app-content-search-outlet='[data-controller~="content-search"]'
+     data-app-outline-outlet='[data-controller~="outline"]'
+     data-app-export-menu-outlet='[data-controller~="export-menu"]'
      data-app-ai-grammar-outlet='[data-controller~="ai-grammar"]'
      data-app-video-dialog-outlet='[data-controller~="video-dialog"]'
      data-app-log-viewer-outlet='[data-controller~="log-viewer"]'
@@ -55,6 +58,7 @@
       ] %>
 
   <%= render "notes/header" %>
+  <%= render "notes/status_strip" %>
 
   <!-- Main Content -->
   <div class="flex-1 flex overflow-hidden">

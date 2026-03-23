@@ -27,8 +27,14 @@ ko:
     toggle_explorer: 탐색기 전환 (Ctrl+E)
     toggle_typewriter: 타자기 모드 전환 (Ctrl+B)
     toggle_preview: 미리보기 전환 (Ctrl+Shift+P)
+    toggle_reading: 읽기 모드 전환 (Ctrl+Shift+Y)
+    save_as_template: 템플릿으로 저장
     change_theme: 테마 변경
     change_language: 언어 변경
+    exports: 내보내기
+    share: 공유
+    open_exports: 내보내기 및 공유 작업 열기
+    open_share_menu: 공유, 내보내기 및 복사 작업 열기
     about_app: LewisMD 정보
     click_to_copy_path: 클릭하여 경로 복사
   sidebar:
@@ -39,6 +45,8 @@ ko:
     search_in_files: 파일 내 검색 (Ctrl+Shift+F)
     no_notes_yet: 노트가 없습니다
     no_files_found: 파일을 찾을 수 없습니다
+    outline: 개요
+    no_headings_yet: 제목이 아직 없습니다
     words: 단어
     characters: 문자
     size: 크기
@@ -77,13 +85,19 @@ ko:
     title: 미리보기
     zoom_in: 확대
     zoom_out: 축소
+    decrease_text_width: 텍스트 너비 줄이기
+    increase_text_width: 텍스트 너비 늘리기
   context_menu:
     new_note: 새 노트
     new_folder: 새 폴더
     rename: 이름 변경
+    save_as_template: 템플릿으로 저장
+    delete_template: 템플릿 삭제
     delete: 삭제
   status:
     copied_to_clipboard: 클립보드에 복사되었습니다
+    copy_failed: 복사에 실패했습니다
+    export_failed: 내용을 내보내지 못했습니다
     saved: 저장됨
     unsaved: 저장되지 않은 변경사항
     error_saving: 저장 오류
@@ -104,13 +118,63 @@ ko:
     content_loss_warning: 대량의 콘텐츠 삭제가 감지되었습니다. 실수인 경우 Ctrl+Z를 눌러 되돌리세요.
     undo: 실행 취소
     save_anyway: 그래도 저장
-    offline_backup_saved: 로컬에 백업됨
+    share_link_created: 공유 링크를 만들고 복사했습니다
+    share_link_copied: 공유 링크를 복사했습니다
+    share_link_refreshed: 공유 스냅샷을 업데이트했습니다
+    share_link_disabled: 공유 링크를 비활성화했습니다
+    share_failed: 공유 링크를 업데이트하지 못했습니다
+  status_strip:
+    mode_prefix: 모드
+    recovery_available: 복구 가능
+    modes:
+      raw: 원문
+      preview: 미리보기
+      reading: 읽기
+      typewriter: 타자기
+    save:
+      saved: 저장됨
+      unsaved: 저장 안 됨
+      offline: 오프라인
+      error: 저장 오류
+    metrics:
+      line: Ln
+      selection: Sel
+      zoom: Zoom
+  export_menu:
+    copy_note: 노트 복사 (Ctrl+C)
+    copy_markdown: Markdown 복사
+    export_files: 파일 내보내기
+    export_html: HTML 내보내기
+    export_txt: TXT 내보내기
+    export_pdf: PDF 내보내기
+
+    copy_formatted_html: 클립보드에 복사
+    create_share_link: 공유 링크 만들기
+    copy_share_link: 공유 링크 복사
+    refresh_share_link: 공유 스냅샷 새로고침
+    disable_share_link: 공유 링크 비활성화
+  share_view:
+    label: 공유 노트
+    open_exports: 내보내기 작업 열기
+    zoom: 확대
+    zoom_in: 확대
+    zoom_out: 축소
+    width: 너비
+    width_narrower: 텍스트 열을 더 좁게
+    width_wider: 텍스트 열을 더 넓게
+    font_family: 글꼴
+    font_default: 기본값
+    font_sans: Sans
+    font_serif: Serif
+    font_mono: Mono
+    iframe_title: 공유 노트 미리보기
   dialogs:
     rename:
       title: 이름 변경
       placeholder: 새 이름
     new_item:
       new_note: 새 노트
+      new_note_from_template: 템플릿으로 새 노트 만들기
       new_folder: 새 폴더
       placeholder: 이름
       note_placeholder: 노트 이름
@@ -119,9 +183,47 @@ ko:
       title: 새 노트
       empty_document: 빈 문서
       empty_description: 일반 마크다운 파일
+      template: 템플릿
+      template_description: 저장된 마크다운 템플릿으로 시작하기
       hugo_post: Hugo 블로그 포스트
       hugo_description: YYYY/MM/DD/slug/index.md
       new_hugo_post: 새 Hugo 블로그 포스트
+    templates:
+      title: 템플릿 선택
+      subtitle: 시작할 마크다운 템플릿을 선택하세요
+      manage_action: 템플릿 관리
+      manage_title: 템플릿 관리
+      manage_subtitle: 마크다운 템플릿을 만들고, 수정하고, 새로고침하거나 삭제합니다
+      loading: 템플릿을 불러오는 중...
+      empty: 아직 사용할 수 있는 템플릿이 없습니다
+      new_button: 새 템플릿
+      refresh_button: 목록 새로고침
+      new_title: 새 템플릿
+      edit_title: 템플릿 편집
+      save_from_note_title: 노트를 템플릿으로 저장
+      save_from_note_update_title: 연결된 템플릿 업데이트
+      path_label: 템플릿 경로
+      path_placeholder: "예: team/retro"
+      content_label: 마크다운 내용
+      content_placeholder: 여기에 템플릿 마크다운을 작성하세요...
+      delete_confirm: 템플릿 \"%{name}\"을 삭제할까요?
+      delete_linked_confirm: 연결된 템플릿 \"%{name}\"을 삭제할까요?
+      built_ins:
+        daily_note:
+          name: 데일리 노트
+          description: 우선순위, 메모, 성과와 내일 계획
+        meeting_note:
+          name: 회의 노트
+          description: 안건, 메모, 결정 사항과 실행 항목
+        article_draft:
+          name: 글 초안
+          description: 요약, 개요, 초안과 참고 자료
+        journal_entry:
+          name: 저널 항목
+          description: 기분, 사건, 성찰과 감사
+        changelog:
+          name: 변경 기록
+          description: 배포 전 변경 사항을 유형별로 정리
     table_editor:
       title: 테이블 에디터
       add_column: 열 추가
@@ -293,6 +395,8 @@ ko:
       title: 에디터 설정
       font_family: 글꼴 패밀리
       font_size: 글꼴 크기
+      preview_reading_font: 미리보기 및 읽기 글꼴
+      preview_zoom_hint: 미리보기와 읽기 모드는 이 글꼴을 함께 사용합니다. 그곳의 텍스트 크기는 계속 미리보기 줌 컨트롤로 조정합니다.
       preview: 미리보기
     about:
       description: 현대적인 마크다운 노트 에디터
@@ -383,6 +487,7 @@ ko:
       prompt_label: 'AI에 대한 지침:'
       placeholder: '예: 스페인어로 번역, 더 전문적으로 만들기...'
       generate: 생성
+      processing_provider: AI (맞춤형 프롬프트)
       hint_document: 선택된 텍스트가 없습니다. 전체 문서를 분석 중...
       hint_selection: 강조 표시된 선택 영역을 분석 중...
   errors:
@@ -394,6 +499,9 @@ ko:
     file_not_found: 이 파일은 더 이상 존재하지 않거나 삭제되었습니다.
     no_file_open: 열린 파일이 없습니다
     no_text_to_check: 검사할 텍스트가 없습니다
+    no_text_selected: 선택된 텍스트가 없습니다
+    ai_markdown_only: AI는 markdown 파일에서만 사용할 수 있습니다
+    connection_lost: 연결이 끊어졌습니다. 인터넷 연결을 확인하고 프롬프트를 다시 시도해 주세요.
     no_file_provided: 파일 경로가 제공되지 않았습니다
     no_image_data: 이미지 데이터가 제공되지 않았습니다
     no_prompt_provided: 프롬프트가 제공되지 않았습니다
@@ -409,11 +517,13 @@ ko:
     search_failed: 검색 실패
     failed_to_move: 이동 실패
     failed_to_load: 노트 로드 실패
+    failed_to_load_templates: 템플릿 불러오기에 실패했습니다
     failed_to_save: 저장 실패
     failed_to_create: 생성 실패
     failed_to_rename: 이름 변경 실패
     failed_to_delete: 삭제 실패
     failed_to_upload: 업로드 실패
+    templates_markdown_only: 템플릿은 마크다운 노트에서만 사용할 수 있습니다
     failed_to_process_ai: AI로 텍스트 처리 실패
   confirm:
     delete_note: 이 노트를 삭제하시겠습니까?
@@ -426,6 +536,8 @@ ko:
     folder_created: 폴더가 생성되었습니다
     folder_deleted: 폴더가 삭제되었습니다
     folder_renamed: 폴더 이름이 변경되었습니다
+    template_saved: 템플릿이 저장되었습니다
+    template_deleted: 템플릿이 삭제되었습니다
     settings_saved: 설정이 저장되었습니다
   notes:
     show:

@@ -1,0 +1,221 @@
+# frozen_string_literal: true
+
+require "json"
+require "securerandom"
+require "tempfile"
+
+class ShareService
+  class NotFoundError < StandardError; end
+  class InvalidShareError < StandardError; end
+
+  METADATA_DIR = ".frankmd/shares"
+  SNAPSHOT_DIR = ".frankmd/share_snapshots"
+  TOKEN_PATTERN = /\A[a-f0-9]{32}\z/
+
+  def initialize(base_path: nil)
+    @base_path = Pathname.new(base_path || ENV.fetch("NOTES_PATH", Rails.root.join("notes"))).expand_path
+    FileUtils.mkdir_p(@base_path) unless @base_path.exist?
+  end
+
+  def create_or_find(path:, title:, snapshot_html:)
+    normalized_path = normalize_note_path(path)
+    validate_snapshot_html!(snapshot_html)
+
+    existing_share = active_share_for(normalized_path, require_snapshot: false)
+    return repair_missing_snapshot(existing_share, title, snapshot_html) if existing_share && !snapshot_file(existing_share[:token]).file?
+    return existing_share.merge(created: false) if existing_share
+
+    token = generate_token
+    timestamp = Time.current.iso8601
+    metadata = {
+      token: token,
+      path: normalized_path,
+      title: normalized_title(title, normalized_path),
+      snapshot_path: snapshot_relative_path(token),
+      created_at: timestamp,
+      updated_at: timestamp,
+      revoked: false
+    }
+
+    write_snapshot(token, snapshot_html)
+    write_metadata(metadata)
+
+    metadata.merge(created: true)
+  end
+
+  def refresh(path:, title:, snapshot_html:)
+    normalized_path = normalize_note_path(path)
+    validate_snapshot_html!(snapshot_html)
+
+    metadata = active_share_for(normalized_path, require_snapshot: false)
+    raise NotFoundError, "Share not found for #{normalized_path}" unless metadata
+
+    updated_metadata = metadata.merge(
+      title: normalized_title(title, normalized_path),
+      snapshot_path: snapshot_relative_path(metadata[:token]),
+      updated_at: Time.current.iso8601,
+      revoked: false
+    )
+
+    write_snapshot(updated_metadata[:token], snapshot_html)
+    write_metadata(updated_metadata)
+
+    updated_metadata
+  end
+
+  def revoke(path:)
+    normalized_path = normalize_note_path(path)
+    metadata = active_share_for(normalized_path, require_snapshot: false)
+    raise NotFoundError, "Share not found for #{normalized_path}" unless metadata
+
+    revoked_metadata = metadata.merge(
+      updated_at: Time.current.iso8601,
+      revoked: true
+    )
+
+    write_metadata(revoked_metadata)
+
+    file = snapshot_file(revoked_metadata[:token])
+    file.delete if file.exist?
+
+    revoked_metadata
+  end
+
+  def find_by_token(token)
+    metadata = read_metadata(token)
+    return nil unless metadata
+    return nil if metadata[:revoked]
+
+    file = snapshot_file(token)
+    return nil unless file.file?
+
+    metadata.merge(snapshot_file: file)
+  end
+
+  def active_share_for(path, require_snapshot: true)
+    normalized_path = normalize_note_path(path)
+
+    metadata_files.each do |file|
+      metadata = parse_metadata_file(file)
+      next unless metadata
+      next if metadata[:revoked]
+      next unless metadata[:path] == normalized_path
+      next if require_snapshot && !snapshot_file(metadata[:token]).file?
+
+      return metadata
+    end
+
+    nil
+  end
+
+  private
+
+  attr_reader :base_path
+
+  def metadata_files
+    Dir.glob(metadata_dir.join("*.json")).sort
+  end
+
+  def metadata_dir
+    @metadata_dir ||= base_path.join(METADATA_DIR)
+  end
+
+  def snapshot_dir
+    @snapshot_dir ||= base_path.join(SNAPSHOT_DIR)
+  end
+
+  def metadata_file(token)
+    metadata_dir.join("#{token}.json")
+  end
+
+  def snapshot_file(token)
+    snapshot_dir.join("#{token}.html")
+  end
+
+  def snapshot_relative_path(token)
+    "#{SNAPSHOT_DIR}/#{token}.html"
+  end
+
+  def normalize_note_path(path)
+    normalized_path = Note.normalize_path(path)
+    raise InvalidShareError, "Invalid share path" if normalized_path.blank?
+    raise InvalidShareError, "Only markdown notes can be shared" unless normalized_path.end_with?(".md")
+
+    normalized_path
+  end
+
+  def normalized_title(title, path)
+    title.to_s.strip.presence || File.basename(path, ".md")
+  end
+
+  def validate_snapshot_html!(snapshot_html)
+    raise InvalidShareError, "Snapshot HTML is required" if snapshot_html.to_s.strip.blank?
+  end
+
+  def repair_missing_snapshot(metadata, title, snapshot_html)
+    repaired_metadata = metadata.merge(
+      title: metadata[:title].presence || normalized_title(title, metadata[:path]),
+      snapshot_path: snapshot_relative_path(metadata[:token]),
+      updated_at: Time.current.iso8601,
+      revoked: false
+    )
+
+    write_snapshot(repaired_metadata[:token], snapshot_html)
+    write_metadata(repaired_metadata)
+
+    repaired_metadata.merge(created: false)
+  end
+
+  def generate_token
+    loop do
+      token = SecureRandom.hex(16)
+      return token unless metadata_file(token).exist?
+    end
+  end
+
+  def read_metadata(token)
+    return nil unless token.to_s.match?(TOKEN_PATTERN)
+
+    file = metadata_file(token)
+    return nil unless file.file?
+
+    parse_metadata_file(file)
+  end
+
+  def parse_metadata_file(file)
+    payload = JSON.parse(File.read(file), symbolize_names: true)
+    return nil unless payload[:token].to_s.match?(TOKEN_PATTERN)
+
+    {
+      token: payload[:token],
+      path: payload[:path],
+      title: payload[:title],
+      snapshot_path: payload[:snapshot_path],
+      created_at: payload[:created_at],
+      updated_at: payload[:updated_at],
+      revoked: payload[:revoked]
+    }
+  rescue JSON::ParserError
+    nil
+  end
+
+  def write_metadata(metadata)
+    atomic_write(metadata_file(metadata[:token]), JSON.pretty_generate(metadata))
+  end
+
+  def write_snapshot(token, snapshot_html)
+    atomic_write(snapshot_file(token), snapshot_html)
+  end
+
+  def atomic_write(pathname, content)
+    FileUtils.mkdir_p(pathname.dirname)
+
+    Tempfile.create([ pathname.basename.to_s, ".tmp" ], pathname.dirname.to_s) do |tempfile|
+      tempfile.binmode
+      tempfile.write(content)
+      tempfile.flush
+      tempfile.fsync
+      FileUtils.mv(tempfile.path, pathname, force: true)
+    end
+  end
+end

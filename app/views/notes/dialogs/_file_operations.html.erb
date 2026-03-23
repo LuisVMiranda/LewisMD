@@ -40,6 +40,17 @@
     </button>
     <button
       type="button"
+      data-file-operations-target="templateNoteMenuItem"
+      data-action="click->file-operations#handleTemplateContextAction"
+      class="hidden w-full px-3 py-1.5 text-left text-sm hover:bg-[var(--theme-bg-hover)] flex items-center gap-2"
+    >
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h10M7 12h10M7 17h6M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z" />
+      </svg>
+      <span data-file-operations-target="templateNoteMenuLabel"><%= t('context_menu.save_as_template') %></span>
+    </button>
+    <button
+      type="button"
       data-action="click->file-operations#deleteItem"
       class="w-full px-3 py-1.5 text-left text-sm hover:bg-[var(--theme-bg-hover)] flex items-center gap-2 text-[var(--theme-error)]"
     >
@@ -71,6 +82,31 @@
     </form>
   </dialog>
 
+  <!-- Save Note as Template Dialog -->
+  <dialog
+    class="p-0 rounded-lg shadow-xl backdrop:bg-black/50 bg-[var(--theme-bg-secondary)] border border-[var(--theme-border)]"
+    data-file-operations-target="saveTemplateDialog"
+  >
+    <form method="dialog" class="p-4 w-96 max-w-[90vw] text-[var(--theme-text-primary)]">
+      <h3 class="text-sm font-semibold mb-1" data-file-operations-target="saveTemplateTitle"><%= t('dialogs.templates.save_from_note_title') %></h3>
+      <p class="text-xs text-[var(--theme-text-muted)] mb-3" data-file-operations-target="saveTemplateNotePath"></p>
+      <label class="block text-xs font-medium text-[var(--theme-text-secondary)] mb-1">
+        <%= t('dialogs.templates.path_label') %>
+      </label>
+      <input
+        type="text"
+        data-file-operations-target="saveTemplateInput"
+        data-action="keydown->file-operations#onSaveTemplateKeydown"
+        class="w-full px-3 py-2 text-sm border border-[var(--theme-border)] rounded-md bg-[var(--theme-bg-primary)] text-[var(--theme-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--theme-accent)]"
+        placeholder="<%= t('dialogs.templates.path_placeholder') %>"
+      >
+      <div class="flex justify-end gap-2 mt-4">
+        <%= render "shared/button_secondary", label: t('common.cancel'), action: "click->file-operations#closeSaveTemplateDialog" %>
+        <%= render "shared/button_primary", label: t('common.save'), action: "click->file-operations#submitSaveTemplateFromNote" %>
+      </div>
+    </form>
+  </dialog>
+
   <!-- Note Type Dialog -->
   <dialog
     class="p-0 rounded-lg shadow-xl backdrop:bg-black/50 bg-[var(--theme-bg-secondary)] border border-[var(--theme-border)]"
@@ -94,6 +130,19 @@
         </button>
         <button
           type="button"
+          data-action="click->file-operations#selectNoteTypeTemplate"
+          class="w-full px-3 py-2.5 text-left text-sm rounded-md hover:bg-[var(--theme-bg-hover)] flex items-center gap-3 border border-[var(--theme-border)]"
+        >
+          <svg class="w-5 h-5 text-[var(--theme-accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h10M7 12h10M7 17h6M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z" />
+          </svg>
+          <div>
+            <div class="font-medium"><%= t('dialogs.note_type.template') %></div>
+            <div class="text-xs text-[var(--theme-text-muted)]"><%= t('dialogs.note_type.template_description') %></div>
+          </div>
+        </button>
+        <button
+          type="button"
           data-action="click->file-operations#selectNoteTypeHugo"
           class="w-full px-3 py-2.5 text-left text-sm rounded-md hover:bg-[var(--theme-bg-hover)] flex items-center gap-3 border border-[var(--theme-border)]"
         >
@@ -108,6 +157,135 @@
       </div>
       <div class="flex justify-end mt-4">
         <%= render "shared/button_secondary", label: t('common.cancel'), action: "click->file-operations#closeNoteTypeDialog" %>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Template Picker Dialog -->
+  <dialog
+    class="p-0 rounded-lg shadow-xl backdrop:bg-black/50 bg-[var(--theme-bg-secondary)] border border-[var(--theme-border)]"
+    data-file-operations-target="templateDialog"
+  >
+    <div class="p-4 w-[26rem] max-w-[90vw] text-[var(--theme-text-primary)]">
+      <h3 class="text-sm font-semibold mb-1"><%= t('dialogs.templates.title') %></h3>
+      <p class="text-xs text-[var(--theme-text-muted)] mb-3"><%= t('dialogs.templates.subtitle') %></p>
+
+      <div data-file-operations-target="templateLoading" class="text-sm text-[var(--theme-text-muted)] py-4">
+        <%= t('dialogs.templates.loading') %>
+      </div>
+
+      <div data-file-operations-target="templateEmpty" class="hidden text-sm text-[var(--theme-text-muted)] py-4">
+        <%= t('dialogs.templates.empty') %>
+      </div>
+
+      <div
+        data-file-operations-target="templateList"
+        class="flex flex-col gap-2 max-h-80 overflow-y-auto pr-1"
+      ></div>
+
+      <div class="flex justify-end mt-4">
+        <button
+          type="button"
+          data-action="click->file-operations#openTemplateManager"
+          class="mr-auto px-3 py-1.5 text-sm rounded-md hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-secondary)]"
+        >
+          <%= t('dialogs.templates.manage_action') %>
+        </button>
+        <%= render "shared/button_secondary", label: t('common.cancel'), action: "click->file-operations#closeTemplateDialog" %>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Template Manager Dialog -->
+  <dialog
+    class="p-0 rounded-lg shadow-xl backdrop:bg-black/50 bg-[var(--theme-bg-secondary)] border border-[var(--theme-border)]"
+    data-file-operations-target="templateManagerDialog"
+  >
+    <div class="p-4 w-[56rem] max-w-[95vw] text-[var(--theme-text-primary)]">
+      <div class="flex items-start justify-between gap-4 mb-4">
+        <div>
+          <h3 class="text-sm font-semibold"><%= t('dialogs.templates.manage_title') %></h3>
+          <p class="text-xs text-[var(--theme-text-muted)] mt-1"><%= t('dialogs.templates.manage_subtitle') %></p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            data-action="click->file-operations#newTemplate"
+            class="px-3 py-1.5 text-sm rounded-md hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-secondary)]"
+          >
+            <%= t('dialogs.templates.new_button') %>
+          </button>
+          <button
+            type="button"
+            data-action="click->file-operations#refreshTemplateManager"
+            class="px-3 py-1.5 text-sm rounded-md hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-secondary)]"
+          >
+            <%= t('dialogs.templates.refresh_button') %>
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-[18rem_minmax(0,1fr)] gap-4">
+        <div
+          data-file-operations-target="templateManagerList"
+          class="max-h-[28rem] overflow-y-auto space-y-2 pr-1"
+        ></div>
+
+        <div class="border border-[var(--theme-border)] rounded-lg p-4 bg-[var(--theme-bg-primary)]">
+          <h4 class="text-sm font-semibold mb-3" data-file-operations-target="templateFormTitle"><%= t('dialogs.templates.new_title') %></h4>
+
+          <label class="block text-xs font-medium text-[var(--theme-text-secondary)] mb-1">
+            <%= t('dialogs.templates.path_label') %>
+          </label>
+          <input
+            type="text"
+            data-file-operations-target="templatePathInput"
+            class="w-full px-3 py-2 text-sm border border-[var(--theme-border)] rounded-md bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--theme-accent)]"
+            placeholder="<%= t('dialogs.templates.path_placeholder') %>"
+          >
+
+          <label class="block text-xs font-medium text-[var(--theme-text-secondary)] mt-4 mb-1">
+            <%= t('dialogs.templates.content_label') %>
+          </label>
+          <textarea
+            data-file-operations-target="templateContentInput"
+            class="w-full min-h-[22rem] px-3 py-2 text-sm border border-[var(--theme-border)] rounded-md bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] font-mono focus:outline-none focus:ring-2 focus:ring-[var(--theme-accent)]"
+            placeholder="<%= t('dialogs.templates.content_placeholder') %>"
+          ></textarea>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between gap-4 mt-4">
+        <p
+          data-file-operations-target="templateManagerNotice"
+          class="hidden text-sm"
+          aria-live="polite"
+        ></p>
+
+        <div class="flex justify-end gap-2">
+          <button
+            type="button"
+            data-file-operations-target="templateDeleteButton"
+            data-action="click->file-operations#deleteTemplate"
+            class="hidden px-3 py-1.5 text-sm rounded-md hover:bg-[var(--theme-bg-hover)] text-[var(--theme-error)]"
+          >
+            <%= t('common.delete') %>
+          </button>
+          <button
+            type="button"
+            data-action="click->file-operations#closeTemplateManager"
+            class="px-3 py-1.5 text-sm rounded-md hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-secondary)]"
+          >
+            <%= t('common.cancel') %>
+          </button>
+          <button
+            type="button"
+            data-action="click->file-operations#submitTemplateSave"
+            class="px-3 py-1.5 text-sm rounded-md bg-[var(--theme-accent)] text-[var(--theme-accent-text)] hover:bg-[var(--theme-accent-hover)]"
+          >
+            <%= t('common.save') %>
+          </button>
+        </div>
       </div>
     </div>
   </dialog>

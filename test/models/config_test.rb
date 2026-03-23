@@ -88,6 +88,12 @@ class ConfigTest < ActiveSupport::TestCase
     assert_includes content, "# UI Settings"
     assert_includes content, "# theme ="
     assert_includes content, "# editor_font ="
+    assert_includes content, "# preview_font_family = sans"
+    assert_includes content, "# preview_width = 40"
+    assert_includes content, "# active_mode = raw"
+    assert_includes content, "# App-managed local images default to .frankmd/images inside notes path."
+    assert_includes content, "# Templates"
+    assert_includes content, "# templates_path = /path/to/templates"
     assert_includes content, "# AWS S3"
     assert_includes content, "# YouTube API"
     assert_includes content, "# Google Custom Search"
@@ -105,8 +111,12 @@ class ConfigTest < ActiveSupport::TestCase
     assert_equal "cascadia-code", config.get(:editor_font)
     assert_equal 14, config.get(:editor_font_size)
     assert_equal 100, config.get(:preview_zoom)
+    assert_equal 40, config.get(:preview_width)
+    assert_equal "sans", config.get(:preview_font_family)
     assert_equal true, config.get(:sidebar_visible)
+    assert_nil config.get(:active_mode)
     assert_equal false, config.get(:typewriter_mode)
+    assert_nil config.get(:templates_path)
     assert_nil config.get(:theme)
   end
 
@@ -117,6 +127,10 @@ class ConfigTest < ActiveSupport::TestCase
       theme = gruvbox
       editor_font = fira-code
       editor_font_size = 16
+      preview_width = 52
+      preview_font_family = serif
+      active_mode = preview
+      templates_path = /tmp/templates
     CONFIG
 
     config = Config.new(base_path: @test_dir)
@@ -124,6 +138,10 @@ class ConfigTest < ActiveSupport::TestCase
     assert_equal "gruvbox", config.get(:theme)
     assert_equal "fira-code", config.get(:editor_font)
     assert_equal 16, config.get(:editor_font_size)
+    assert_equal 52, config.get(:preview_width)
+    assert_equal "serif", config.get(:preview_font_family)
+    assert_equal "preview", config.get(:active_mode)
+    assert_equal "/tmp/templates", config.get(:templates_path)
   end
 
   test "reads boolean values correctly" do
@@ -215,11 +233,14 @@ class ConfigTest < ActiveSupport::TestCase
   test "update saves multiple values" do
     config = Config.new(base_path: @test_dir)
 
-    config.update(theme: "dark", editor_font_size: 18)
+    config.update(theme: "dark", editor_font_size: 18, preview_font_family: "mono", preview_width: 58, active_mode: "reading")
 
     config2 = Config.new(base_path: @test_dir)
     assert_equal "dark", config2.get(:theme)
     assert_equal 18, config2.get(:editor_font_size)
+    assert_equal "mono", config2.get(:preview_font_family)
+    assert_equal 58, config2.get(:preview_width)
+    assert_equal "reading", config2.get(:active_mode)
   end
 
   test "update replaces commented line with actual value" do
@@ -247,11 +268,12 @@ class ConfigTest < ActiveSupport::TestCase
 
   test "preserves user-customized file structure when updating" do
     # User has stripped all comments and reordered settings
-    # Include an AI key placeholder to prevent upgrade from adding AI section
+    # Include placeholders to prevent upgrade from adding new sections
     @test_dir.join(".fed").write(<<~CONFIG)
       editor_font = hack
       theme = dark
       editor_font_size = 16
+      # templates_path = placeholder
       # ai_model = placeholder
     CONFIG
 
@@ -261,20 +283,22 @@ class ConfigTest < ActiveSupport::TestCase
     content = @test_dir.join(".fed").read
     lines = content.lines.map(&:strip).reject(&:empty?)
 
-    # Should preserve user's ordering (AI placeholder is a comment so preserved)
-    assert_equal 4, lines.length
+    # Should preserve user's ordering (placeholders are preserved as comments)
+    assert_equal 5, lines.length
     assert_equal "editor_font = hack", lines[0]
     assert_equal "theme = gruvbox", lines[1]
     assert_equal "editor_font_size = 16", lines[2]
-    assert_equal "# ai_model = placeholder", lines[3]
+    assert_equal "# templates_path = placeholder", lines[3]
+    assert_equal "# ai_model = placeholder", lines[4]
   end
 
   test "does not re-add values user manually removed" do
-    # Start with full config (include AI marker to prevent upgrade)
+    # Start with full config (include placeholders to prevent upgrade)
     @test_dir.join(".fed").write(<<~CONFIG)
       theme = dark
       editor_font = hack
       editor_font_size = 18
+      # templates_path = placeholder
       # ai_model = placeholder
     CONFIG
 
@@ -288,6 +312,7 @@ class ConfigTest < ActiveSupport::TestCase
     @test_dir.join(".fed").write(<<~CONFIG)
       theme = dark
       editor_font_size = 18
+      # templates_path = placeholder
       # ai_model = placeholder
     CONFIG
 
@@ -331,9 +356,10 @@ class ConfigTest < ActiveSupport::TestCase
   end
 
   test "appends new key at end if not present in file" do
-    # Include AI marker to prevent upgrade from adding AI section
+    # Include placeholders to prevent upgrade from adding new sections
     @test_dir.join(".fed").write(<<~CONFIG)
       theme = dark
+      # templates_path = placeholder
       # ai_model = placeholder
     CONFIG
 
@@ -344,8 +370,9 @@ class ConfigTest < ActiveSupport::TestCase
     lines = content.lines.map(&:strip).reject(&:empty?)
 
     assert_equal "theme = dark", lines[0]
-    assert_equal "# ai_model = placeholder", lines[1]
-    assert_equal "editor_font = hack", lines[2]
+    assert_equal "# templates_path = placeholder", lines[1]
+    assert_equal "# ai_model = placeholder", lines[2]
+    assert_equal "editor_font = hack", lines[3]
   end
 
   # === UI Settings ===
@@ -354,6 +381,9 @@ class ConfigTest < ActiveSupport::TestCase
     @test_dir.join(".fed").write(<<~CONFIG)
       theme = dark
       editor_font = hack
+      preview_width = 55
+      preview_font_family = serif
+      active_mode = preview
       youtube_api_key = secret
     CONFIG
 
@@ -362,7 +392,11 @@ class ConfigTest < ActiveSupport::TestCase
 
     assert_equal "dark", settings["theme"]
     assert_equal "hack", settings["editor_font"]
+    assert_equal 55, settings["preview_width"]
+    assert_equal "serif", settings["preview_font_family"]
+    assert_equal "preview", settings["active_mode"]
     refute settings.key?("youtube_api_key")
+    refute settings.key?("templates_path")
   end
 
   # === Feature Detection ===
@@ -626,8 +660,8 @@ class ConfigTest < ActiveSupport::TestCase
 
   # === Config File Upgrade Tests ===
 
-  test "upgrade adds missing AI section to existing config" do
-    # Create old-style config without AI section
+  test "upgrade adds missing templates and AI sections to existing config" do
+    # Create old-style config without Templates or AI sections
     old_config = <<~CONFIG
       # FrankMD Configuration
       theme = gruvbox
@@ -646,8 +680,10 @@ class ConfigTest < ActiveSupport::TestCase
     assert_equal "gruvbox", config.get("theme")
     assert_equal 16, config.get("editor_font_size")
 
-    # Verify AI section was added
+    # Verify new sections were added
     content = @test_dir.join(".fed").read
+    assert_includes content, "# Templates"
+    assert_includes content, "templates_path"
     assert_includes content, "# AI/LLM"
     assert_includes content, "ollama_api_base"
     assert_includes content, "anthropic_api_key"

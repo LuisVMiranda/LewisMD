@@ -3,7 +3,12 @@ import { get, patch } from "@rails/request.js"
 
 export default class extends Controller {
   static targets = ["menu", "currentTheme"]
-  static values = { initial: String }
+  static values = {
+    initial: String,
+    persist: { type: Boolean, default: true },
+    allowOmarchy: { type: Boolean, default: true },
+    queryParam: { type: Boolean, default: false }
+  }
 
   // Built-in themes - Light and Dark first, then alphabetical
   static themes = [
@@ -41,10 +46,18 @@ export default class extends Controller {
     this.runtimeThemes = [...this.constructor.themes]
 
     // Check omarchy availability, then apply theme and render
-    this.checkOmarchyAvailability().then(() => {
+    if (this.allowOmarchyValue) {
+      this.checkOmarchyAvailability().then(() => {
+        this.applyTheme()
+        this.renderMenu()
+      })
+    } else {
+      if (this.currentThemeId === "omarchy") {
+        this.currentThemeId = "dark"
+      }
       this.applyTheme()
       this.renderMenu()
-    })
+    }
 
     this.setupClickOutside()
     this.setupConfigListener()
@@ -65,6 +78,8 @@ export default class extends Controller {
 
   // Listen for config changes (when .fed file is edited)
   setupConfigListener() {
+    if (!this.persistValue) return
+
     this.boundConfigListener = (event) => {
       const { theme } = event.detail
       if (theme && theme !== this.currentThemeId) {
@@ -84,13 +99,19 @@ export default class extends Controller {
   selectTheme(event) {
     const themeId = event.currentTarget.dataset.theme
     this.currentThemeId = themeId
-    this.saveThemeConfig(themeId)
+    if (this.persistValue) {
+      this.saveThemeConfig(themeId)
+    } else {
+      this.syncThemeQueryParam(themeId)
+    }
     this.applyTheme()
     this.menuTarget.classList.add("hidden")
   }
 
   // Save theme to server config (debounced)
   saveThemeConfig(themeId) {
+    if (!this.persistValue) return
+
     if (this.configSaveTimeout) {
       clearTimeout(this.configSaveTimeout)
     }
@@ -118,7 +139,7 @@ export default class extends Controller {
     const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
     const themeId = this.currentThemeId || (prefersDark ? "dark" : "light")
 
-    if (themeId === "omarchy") {
+    if (themeId === "omarchy" && this.allowOmarchyValue) {
       this.applyOmarchyTheme()
       return
     }
@@ -136,6 +157,7 @@ export default class extends Controller {
 
     this.updateCurrentThemeDisplay(themeId)
     this.updateMenuCheckmarks(themeId)
+    this.dispatchThemeChanged(themeId, isDarkTheme ? "dark" : "light")
   }
 
   async applyOmarchyTheme() {
@@ -163,6 +185,7 @@ export default class extends Controller {
 
       this.updateCurrentThemeDisplay("omarchy")
       this.updateMenuCheckmarks("omarchy")
+      this.dispatchThemeChanged("omarchy", data.is_dark ? "dark" : "light")
 
       // Start polling for theme changes
       this.startOmarchyPolling()
@@ -219,6 +242,7 @@ export default class extends Controller {
           this.omarchyThemeName = data.theme_name
           this.injectOmarchyStyles(data.variables)
           document.documentElement.classList.toggle("dark", data.is_dark)
+          this.dispatchThemeChanged("omarchy", data.is_dark ? "dark" : "light")
         }
       } catch (error) {
         // Silently ignore polling errors
@@ -235,6 +259,8 @@ export default class extends Controller {
   }
 
   async checkOmarchyAvailability() {
+    if (!this.allowOmarchyValue) return
+
     try {
       const response = await get("/config/omarchy_theme", { responseKind: "json" })
       if (response.ok) {
@@ -313,5 +339,22 @@ export default class extends Controller {
       }
     }
     document.addEventListener("click", this.boundClickOutside)
+  }
+
+  syncThemeQueryParam(themeId) {
+    if (!this.queryParamValue) return
+
+    const url = new URL(window.location.href)
+    url.searchParams.set("theme", themeId)
+    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`)
+  }
+
+  dispatchThemeChanged(themeId, colorScheme) {
+    window.dispatchEvent(new CustomEvent("frankmd:theme-changed", {
+      detail: {
+        theme: themeId,
+        colorScheme
+      }
+    }))
   }
 }

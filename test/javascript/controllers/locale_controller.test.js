@@ -86,7 +86,7 @@ describe("LocaleController", () => {
     })
 
     it("calls loadTranslations", () => {
-      expect(fetch).toHaveBeenCalledWith("/translations", {
+      expect(fetch).toHaveBeenCalledWith("/translations?locale=en", {
         method: "GET",
         headers: { "Accept": "application/json" }
       })
@@ -179,6 +179,29 @@ describe("LocaleController", () => {
       controller.selectLocale(event)
 
       expect(saveConfigSpy).not.toHaveBeenCalled()
+    })
+
+    it("navigates with a locale param in local-only mode", async () => {
+      application.stop()
+
+      document.body.innerHTML = `
+        <div data-controller="locale" data-locale-initial-value="en" data-locale-persist-value="false">
+          <span data-locale-target="currentLocale"></span>
+          <div data-locale-target="menu" class="hidden"></div>
+        </div>
+      `
+
+      element = document.querySelector('[data-controller="locale"]')
+      application = Application.start()
+      application.register("locale", LocaleController)
+      await new Promise((resolve) => setTimeout(resolve, 0))
+      controller = application.getControllerForElementAndIdentifier(element, "locale")
+
+      const navigateSpy = vi.spyOn(controller, "navigateToLocale").mockImplementation(() => {})
+
+      controller.selectLocale({ currentTarget: { dataset: { locale: "es" } } })
+
+      expect(navigateSpy).toHaveBeenCalledWith("es")
     })
   })
 
@@ -278,6 +301,13 @@ describe("LocaleController", () => {
     })
   })
 
+  describe("buildLocaleUrl()", () => {
+    it("preserves existing params while replacing locale", () => {
+      const url = controller.buildLocaleUrl("ja")
+      expect(url).toContain("locale=ja")
+    })
+  })
+
   describe("config listener", () => {
     it("updates locale when config-changed event is dispatched", () => {
       const loadTranslationsSpy = vi.spyOn(controller, "loadTranslations")
@@ -297,6 +327,32 @@ describe("LocaleController", () => {
 
       window.dispatchEvent(new CustomEvent("frankmd:config-changed", {
         detail: { locale: "en" }
+      }))
+
+      expect(loadTranslationsSpy).not.toHaveBeenCalled()
+    })
+
+    it("does not register config listeners in local-only mode", async () => {
+      application.stop()
+
+      document.body.innerHTML = `
+        <div data-controller="locale" data-locale-initial-value="en" data-locale-persist-value="false">
+          <span data-locale-target="currentLocale"></span>
+          <div data-locale-target="menu" class="hidden"></div>
+        </div>
+      `
+
+      element = document.querySelector('[data-controller="locale"]')
+      application = Application.start()
+      application.register("locale", LocaleController)
+      await new Promise((resolve) => setTimeout(resolve, 0))
+      controller = application.getControllerForElementAndIdentifier(element, "locale")
+
+      const loadTranslationsSpy = vi.spyOn(controller, "loadTranslations")
+      loadTranslationsSpy.mockClear()
+
+      window.dispatchEvent(new CustomEvent("frankmd:config-changed", {
+        detail: { locale: "ja" }
       }))
 
       expect(loadTranslationsSpy).not.toHaveBeenCalled()

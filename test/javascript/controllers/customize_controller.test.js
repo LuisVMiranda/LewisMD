@@ -10,7 +10,10 @@ describe("CustomizeController", () => {
 
   beforeEach(() => {
     document.body.innerHTML = `
-      <div data-controller="customize" data-customize-font-value="cascadia-code" data-customize-font-size-value="14">
+      <div data-controller="customize"
+           data-customize-font-value="cascadia-code"
+           data-customize-font-size-value="14"
+           data-customize-preview-font-family-value="sans">
         <dialog data-customize-target="dialog"></dialog>
         <select data-customize-target="fontSelect">
           <option value="cascadia-code">Cascadia Code</option>
@@ -21,6 +24,11 @@ describe("CustomizeController", () => {
           <option value="12">12px</option>
           <option value="14">14px</option>
           <option value="16">16px</option>
+        </select>
+        <select data-customize-target="previewFontSelect">
+          <option value="sans">Sans</option>
+          <option value="serif">Serif</option>
+          <option value="mono">Monospace</option>
         </select>
         <div data-customize-target="preview" style="font-family: monospace; font-size: 14px;"></div>
       </div>
@@ -64,6 +72,7 @@ describe("CustomizeController", () => {
     it("loads initial values from data attributes", () => {
       expect(controller.fontValue).toBe("cascadia-code")
       expect(controller.fontSizeValue).toBe(14)
+      expect(controller.previewFontFamilyValue).toBe("sans")
     })
   })
 
@@ -75,16 +84,19 @@ describe("CustomizeController", () => {
     })
 
     it("sets font select to provided value", () => {
-      controller.open("fira-code", 16)
+      controller.open("fira-code", 16, "serif")
 
       expect(controller.fontSelectTarget.value).toBe("fira-code")
+      expect(controller.previewFontSelectTarget.value).toBe("serif")
     })
 
     it("uses stored values when no arguments provided", () => {
       controller.fontValue = "jetbrains-mono"
+      controller.previewFontFamilyValue = "mono"
       controller.open()
 
       expect(controller.fontSelectTarget.value).toBe("jetbrains-mono")
+      expect(controller.previewFontSelectTarget.value).toBe("mono")
     })
 
     it("updates preview on open", () => {
@@ -151,6 +163,7 @@ describe("CustomizeController", () => {
 
       controller.fontSelectTarget.value = "fira-code"
       controller.fontSizeSelectTarget.value = "16"
+      controller.previewFontSelectTarget.value = "serif"
       controller.apply()
 
       expect(handler).toHaveBeenCalled()
@@ -158,15 +171,18 @@ describe("CustomizeController", () => {
       expect(detail.font).toBe("fira-code")
       expect(detail.fontSize).toBe(16)
       expect(detail.fontFamily).toBe("'Fira Code', monospace")
+      expect(detail.previewFontFamily).toBe("serif")
     })
 
     it("updates stored values", () => {
       controller.fontSelectTarget.value = "jetbrains-mono"
       controller.fontSizeSelectTarget.value = "16"
+      controller.previewFontSelectTarget.value = "mono"
       controller.apply()
 
       expect(controller.fontValue).toBe("jetbrains-mono")
       expect(controller.fontSizeValue).toBe(16)
+      expect(controller.previewFontFamilyValue).toBe("mono")
     })
 
     it("closes the dialog", () => {

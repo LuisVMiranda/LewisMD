@@ -60,7 +60,10 @@ class NotesController < ApplicationController
       @note = Note.new(path: hugo_post[:path], content: hugo_post[:content])
     else
       path = Note.normalize_path(params[:path])
-      @note = Note.new(path: path, content: params[:content] || "")
+      content = note_content_for_create
+      return if performed?
+
+      @note = Note.new(path: path, content: content)
     end
 
     if @note.exists?
@@ -94,6 +97,7 @@ class NotesController < ApplicationController
 
   def destroy
     if @note.destroy
+      TemplatesService.new.unlink_note(@note.path)
       respond_to do |format|
         format.turbo_stream { load_tree_for_turbo_stream }
         format.any { render json: { message: t("success.note_deleted") } }
@@ -113,6 +117,7 @@ class NotesController < ApplicationController
     old_path = @note.path
 
     if @note.rename(new_path)
+      TemplatesService.new.move_note_link(old_path, @note.path)
       respond_to do |format|
         format.turbo_stream { load_tree_for_turbo_stream(selected: @note.path) }
         format.any { render json: { old_path: old_path, new_path: @note.path, message: t("success.note_renamed") } }
@@ -196,5 +201,17 @@ class NotesController < ApplicationController
     Rails.logger.error("Failed to load config: #{e.class} - #{e.message}")
     Rails.logger.error(e.backtrace.first(5).join("\n"))
     { settings: {}, features: {} }
+  end
+
+  def note_content_for_create
+    return params[:content] || "" if params[:template_path].blank?
+
+    TemplatesService.new.read(params[:template_path])
+  rescue TemplatesService::NotFoundError
+    render json: { error: t("errors.file_not_found") }, status: :not_found
+    nil
+  rescue TemplatesService::InvalidPathError => e
+    render json: { error: e.message }, status: :unprocessable_entity
+    nil
   end
 end

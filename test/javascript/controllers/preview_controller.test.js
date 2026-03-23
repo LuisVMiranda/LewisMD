@@ -171,6 +171,17 @@ describe("PreviewController", () => {
       expect(controller.contentTarget.innerHTML).toBe("")
     })
 
+    it("strips frontmatter before rendering markdown", () => {
+      controller.render(`---
+title: Test
+---
+
+# Hello`)
+
+      expect(controller.contentTarget.innerHTML).not.toContain("title: Test")
+      expect(controller.contentTarget.innerHTML).toContain("Hello</h1>")
+    })
+
     it("sets _isUpdatingContent flag during render", () => {
       expect(controller._isUpdatingContent).toBe(false)
 
@@ -187,6 +198,28 @@ describe("PreviewController", () => {
       // Wait for the 100ms timeout to clear the flag
       await new Promise(resolve => setTimeout(resolve, 110))
       expect(controller._isUpdatingContent).toBe(false)
+    })
+
+    it("builds a sanitized rendered payload without editor-only preview chrome", () => {
+      controller.render("```js\nconsole.log('hello')\n```")
+
+      const payload = controller.getRenderedDocumentPayload({
+        title: "Snippet",
+        path: "snippets/example.md",
+        themeId: "dark"
+      })
+
+      expect(payload).toMatchObject({
+        title: "Snippet",
+        path: "snippets/example.md",
+        themeId: "dark",
+        typography: {
+          zoom: 100
+        }
+      })
+      expect(payload.html).not.toContain("code-copy-btn")
+      expect(payload.html).not.toContain("data-source-line")
+      expect(payload.plainText).toContain("console.log('hello')")
     })
   })
 

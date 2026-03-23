@@ -4,6 +4,7 @@
     color: var(--theme-text-secondary);
     line-height: 1.75;
     font-size: 0.9375rem;
+    font-family: var(--preview-font-family, var(--font-sans));
   }
 
   /* Headings */
@@ -110,6 +111,7 @@
   .prose code {
     background: var(--theme-code-bg);
     color: var(--theme-text-primary);
+    font-family: var(--font-mono);
     padding: 0.2em 0.4em;
     border-radius: 0.25rem;
     font-size: 0.875em;
@@ -125,6 +127,7 @@
   .prose pre {
     background: var(--theme-code-bg);
     color: var(--theme-text-primary);
+    font-family: var(--font-mono);
     border-radius: 0.5rem;
     overflow-x: auto;
     padding: 1em;
@@ -138,6 +141,7 @@
     background: transparent;
     padding: 0;
     color: inherit;
+    font-family: inherit;
     font-weight: normal;
   }
 

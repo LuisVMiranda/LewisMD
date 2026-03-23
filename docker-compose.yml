@@ -26,8 +26,8 @@ services:
     volumes:
       # Notes directory - default to ./notes, override with NOTES_PATH env var
       - ${NOTES_PATH:-./notes}:/rails/notes
-      # Images directory (optional) - for local image browsing
-      - ${IMAGES_PATH:-./images}:/rails/images
+      # Images directory (optional) - default to hidden app-managed storage under notes
+      - ${IMAGES_PATH:-./notes/.frankmd/images}:/rails/images
     environment:
       # Required
       - SECRET_KEY_BASE=${SECRET_KEY_BASE:-development_secret_key_base_change_in_production}

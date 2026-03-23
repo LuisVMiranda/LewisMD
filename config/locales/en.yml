@@ -33,8 +33,14 @@ en:
     toggle_explorer: "Toggle Explorer (Ctrl+E)"
     toggle_typewriter: "Toggle Typewriter Mode (Ctrl+B)"
     toggle_preview: "Toggle Preview (Ctrl+Y)"
+    toggle_reading: "Toggle Reading Mode (Ctrl+Shift+Y)"
+    save_as_template: "Save as Template"
     change_theme: "Change Theme"
     change_language: "Change Language"
+    exports: "Export"
+    share: "Share"
+    open_exports: "Open export and share actions"
+    open_share_menu: "Open share, export, and copy actions"
     about_app: "About LewisMD"
     click_to_copy_path: "Click to copy path"
 
@@ -47,6 +53,8 @@ en:
     search_in_files: "Search in Files (Ctrl+Shift+F)"
     no_notes_yet: "No notes yet"
     no_files_found: "No files found"
+    outline: "Outline"
+    no_headings_yet: "No headings yet"
     # Document stats
     words: "Words"
     characters: "Characters"
@@ -92,17 +100,23 @@ en:
     title: "Preview"
     zoom_in: "Zoom In"
     zoom_out: "Zoom Out"
+    decrease_text_width: "Decrease Text Width"
+    increase_text_width: "Increase Text Width"
 
   # Context menu
   context_menu:
     new_note: "New Note"
     new_folder: "New Folder"
     rename: "Rename"
+    save_as_template: "Save as Template"
+    delete_template: "Delete Template"
     delete: "Delete"
 
   # Status messages
   status:
     copied_to_clipboard: "Content copied to clipboard"
+    copy_failed: "Failed to copy content"
+    export_failed: "Failed to export content"
     saved: "Saved"
     unsaved: "Unsaved changes"
     error_saving: "Error saving"
@@ -124,6 +138,58 @@ en:
     undo: "Undo"
     save_anyway: "Save Anyway"
     offline_backup_saved: "Backed up locally"
+    share_link_created: Shared link created and copied
+    share_link_copied: Shared link copied
+    share_link_refreshed: Shared snapshot updated
+    share_link_disabled: Shared link disabled
+    share_failed: Failed to update shared link
+
+  status_strip:
+    mode_prefix: "Mode"
+    recovery_available: "Recovery available"
+    modes:
+      raw: "Raw"
+      preview: "Preview"
+      reading: "Reading"
+      typewriter: "Typewriter"
+    save:
+      saved: "Saved"
+      unsaved: "Unsaved"
+      offline: "Offline"
+      error: "Save error"
+    metrics:
+      line: "Ln"
+      selection: "Sel"
+      zoom: "Zoom"
+
+  export_menu:
+    copy_note: "Copy Note (Ctrl+C)"
+    copy_markdown: "Copy Markdown"
+    export_files: "Export files"
+    export_html: "Export HTML"
+    export_txt: "Export TXT"
+    export_pdf: "Export PDF"
+    copy_formatted_html: "Copy to clipboard"
+    create_share_link: Create shared link
+    copy_share_link: Copy shared link
+    refresh_share_link: Refresh shared snapshot
+    disable_share_link: Disable shared link
+
+  share_view:
+    label: "Shared note"
+    open_exports: "Open export actions"
+    zoom: "Zoom"
+    zoom_in: "Zoom in"
+    zoom_out: "Zoom out"
+    width: "Width"
+    width_narrower: "Make text column narrower"
+    width_wider: "Make text column wider"
+    font_family: "Font"
+    font_default: "Default"
+    font_sans: "Sans"
+    font_serif: "Serif"
+    font_mono: "Mono"
+    iframe_title: "Shared note preview"
 
   # Connection status
   connection:
@@ -141,6 +207,7 @@ en:
     # New item dialog
     new_item:
       new_note: "New Note"
+      new_note_from_template: "New Note from Template"
       new_folder: "New Folder"
       placeholder: "Name"
       note_placeholder: "Note name"
@@ -151,9 +218,48 @@ en:
       title: "New Note"
       empty_document: "Empty Document"
       empty_description: "Plain markdown file"
+      template: "Template"
+      template_description: "Start from a saved markdown template"
       hugo_post: "Hugo Blog Post"
       hugo_description: "YYYY/MM/DD/slug/index.md"
       new_hugo_post: "New Hugo Blog Post"
+
+    templates:
+      title: "Choose Template"
+      subtitle: "Select a markdown template to start from"
+      manage_action: "Manage Templates"
+      manage_title: "Manage Templates"
+      manage_subtitle: "Create, edit, refresh, or delete markdown templates"
+      loading: "Loading templates..."
+      empty: "No templates available yet"
+      new_button: "New Template"
+      refresh_button: "Refresh List"
+      new_title: "New Template"
+      edit_title: "Edit Template"
+      save_from_note_title: "Save Note as Template"
+      save_from_note_update_title: "Update Linked Template"
+      path_label: "Template path"
+      path_placeholder: "e.g. team/retro"
+      content_label: "Markdown content"
+      content_placeholder: "Write your template markdown here..."
+      delete_confirm: "Delete template \"%{name}\"?"
+      delete_linked_confirm: "Delete the linked template \"%{name}\"?"
+      built_ins:
+        daily_note:
+          name: "Daily Note"
+          description: "Daily priorities, notes, wins, and tomorrow"
+        meeting_note:
+          name: "Meeting Note"
+          description: "Agenda, notes, decisions, and action items"
+        article_draft:
+          name: "Article Draft"
+          description: "Summary, outline, draft, and references"
+        journal_entry:
+          name: "Journal Entry"
+          description: "Mood, events, reflections, and gratitude"
+        changelog:
+          name: "Changelog"
+          description: "Unreleased changes grouped by type"
 
     # Table editor dialog
     table_editor:
@@ -349,6 +455,8 @@ en:
       title: "Editor Settings"
       font_family: "Font Family"
       font_size: "Font Size"
+      preview_reading_font: "Preview & Reading Font"
+      preview_zoom_hint: "Preview and Reading Mode share this font. Text size there still uses the preview zoom control."
       preview: "Preview"
 
     # About dialog
@@ -363,6 +471,7 @@ en:
       prompt_label: "Instructions for AI:"
       placeholder: "e.g., Translate to Spanish, Make it more professional..."
       generate: "Generate"
+      processing_provider: "AI (Custom Prompt)"
       hint_document: "No text selected. Analyzing entire document..."
       hint_selection: "Analyzing highlighted selection..."
 
@@ -489,16 +598,20 @@ en:
     search_failed: "Search failed"
     failed_to_move: "Failed to move"
     failed_to_load: "Failed to load note"
+    failed_to_load_templates: "Failed to load templates"
     failed_to_save: "Failed to save"
     failed_to_create: "Failed to create"
     failed_to_rename: "Failed to rename"
     failed_to_delete: "Failed to delete"
     failed_to_upload: "Failed to upload"
+    templates_markdown_only: "Templates are only available for markdown notes"
     permission_denied: "Permission denied. You may not have access to this file or folder."
     file_no_longer_exists: "This file no longer exists. It may have been moved or deleted."
     folder_no_longer_exists: "This folder no longer exists. It may have been moved or deleted."
     parent_folder_not_found: "Parent folder not found. It may have been moved or deleted."
     failed_to_process_ai: "Failed to process text with AI"
+    invalid_share_request: "Invalid share request"
+    share_not_found: "Share not found"
 
   # Confirm messages
   confirm:
@@ -514,4 +627,6 @@ en:
     folder_created: "Folder created"
     folder_deleted: "Folder deleted"
     folder_renamed: "Folder renamed"
+    template_saved: "Template saved"
+    template_deleted: "Template deleted"
     settings_saved: "Settings saved"

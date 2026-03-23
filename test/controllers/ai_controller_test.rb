@@ -183,6 +183,48 @@ class AiControllerTest < ActionDispatch::IntegrationTest
     assert_includes data["error"], "not configured"
   end
 
+  test "generate_custom allows blank selected text" do
+    ENV["OPENAI_API_KEY"] = "sk-test-key"
+    AiService.stubs(:generate_custom_prompt).with("", "Write an introduction").returns({
+      corrected: "# Intro\n\nFresh start.",
+      provider: "openai",
+      model: "gpt-4o-mini"
+    })
+
+    post "/ai/generate_custom", params: { selected_text: "", prompt: "Write an introduction" }, as: :json
+    assert_response :success
+
+    data = JSON.parse(response.body)
+    assert_equal "", data["original"]
+    assert_equal "# Intro\n\nFresh start.", data["corrected"]
+  end
+
+  test "generate_custom returns error when prompt is blank" do
+    post "/ai/generate_custom", params: { selected_text: "Hello", prompt: "" }, as: :json
+    assert_response :bad_request
+
+    data = JSON.parse(response.body)
+    assert_includes data["error"], "No prompt provided"
+  end
+
+  test "generate_custom returns cleaned text on success" do
+    ENV["OPENAI_API_KEY"] = "sk-test-key"
+    AiService.stubs(:generate_custom_prompt).returns({
+      corrected: "# Clean Heading\n\nBody paragraph.",
+      provider: "openai",
+      model: "gpt-4o-mini"
+    })
+
+    post "/ai/generate_custom", params: { selected_text: "Draft", prompt: "Rewrite this cleanly" }, as: :json
+    assert_response :success
+
+    data = JSON.parse(response.body)
+    assert_equal "Draft", data["original"]
+    assert_equal "# Clean Heading\n\nBody paragraph.", data["corrected"]
+    assert_equal "openai", data["provider"]
+    assert_equal "gpt-4o-mini", data["model"]
+  end
+
   # Image config endpoint tests
   test "image_config returns enabled false when no OpenRouter key" do
     get "/ai/image_config", as: :json

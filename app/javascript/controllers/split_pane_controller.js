@@ -7,18 +7,9 @@ export default class extends Controller {
     this.isDragging = false
     this.minPercentage = 20
     this.maxPercentage = 70 // Don't let preview exceed 70%
-    
+
     this.onPointerMove = this.onPointerMove.bind(this)
     this.onPointerUp = this.onPointerUp.bind(this)
-    
-    // Look for saved config
-    const configContainer = document.querySelector('[data-controller="editor-config"]')
-    if (configContainer && configContainer.dataset.editorConfigPreviewWidthValue) {
-      const savedWidth = parseFloat(configContainer.dataset.editorConfigPreviewWidthValue)
-      if (savedWidth) {
-        this.applyWidth(savedWidth)
-      }
-    }
   }
 
   startDrag(event) {
@@ -61,18 +52,25 @@ export default class extends Controller {
     this.isDragging = false
     window.removeEventListener("pointermove", this.onPointerMove)
     window.removeEventListener("pointerup", this.onPointerUp)
-    
+
     document.body.style.cursor = ""
     document.body.style.userSelect = ""
-    
-    // Save state if needed 
-    // this.saveWidth(this.currentWidthPct)
+
+    if (Number.isFinite(this.currentWidthPct)) {
+      this.dispatch("width-changed", {
+        detail: { width: Math.round(this.currentWidthPct) }
+      })
+    }
   }
 
   applyWidth(percentage) {
-    this.currentWidthPct = percentage
+    const numeric = Number(percentage)
+    if (!Number.isFinite(numeric)) return
+
+    const clamped = Math.max(this.minPercentage, Math.min(numeric, this.maxPercentage))
+    this.currentWidthPct = clamped
     if (this.hasRightPaneTarget) {
-      this.rightPaneTarget.style.setProperty("--preview-width", `${percentage}%`)
+      this.rightPaneTarget.style.setProperty("--preview-width", `${clamped}%`)
     }
   }
 }

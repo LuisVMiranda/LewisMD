@@ -78,6 +78,9 @@
 @import "./components/image-picker.css";
 @import "./components/table-editor.css";
 @import "./components/ai-diff.css";
+@import "./components/outline.css";
+@import "./components/status_strip.css";
+@import "./components/share_view.css";
 
 /* Dynamic text width scaling — controlled by text_width_controller.js via --user-text-width */
 .cm-content {

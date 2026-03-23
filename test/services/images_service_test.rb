@@ -162,12 +162,12 @@ class ImagesServiceTest < ActiveSupport::TestCase
     result = ImagesService.upload_base64_data(base64_data, mime_type: "image/png", filename: "test_ai.png")
 
     assert result[:url]
-    assert result[:url].start_with?("images/")
+    assert result[:url].start_with?("/images/preview/")
     assert result[:url].include?("test_ai")
 
     # Clean up
-    notes_path = Pathname.new(ENV.fetch("NOTES_PATH", Rails.root.join("notes")))
-    FileUtils.rm_f(notes_path.join(result[:url]))
+    stored_path = ImagesService.find_image(result[:url].delete_prefix("/images/preview/"))
+    FileUtils.rm_f(stored_path) if stored_path
   end
 
   test "upload_base64_data returns error for invalid base64" do
@@ -491,5 +491,65 @@ class ImagesServiceS3Test < ActiveSupport::TestCase
     result = ImagesService.download_and_upload_to_s3("https://example.com/missing.jpg")
 
     assert_nil result
+  end
+end
+
+class ImagesServiceManagedStorageTest < ActiveSupport::TestCase
+  def setup
+    setup_test_notes_dir
+    @config_stub = stub("config")
+    @config_stub.stubs(:get).returns(nil)
+    @config_stub.stubs(:get).with("images_path").returns(nil)
+    Config.stubs(:new).returns(@config_stub)
+  end
+
+  def teardown
+    teardown_test_notes_dir
+  end
+
+  def png_base64
+    png_data = [
+      0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D,
+      0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+      0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53, 0xDE, 0x00, 0x00, 0x00,
+      0x0C, 0x49, 0x44, 0x41, 0x54, 0x08, 0xD7, 0x63, 0xF8, 0xCF, 0xC0, 0x00,
+      0x00, 0x00, 0x03, 0x00, 0x01, 0x00, 0x05, 0xFE, 0xD4, 0xE7, 0x00, 0x00,
+      0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82
+    ].pack("C*")
+
+    Base64.strict_encode64(png_data)
+  end
+
+  test "upload_base64_data uses hidden managed images folder for new installs" do
+    result = ImagesService.upload_base64_data(png_base64, mime_type: "image/png", filename: "managed.png")
+
+    assert result[:url].start_with?("/images/preview/")
+    hidden_images = Dir[@test_notes_dir.join(".frankmd/images/*managed*").to_s]
+    legacy_images = Dir[@test_notes_dir.join("images/*managed*").to_s]
+
+    assert_equal 1, hidden_images.length
+    assert_equal [], legacy_images
+    assert ImagesService.enabled?
+  end
+
+  test "upload_base64_data keeps using legacy notes images folder when it already exists" do
+    FileUtils.mkdir_p(@test_notes_dir.join("images"))
+
+    result = ImagesService.upload_base64_data(png_base64, mime_type: "image/png", filename: "legacy.png")
+
+    assert result[:url].start_with?("/images/preview/")
+    legacy_images = Dir[@test_notes_dir.join("images/*legacy*").to_s]
+
+    assert_equal 1, legacy_images.length
+    refute @test_notes_dir.join(".frankmd/images").exist?
+  end
+
+  test "find_image resolves files from hidden managed images folder" do
+    hidden_dir = @test_notes_dir.join(".frankmd/images")
+    FileUtils.mkdir_p(hidden_dir)
+    image_path = hidden_dir.join("stored.png")
+    File.binwrite(image_path, Base64.strict_decode64(png_base64))
+
+    assert_equal image_path, ImagesService.find_image("stored.png")
   end
 end

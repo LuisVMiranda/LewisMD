@@ -1,0 +1,41 @@
+<%
+  selection_action = local_assigns.fetch(:selection_action, "export-menu:selected->app#onExportMenuSelected")
+  shareable = local_assigns.fetch(:shareable, true)
+  markdown_copyable = local_assigns.fetch(:markdown_copyable, true)
+  menu_title = local_assigns.fetch(:menu_title, t("header.open_share_menu"))
+  button_label = local_assigns.fetch(:button_label, t("header.share"))
+  button_class = local_assigns.fetch(:button_class, "flex items-center gap-1.5 px-2 py-1.5 rounded hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-muted)]")
+  label_class = local_assigns.fetch(:label_class, "text-xs")
+  menu_class = local_assigns.fetch(:menu_class, "hidden absolute right-0 mt-1 w-56 rounded-lg shadow-lg bg-[var(--theme-bg-secondary)] border border-[var(--theme-border)] py-1 z-50")
+%>
+
+<div
+  class="relative"
+  data-controller="export-menu"
+  data-export-menu-shareable-value="<%= shareable %>"
+  data-export-menu-markdown-copyable-value="<%= markdown_copyable %>"
+  data-action="<%= selection_action %>"
+>
+  <button
+    type="button"
+    data-action="click->export-menu#toggle"
+    data-export-menu-target="button"
+    class="<%= button_class %>"
+    title="<%= menu_title %>"
+    aria-expanded="false"
+    aria-haspopup="menu"
+  >
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 16V4m0 12l-4-4m4 4 4-4M4 18.75A2.25 2.25 0 0 0 6.25 21h11.5A2.25 2.25 0 0 0 20 18.75" />
+    </svg>
+    <span class="<%= label_class %>"><%= button_label %></span>
+    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+    </svg>
+  </button>
+  <div
+    class="<%= menu_class %>"
+    data-export-menu-target="menu"
+    role="menu"
+  ></div>
+</div>

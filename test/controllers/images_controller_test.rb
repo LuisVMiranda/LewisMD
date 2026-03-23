@@ -147,7 +147,7 @@ class ImagesControllerTest < ActionDispatch::IntegrationTest
       assert_response :not_found
     end
 
-    test "upload saves file to notes/images directory" do
+    test "upload saves file to the managed local images directory" do
       # Create a test image file
       png_data = [
         0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D,
@@ -165,19 +165,16 @@ class ImagesControllerTest < ActionDispatch::IntegrationTest
       )
 
       # Set up notes path for this test
-      notes_path = Pathname.new(ENV.fetch("NOTES_PATH", Rails.root.join("notes")))
-      images_dir = notes_path.join("images")
-
       post "/images/upload", params: { file: file }
       assert_response :success
 
       data = JSON.parse(response.body)
-      assert data["url"].start_with?("images/")
+      assert data["url"].start_with?("/images/preview/")
       assert data["url"].include?("test_upload")
 
       # Clean up
-      created_file = notes_path.join(data["url"])
-      FileUtils.rm_f(created_file) if created_file.exist?
+      created_file = ImagesService.find_image(data["url"].delete_prefix("/images/preview/"))
+      FileUtils.rm_f(created_file) if created_file
     end
 
     test "upload returns error for S3 when not configured" do
@@ -203,15 +200,14 @@ class ImagesControllerTest < ActionDispatch::IntegrationTest
       # because upload_to_s3 only works when s3_enabled? is true
       assert_response :success
       data = JSON.parse(response.body)
-      assert data["url"].start_with?("images/")
+      assert data["url"].start_with?("/images/preview/")
 
       # Clean up
-      notes_path = Pathname.new(ENV.fetch("NOTES_PATH", Rails.root.join("notes")))
-      created_file = notes_path.join(data["url"])
-      FileUtils.rm_f(created_file) if created_file.exist?
+      created_file = ImagesService.find_image(data["url"].delete_prefix("/images/preview/"))
+      FileUtils.rm_f(created_file) if created_file
     end
 
-    test "upload_base64 saves base64 image data to notes/images" do
+    test "upload_base64 saves base64 image data to the managed local images directory" do
       # 1x1 PNG image encoded as base64
       png_data = [
         0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D,
@@ -223,8 +219,6 @@ class ImagesControllerTest < ActionDispatch::IntegrationTest
       ].pack("C*")
       base64_data = Base64.strict_encode64(png_data)
 
-      notes_path = Pathname.new(ENV.fetch("NOTES_PATH", Rails.root.join("notes")))
-
       post "/images/upload_base64", params: {
         data: base64_data,
         mime_type: "image/png",
@@ -233,12 +227,12 @@ class ImagesControllerTest < ActionDispatch::IntegrationTest
 
       assert_response :success
       data = JSON.parse(response.body)
-      assert data["url"].start_with?("images/")
+      assert data["url"].start_with?("/images/preview/")
       assert data["url"].include?("ai_test")
 
       # Clean up
-      created_file = notes_path.join(data["url"])
-      FileUtils.rm_f(created_file) if created_file.exist?
+      created_file = ImagesService.find_image(data["url"].delete_prefix("/images/preview/"))
+      FileUtils.rm_f(created_file) if created_file
     end
 
     test "upload_base64 returns error when no data provided" do
@@ -271,8 +265,6 @@ class ImagesControllerTest < ActionDispatch::IntegrationTest
       ].pack("C*")
       base64_data = Base64.strict_encode64(png_data)
 
-      notes_path = Pathname.new(ENV.fetch("NOTES_PATH", Rails.root.join("notes")))
-
       post "/images/upload_base64", params: {
         data: base64_data,
         mime_type: "image/png"
@@ -280,12 +272,12 @@ class ImagesControllerTest < ActionDispatch::IntegrationTest
 
       assert_response :success
       data = JSON.parse(response.body)
-      assert data["url"].start_with?("images/")
+      assert data["url"].start_with?("/images/preview/")
       assert data["url"].include?("ai_generated_")
 
       # Clean up
-      created_file = notes_path.join(data["url"])
-      FileUtils.rm_f(created_file) if created_file.exist?
+      created_file = ImagesService.find_image(data["url"].delete_prefix("/images/preview/"))
+      FileUtils.rm_f(created_file) if created_file
     end
   end
 

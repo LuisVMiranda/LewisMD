@@ -18,6 +18,9 @@ export default class extends Controller {
       this.backupTimestampTarget.textContent = date.toLocaleString()
     }
 
+    this.dispatch("opened", {
+      detail: { path: this._path }
+    })
     this.dialogTarget.showModal()
   }
 

@@ -355,6 +355,19 @@ describe("CodemirrorController", () => {
   })
 
   describe("event dispatching", () => {
+    it("dispatches ready after the editor is created", async () => {
+      const readyHandler = vi.fn()
+      element.addEventListener("codemirror:ready", readyHandler)
+
+      controller.disconnect()
+      controller.createEditor()
+
+      await new Promise(resolve => setTimeout(resolve, 10))
+
+      expect(readyHandler).toHaveBeenCalled()
+      expect(readyHandler.mock.calls[0][0].detail.content).toBe("Hello World")
+    })
+
     it("dispatches change event on document change", async () => {
       const changeHandler = vi.fn()
       element.addEventListener("codemirror:change", changeHandler)

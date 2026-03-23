@@ -11,6 +11,16 @@ Rails.application.routes.draw do
   patch "notes/*path", to: "notes#update", as: :update_note, format: false
   delete "notes/*path", to: "notes#destroy", as: :destroy_note, format: false
 
+  # Templates API
+  get "templates", to: "templates#index"
+  post "templates", to: "templates#create"
+  get "templates/status/*path", to: "templates#status", as: :template_status, format: false
+  post "templates/save_from_note", to: "templates#save_from_note"
+  delete "templates/save_from_note", to: "templates#destroy_saved_note_template"
+  get "templates/*path", to: "templates#show", as: :template_file, format: false
+  patch "templates/*path", to: "templates#update", as: :update_template_file, format: false
+  delete "templates/*path", to: "templates#destroy", as: :destroy_template_file, format: false
+
   # Folders API
   post "folders/*path/rename", to: "folders#rename", as: :rename_folder
   post "folders/*path", to: "folders#create", as: :create_folder
@@ -47,6 +57,14 @@ Rails.application.routes.draw do
 
   # Translations API (for JavaScript i18n)
   get "translations", to: "translations#show"
+
+  # Snapshot share API
+  post "shares", to: "shares#create"
+  get "shares/*path", to: "shares#lookup", as: :share_status, format: false
+  patch "shares/*path", to: "shares#update", as: :update_share, format: false
+  delete "shares/*path", to: "shares#destroy", as: :destroy_share, format: false
+  get "s/:token/content", to: "shares#content", as: :share_snapshot_content
+  get "s/:token", to: "shares#show", as: :share_snapshot
 
   # Logs API (for debugging)
   get "logs/tail", to: "logs#tail"

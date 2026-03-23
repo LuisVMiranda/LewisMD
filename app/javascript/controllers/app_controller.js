@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
-import { get, patch } from "@rails/request.js"
+import { destroy, get, patch, post } from "@rails/request.js"
 import { marked } from "marked"
-import { escapeHtml } from "lib/text_utils"
+import { escapeHtml, normalizeLineEndings } from "lib/text_utils"
 import { findTableAtPosition, findCodeBlockAtPosition } from "lib/markdown_utils"
 import { allExtensions } from "lib/marked_extensions"
 import { encodePath } from "lib/url_utils"
@@ -18,6 +18,20 @@ import {
   insertCodeBlock,
   insertVideoEmbed
 } from "lib/codemirror_content_insertion"
+import { buildDocumentOutline } from "lib/document_outline"
+import {
+  buildExportFilename,
+  buildPlainTextExport,
+  buildStandaloneExportDocument as buildStandaloneExportHtmlDocument,
+  captureExportThemeSnapshot
+} from "lib/export_document_builder"
+import { inlineSameOriginImages } from "lib/export_image_embedder"
+import {
+  downloadExportFile as downloadBrowserExportFile,
+  printStandaloneDocument as printBrowserExportDocument,
+  waitForDocumentImages as waitForBrowserDocumentImages,
+  waitForExportDocumentAssets as waitForBrowserExportAssets
+} from "lib/browser_export_utils"
 export default class extends Controller {
   static targets = [
     "fileTree",
@@ -42,10 +56,12 @@ export default class extends Controller {
 
   static outlets = [
     "codemirror", "preview", "typewriter", "stats-panel",
+    "split-pane",
     "path-display", "text-format", "help", "file-operations",
     "emoji-picker", "offline-backup", "recovery-diff",
     "autosave", "scroll-sync", "editor-config",
     "image-picker", "file-finder", "find-replace", "jump-to-line",
+    "outline", "export-menu",
     "content-search", "ai-grammar", "video-dialog", "log-viewer",
     "code-dialog", "customize", "drag-drop"
   ]
@@ -59,6 +75,14 @@ export default class extends Controller {
     this.currentFile = null
     this.currentFileType = null  // "markdown", "config", or null
     this.expandedFolders = new Set()
+    this.readingModeActive = false
+    this.recoveryAvailable = false
+    this._lastUiStateSignature = null
+    this._codemirrorReady = false
+    this._restoringPersistedUiState = false
+    this._transientPreviewPreparation = false
+    this.currentShare = null
+    this._shareStateRequestId = 0
 
     // Sidebar/Explorer visibility - always start visible
     // (don't persist closed state across sessions)
@@ -66,16 +90,18 @@ export default class extends Controller {
 
     // Track pending config saves to debounce
     this.configSaveTimeout = null
+    this.pendingConfigSettings = {}
 
     // Debounce timers for performance
     this._tableCheckTimeout = null
+    this._outlineRefreshTimeout = null
 
     this.setupKeyboardShortcuts()
     this.setupDialogClickOutside()
     this.applySidebarVisibility()
-    this.initializeTypewriterMode()
     this.setupConfigFileListener()
     this.setupTableEditorListener()
+    this.setupRecoveryStateListeners()
 
     // Configure marked with custom extensions for superscript, subscript, highlight, emoji
     marked.use({
@@ -138,6 +164,7 @@ export default class extends Controller {
     // Clear all timeouts
     if (this.configSaveTimeout) clearTimeout(this.configSaveTimeout)
     if (this._tableCheckTimeout) clearTimeout(this._tableCheckTimeout)
+    if (this._outlineRefreshTimeout) clearTimeout(this._outlineRefreshTimeout)
     if (this._initialFileTimeout) clearTimeout(this._initialFileTimeout)
 
     // Remove window/document event listeners
@@ -152,6 +179,12 @@ export default class extends Controller {
     }
     if (this.boundKeydownHandler) {
       document.removeEventListener("keydown", this.boundKeydownHandler)
+    }
+    if (this.boundRecoveryOpenedHandler) {
+      this.element.removeEventListener("recovery-diff:opened", this.boundRecoveryOpenedHandler)
+    }
+    if (this.boundRecoveryResolvedHandler) {
+      this.element.removeEventListener("recovery-diff:resolved", this.boundRecoveryResolvedHandler)
     }
 
     // Clean up object URLs to prevent memory leaks
@@ -170,6 +203,7 @@ export default class extends Controller {
   getPreviewController() { return this.previewOutlets[0] ?? null }
   getTypewriterController() { return this.typewriterOutlets[0] ?? null }
   getCodemirrorController() { return this.codemirrorOutlets[0] ?? null }
+  getSplitPaneController() { return this.splitPaneOutlets[0] ?? null }
   getPathDisplayController() { return this.pathDisplayOutlets[0] ?? null }
   getTextFormatController() { return this.textFormatOutlets[0] ?? null }
   getHelpController() { return this.helpOutlets[0] ?? null }
@@ -181,6 +215,92 @@ export default class extends Controller {
   getAutosaveController() { return this.autosaveOutlets[0] ?? null }
   getScrollSyncController() { return this.scrollSyncOutlets[0] ?? null }
   getEditorConfigController() { return this.editorConfigOutlets[0] ?? null }
+  getOutlineController() { return this.outlineOutlets[0] ?? null }
+  getExportMenuController() { return this.exportMenuOutlets?.[0] ?? null }
+
+  outlineOutletConnected() {
+    this.refreshOutline()
+  }
+
+  exportMenuOutletConnected() {
+    this.updateExportMenuShareState()
+  }
+
+  splitPaneOutletConnected() {
+    this.applyPersistedPreviewWidth()
+  }
+
+  // === Shared UI State Snapshot ===
+
+  getModeState() {
+    const previewController = this.getPreviewController()
+    const typewriterController = this.getTypewriterController()
+    const previewVisible = previewController
+      ? previewController.isVisible
+      : (this.hasPreviewPanelTarget && !this.previewPanelTarget.classList.contains("hidden"))
+    const readingActive = Boolean(this.readingModeActive)
+    const typewriterActive = Boolean(typewriterController?.enabledValue)
+
+    let mode = "raw"
+    if (this.isMarkdownFile() && this.currentFile) {
+      if (readingActive) {
+        mode = "reading"
+      } else if (typewriterActive) {
+        mode = "typewriter"
+      } else if (previewVisible) {
+        mode = "preview"
+      }
+    }
+
+    return {
+      mode,
+      previewVisible,
+      readingActive,
+      typewriterActive
+    }
+  }
+
+  getDocumentContext() {
+    const codemirrorController = this.getCodemirrorController()
+    const configCtrl = this.getEditorConfigController()
+    const previewController = this.getPreviewController()
+    const cursorInfo = codemirrorController?.getCursorInfo() || {}
+    const cursorPosition = codemirrorController?.getCursorPosition?.() || {}
+    const selection = codemirrorController?.getSelection?.() || {}
+    const selectionLength = Math.max(0, (selection.to ?? 0) - (selection.from ?? 0))
+
+    return {
+      path: this.currentFile || null,
+      fileType: this.currentFileType || null,
+      isMarkdown: this.isMarkdownFile(),
+      previewZoom: previewController?.zoomValue ?? configCtrl?.previewZoom ?? null,
+      cursorLine: cursorInfo.currentLine ?? null,
+      totalLines: cursorInfo.totalLines ?? null,
+      column: cursorPosition.column ?? null,
+      selectionLength,
+      hasSelection: selectionLength > 0
+    }
+  }
+
+  buildUiStateSnapshot() {
+    return {
+      ...this.getDocumentContext(),
+      ...this.getModeState(),
+      recoveryAvailable: Boolean(this.recoveryAvailable)
+    }
+  }
+
+  emitUiStateChanged(reason) {
+    const state = this.buildUiStateSnapshot()
+    const signature = JSON.stringify(state)
+
+    if (signature === this._lastUiStateSignature) return
+
+    this._lastUiStateSignature = signature
+    this.dispatch("state-changed", {
+      detail: { reason, state }
+    })
+  }
 
   // === URL Management for Bookmarkable URLs ===
 
@@ -250,14 +370,7 @@ export default class extends Controller {
       if (path) {
         await this.loadFile(path, { updateHistory: false })
       } else {
-        // No file - show placeholder
-        this.currentFile = null
-        this.updatePathDisplay(null)
-        this.editorPlaceholderTarget.classList.remove("hidden")
-        this.editorTarget.classList.add("hidden")
-        this.editorToolbarTarget.classList.add("hidden")
-        this.editorToolbarTarget.classList.remove("flex")
-        this.hideStatsPanel()
+        this.showEditorPlaceholder("file-cleared")
         this.refreshTree()
       }
     }
@@ -275,6 +388,9 @@ export default class extends Controller {
   }
 
   showFileNotFoundMessage(path, message) {
+    this.currentFile = null
+    this.currentFileType = null
+    this.clearCurrentShare()
     this.editorPlaceholderTarget.classList.add("hidden")
     this.editorTarget.classList.remove("hidden")
     this.editorToolbarTarget.classList.add("hidden")
@@ -291,11 +407,26 @@ export default class extends Controller {
     // Clear after a moment and return to normal state
     setTimeout(() => {
       this.textareaTarget.disabled = false
-      this.updatePathDisplay(null)
-      this.editorPlaceholderTarget.classList.remove("hidden")
-      this.editorTarget.classList.add("hidden")
-      this.hideStatsPanel()
+      this.showEditorPlaceholder("file-cleared")
     }, 5000)
+  }
+
+  showEditorPlaceholder(reason = "file-cleared") {
+    this.currentFile = null
+    this.currentFileType = null
+    this.clearCurrentShare()
+    this.updatePathDisplay(null)
+    this.editorPlaceholderTarget.classList.remove("hidden")
+    this.editorTarget.classList.add("hidden")
+    this.editorToolbarTarget.classList.add("hidden")
+    this.editorToolbarTarget.classList.remove("flex")
+    this.hideStatsPanel()
+    if (this._codemirrorReady) {
+      this.restorePersistedUiState()
+    } else {
+      this.refreshOutline()
+    }
+    this.emitUiStateChanged(reason)
   }
 
   toggleFolder(event) {
@@ -351,6 +482,10 @@ export default class extends Controller {
       this.updateUrl(newPath)
     }
 
+    if (this.currentFile) {
+      this.refreshCurrentShareState()
+    }
+
     // Tree is already updated by Turbo Stream
   }
 
@@ -404,6 +539,7 @@ export default class extends Controller {
 
   showEditor(content, fileType = "markdown") {
     this.currentFileType = fileType
+    this.clearCurrentShare()
     this.editorPlaceholderTarget.classList.add("hidden")
     this.editorTarget.classList.remove("hidden")
 
@@ -448,11 +584,71 @@ export default class extends Controller {
       }
     }
 
+    this.refreshOutline()
+
     // Show stats panel and update stats
     this.showStatsPanel()
     this.updateStats()
     // Apply editor settings (font, size, line numbers)
     this.applyEditorSettings()
+    this.refreshCurrentShareState()
+    this.emitUiStateChanged("file-loaded")
+  }
+
+  setCurrentShare(share) {
+    this.currentShare = share ? { ...share } : null
+    this.updateExportMenuShareState()
+  }
+
+  clearCurrentShare() {
+    this.currentShare = null
+    this.updateExportMenuShareState()
+  }
+
+  updateExportMenuShareState() {
+    const exportMenuController = this.getExportMenuController()
+    if (!exportMenuController) return
+
+    exportMenuController.setShareState({
+      shareable: Boolean(this.currentFile && this.isMarkdownFile()),
+      active: Boolean(this.currentShare?.url),
+      url: this.currentShare?.url || null
+    })
+  }
+
+  async refreshCurrentShareState() {
+    if (!this.currentFile || !this.isMarkdownFile()) {
+      this.clearCurrentShare()
+      return null
+    }
+
+    const requestId = ++this._shareStateRequestId
+    const path = this.currentFile
+
+    this.clearCurrentShare()
+
+    try {
+      const response = await get(`/shares/${encodePath(path)}`, { responseKind: "json" })
+      if (requestId !== this._shareStateRequestId || this.currentFile !== path) return null
+
+      if (response.ok) {
+        const share = await response.json
+        this.setCurrentShare(share)
+        return share
+      }
+
+      if (response.statusCode === 404) {
+        return null
+      }
+
+      throw new Error(await response.text)
+    } catch (error) {
+      if (requestId === this._shareStateRequestId && this.currentFile === path) {
+        console.warn("Failed to load share state:", error)
+        this.clearCurrentShare()
+      }
+      return null
+    }
   }
 
   // Check if current file is markdown
@@ -485,6 +681,7 @@ export default class extends Controller {
     }
 
     this.scheduleStatsUpdate()
+    this.scheduleOutlineRefresh()
 
     // Only do markdown-specific processing for markdown files
     if (this.isMarkdownFile()) {
@@ -505,6 +702,8 @@ export default class extends Controller {
         this.maintainTypewriterScroll()
       }
     }
+
+    this.emitUiStateChanged("document-changed")
   }
 
   // Handle CodeMirror selection change events
@@ -517,6 +716,73 @@ export default class extends Controller {
     if (this.isMarkdownFile() && !this._tableCheckTimeout) {
       this.checkTableAtCursor()
     }
+
+    this.syncOutlineActiveLine()
+    this.emitUiStateChanged("selection-changed")
+  }
+
+  scheduleOutlineRefresh() {
+    if (this._outlineRefreshTimeout) {
+      clearTimeout(this._outlineRefreshTimeout)
+    }
+
+    this._outlineRefreshTimeout = setTimeout(() => {
+      this._outlineRefreshTimeout = null
+      this.refreshOutline()
+    }, 80)
+  }
+
+  refreshOutline() {
+    const outlineController = this.getOutlineController()
+    if (!outlineController) return
+
+    if (!this.currentFile || !this.isMarkdownFile()) {
+      outlineController.hide()
+      return
+    }
+
+    outlineController.update({
+      visible: true,
+      items: buildDocumentOutline(this.getCurrentDocumentContent())
+    })
+
+    this.syncOutlineActiveLine()
+  }
+
+  syncOutlineActiveLine(lineNumber = null) {
+    const outlineController = this.getOutlineController()
+    if (!outlineController || !this.currentFile || !this.isMarkdownFile()) return
+
+    const nextLine = Number.isInteger(lineNumber)
+      ? lineNumber
+      : this.getCursorInfo()?.currentLine
+
+    outlineController.setActiveLine(nextLine ?? null)
+  }
+
+  onPreviewScrolled(event) {
+    if (!this.isMarkdownFile()) return
+
+    const sourceLine = event.detail?.sourceLine
+    if (!Number.isInteger(sourceLine)) return
+
+    this.syncOutlineActiveLine(sourceLine)
+  }
+
+  onOutlineSelected(event) {
+    const lineNumber = event.detail?.lineNumber
+    if (!Number.isInteger(lineNumber)) return
+
+    this.jumpToLine(lineNumber)
+
+    const previewController = this.getPreviewController()
+    const codemirrorController = this.getCodemirrorController()
+    if (previewController && previewController.isVisible && codemirrorController) {
+      const { currentLine, totalLines } = codemirrorController.getCursorInfo()
+      previewController.syncToLineSmooth(currentLine, totalLines)
+    }
+
+    this.syncOutlineActiveLine(lineNumber)
   }
 
   // Dispatch an input event to trigger all listeners after programmatic value changes
@@ -593,49 +859,129 @@ export default class extends Controller {
       return
     }
 
-    // State cohesion loop: Reading Mode -> Typewriter Mode
+    // Reading mode is a preview-first layout. Exit it first, then apply the
+    // user's preview toggle against the restored editor layout.
     if (this.readingModeActive) {
-      this.toggleReadingMode() // Cleanly exit Reading Mode
-
-      const isTypewriterOn = document.body.classList.contains("typewriter-mode")
-      if (!isTypewriterOn) {
-        this.toggleTypewriterMode()
-      } else {
-        const previewController = this.getPreviewController()
-        if (previewController && previewController.isVisible) {
-          previewController.hide()
-
-          // Fallback check: if no reading mode, no preview, engage Typewriter
-          if (!this.readingModeActive) {
-            const typewriterController = this.getTypewriterController()
-            if (typewriterController && !typewriterController.enabledValue) {
-              typewriterController.toggle()
-            }
-          }
-        }
-      }
-      return
+      this.toggleReadingMode()
     }
+
+    this.disableTypewriterMode()
 
     const previewController = this.getPreviewController()
     if (previewController) {
       previewController.toggle()
+    }
+  }
 
-      // If preview was just toggled OFF, fallback to Typewriter
-      if (!previewController.isVisible) {
-        if (!this.readingModeActive) {
-          const typewriterController = this.getTypewriterController()
-          if (typewriterController && !typewriterController.enabledValue) {
-            typewriterController.toggle()
-          }
+  updatePreview() {
+    const previewController = this.getPreviewController()
+    if (!previewController) return
+
+    const scrollSync = this.getScrollSyncController()
+    if (scrollSync) {
+      scrollSync.updatePreview()
+      return
+    }
+
+    previewController.render(this.getCurrentDocumentContent())
+  }
+
+  getCurrentDocumentContent() {
+    const codemirrorController = this.getCodemirrorController()
+    const editorContent = codemirrorController ? codemirrorController.getValue() : ""
+    const textareaContent = this.hasTextareaTarget ? this.textareaTarget.value : ""
+    return editorContent || textareaContent || ""
+  }
+
+  getRenderedDocumentTitle() {
+    if (!this.currentFile) return "Untitled"
+
+    const leaf = this.currentFile.split("/").pop() || this.currentFile
+    return leaf.replace(/\.[^.]+$/, "") || "Untitled"
+  }
+
+  getActiveThemeId() {
+    return document.documentElement.getAttribute("data-theme") ||
+      this.getEditorConfigController()?.themeValue ||
+      null
+  }
+
+  waitForDomPaint() {
+    return new Promise((resolve) => {
+      if (typeof requestAnimationFrame === "function") {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => resolve())
+        })
+      } else {
+        setTimeout(resolve, 0)
+      }
+    })
+  }
+
+  async prepareRenderedPreview() {
+    if (!this.currentFile || !this.isMarkdownFile()) return null
+
+    const previewController = this.getPreviewController()
+    if (!previewController?.hasContentTarget) return null
+
+    const shouldRestoreVisibility = !previewController.isVisible && !this.readingModeActive
+
+    if (!previewController.isVisible) {
+      this._transientPreviewPreparation = true
+      try {
+        previewController.show()
+      } finally {
+        this._transientPreviewPreparation = false
+      }
+    }
+
+    this.updatePreview()
+    await this.waitForDomPaint()
+
+    return {
+      previewController,
+      restore: () => {
+        if (!shouldRestoreVisibility) return
+
+        this._transientPreviewPreparation = true
+        try {
+          previewController.hide()
+        } finally {
+          this._transientPreviewPreparation = false
         }
       }
     }
   }
 
-  updatePreview() {
-    const scrollSync = this.getScrollSyncController()
-    if (scrollSync) scrollSync.updatePreview()
+  async collectRenderedDocumentPayload({ embedLocalImages = false } = {}) {
+    const preparedPreview = await this.prepareRenderedPreview()
+    if (!preparedPreview) return null
+
+    let payload = null
+
+    try {
+      payload = preparedPreview.previewController.getRenderedDocumentPayload({
+        title: this.getRenderedDocumentTitle(),
+        path: this.currentFile,
+        themeId: this.getActiveThemeId()
+      })
+    } finally {
+      preparedPreview.restore()
+    }
+
+    if (!payload || !embedLocalImages) return payload
+    return this.inlineExportPayloadImages(payload)
+  }
+
+  async inlineExportPayloadImages(payload) {
+    if (!payload?.html) return payload
+
+    return {
+      ...payload,
+      html: await inlineSameOriginImages(payload.html, {
+        baseUrl: window.location.href
+      })
+    }
   }
 
   // === Table Editor ===
@@ -708,18 +1054,20 @@ export default class extends Controller {
       const configCtrl = this.getEditorConfigController()
       const font = configCtrl ? configCtrl.currentFont : "cascadia-code"
       const fontSize = configCtrl ? configCtrl.currentFontSize : 14
-      this.customizeOutlet.open(font, fontSize)
+      const previewFontFamily = configCtrl ? configCtrl.currentPreviewFontFamily : "sans"
+      this.customizeOutlet.open(font, fontSize, previewFontFamily)
     }
   }
 
   // Handle customize:applied event from customize_controller
   onCustomizeApplied(event) {
-    const { font, fontSize } = event.detail
+    const { font, fontSize, previewFontFamily } = event.detail
 
     // Save to server config (will trigger reload)
     this.saveConfig({
       editor_font: font,
-      editor_font_size: fontSize
+      editor_font_size: fontSize,
+      preview_font_family: previewFontFamily
     })
 
     // Apply immediately via config controller
@@ -727,6 +1075,7 @@ export default class extends Controller {
     if (configCtrl) {
       configCtrl.fontValue = font
       configCtrl.fontSizeValue = fontSize
+      configCtrl.previewFontFamilyValue = previewFontFamily
     }
   }
 
@@ -735,6 +1084,7 @@ export default class extends Controller {
     if (configCtrl) {
       configCtrl.applyFont()
       configCtrl.applyEditorWidth()
+      configCtrl.applyPreviewFontFamily()
       configCtrl.applyLineNumbers()
     }
   }
@@ -804,6 +1154,11 @@ export default class extends Controller {
 
   // === Save config settings to server (debounced) ===
   saveConfig(settings) {
+    this.pendingConfigSettings = {
+      ...this.pendingConfigSettings,
+      ...settings
+    }
+
     // Clear any pending save
     if (this.configSaveTimeout) {
       clearTimeout(this.configSaveTimeout)
@@ -811,9 +1166,13 @@ export default class extends Controller {
 
     // Debounce saves to avoid excessive API calls
     this.configSaveTimeout = setTimeout(async () => {
+      const updates = { ...this.pendingConfigSettings }
+      this.pendingConfigSettings = {}
+      this.configSaveTimeout = null
+
       try {
         const response = await patch("/config", {
-          body: settings,
+          body: updates,
           responseKind: "json"
         })
 
@@ -866,6 +1225,23 @@ export default class extends Controller {
     window.addEventListener("frankmd:config-file-modified", this.boundConfigFileHandler)
   }
 
+  setupRecoveryStateListeners() {
+    this.boundRecoveryOpenedHandler = this.onRecoveryDialogOpened.bind(this)
+    this.boundRecoveryResolvedHandler = this.onRecoveryDialogResolved.bind(this)
+    this.element.addEventListener("recovery-diff:opened", this.boundRecoveryOpenedHandler)
+    this.element.addEventListener("recovery-diff:resolved", this.boundRecoveryResolvedHandler)
+  }
+
+  onRecoveryDialogOpened() {
+    this.recoveryAvailable = true
+    this.emitUiStateChanged("recovery-opened")
+  }
+
+  onRecoveryDialogResolved() {
+    this.recoveryAvailable = false
+    this.emitUiStateChanged("recovery-resolved")
+  }
+
   // === Preview Zoom - Delegates to preview_controller ===
   zoomPreviewIn() {
     const previewController = this.getPreviewController()
@@ -905,6 +1281,10 @@ export default class extends Controller {
 
   // === Reading Mode Toggle ===
   toggleReadingMode(event) {
+    if (!this.readingModeActive) {
+      this.disableTypewriterMode()
+    }
+
     this.readingModeActive = !this.readingModeActive
 
     if (this.readingModeActive) {
@@ -922,7 +1302,7 @@ export default class extends Controller {
       // Ensure preview is visible if it was hidden
       const previewController = this.getPreviewController()
       if (previewController && !previewController.isVisible) {
-        previewController.toggle()
+        previewController.show()
       }
 
       // Expand Preview Width Priority
@@ -966,107 +1346,419 @@ export default class extends Controller {
         this.previewContentTarget.classList.add("max-w-none")
       }
 
-      // Fallback check: if returning to an empty mode (preview is off), engage Typewriter
-      const previewController = this.getPreviewController()
-      if (!previewController || !previewController.isVisible) {
-        const typewriterController = this.getTypewriterController()
-        if (typewriterController && !typewriterController.enabledValue) {
-          typewriterController.toggle()
-        }
-      }
-
-      // Handle Typewriter scroll collision (needs slight delay for DOM to un-hide constraints)
+      // If typewriter was already active before reading mode, recenter once the
+      // editor is visible again.
       if (this.isMarkdownFile()) {
         setTimeout(() => {
           this.maintainTypewriterScroll()
         }, 10)
       }
     }
+
+    this.persistCurrentMode()
+    this.emitUiStateChanged("reading-mode-toggled")
   }
 
   // === Print / Export as PDF ===
-  printNote() {
-    const previewController = this.getPreviewController()
-    if (!previewController) return
+  async printNote() {
+    try {
+      const payload = await this.collectRenderedDocumentPayload({ embedLocalImages: true })
+      if (!payload) return false
 
-    const wasVisible = previewController.isVisible
-    const wasReadingMode = this.readingModeActive
-
-    // Ensure preview is rendered — show it temporarily if not
-    if (!wasVisible) {
-      previewController.show()
-      // Give marked.js a tick to render fully before printing
-    }
-
-    const doprint = () => {
-      document.documentElement.classList.add("frankmd-printing")
-
-      const cleanup = () => {
-        document.documentElement.classList.remove("frankmd-printing")
-        window.removeEventListener("afterprint", cleanup)
-
-        // Restore state that existed before print
-        if (!wasVisible && !wasReadingMode) {
-          previewController.hide()
-        }
-      }
-
-      window.addEventListener("afterprint", cleanup)
-      window.print()
-    }
-
-    // Delay slightly so preview panel renders if it was just shown
-    if (!wasVisible) {
-      setTimeout(doprint, 150)
-    } else {
-      doprint()
+      const documentHtml = this.buildStandaloneExportDocument(payload)
+      return this.printStandaloneDocument(documentHtml)
+    } catch (error) {
+      console.error("Failed to export PDF", error)
+      this.showTemporaryMessage(window.t("status.export_failed"))
+      return false
     }
   }
 
-  // === Export as Clipboard (Rich HTML) ===
-  async copyHtmlToClipboard(event) {
-    const previewController = this.getPreviewController()
-    if (!previewController || !previewController.hasContentTarget) return
+  getExportLanguage() {
+    return document.documentElement.lang ||
+      document.documentElement.getAttribute("lang") ||
+      window.frankmdLocale ||
+      "en"
+  }
 
-    const btn = event.currentTarget
-    const originalHtml = btn.innerHTML
+  buildStandaloneExportDocument(payload) {
+    return buildStandaloneExportHtmlDocument(payload, {
+      theme: captureExportThemeSnapshot(document.documentElement),
+      language: this.getExportLanguage(),
+      documentTitle: payload?.title || "Untitled"
+    })
+  }
+
+  downloadExportFile(filename, content, contentType) {
+    return downloadBrowserExportFile(filename, content, contentType)
+  }
+
+  printStandaloneDocument(documentHtml) {
+    return printBrowserExportDocument(documentHtml, {
+      timeoutMs: 60000,
+      onError: () => this.showTemporaryMessage(window.t("status.export_failed"))
+    })
+  }
+
+  async waitForExportDocumentAssets(frameWindow, timeoutMs = 5000) {
+    return waitForBrowserExportAssets(frameWindow, timeoutMs)
+  }
+
+  async waitForDocumentImages(frameDocument, timeoutMs = 5000) {
+    return waitForBrowserDocumentImages(frameDocument, timeoutMs)
+  }
+
+  async exportHtmlDocument() {
+    try {
+      const payload = await this.collectRenderedDocumentPayload({ embedLocalImages: true })
+      if (!payload) return false
+
+      return this.downloadExportFile(
+        buildExportFilename(payload, "html"),
+        this.buildStandaloneExportDocument(payload),
+        "text/html;charset=utf-8"
+      )
+    } catch (error) {
+      console.error("Failed to export HTML", error)
+      this.showTemporaryMessage(window.t("status.export_failed"))
+      return false
+    }
+  }
+
+  async exportTextDocument() {
+    try {
+      const payload = await this.collectRenderedDocumentPayload()
+      if (!payload) return false
+
+      return this.downloadExportFile(
+        buildExportFilename(payload, "txt"),
+        buildPlainTextExport(payload),
+        "text/plain;charset=utf-8"
+      )
+    } catch (error) {
+      console.error("Failed to export text", error)
+      this.showTemporaryMessage(window.t("status.export_failed"))
+      return false
+    }
+  }
+
+  async copyMarkdown() {
+    const codemirrorController = this.getCodemirrorController()
+    const content = codemirrorController
+      ? codemirrorController.getValue()
+      : (this.hasTextareaTarget ? this.textareaTarget.value : "")
+
+    return this.copyTextToClipboard(normalizeLineEndings(content), {
+      successMessage: window.t("status.copied_to_clipboard"),
+      failureMessage: window.t("status.copy_failed")
+    })
+  }
+
+  // === Export as Clipboard (Rich HTML) ===
+  async copyFormattedHtml({ button = null } = {}) {
+    const originalHtml = button?.innerHTML
+    let copied = false
 
     try {
-      // Get the rendered HTML content
-      const htmlContent = previewController.contentTarget.innerHTML
-      // Create a plain text version by stripping tags
-      const plainContent = previewController.contentTarget.innerText || ""
+      const payload = await this.collectRenderedDocumentPayload({ embedLocalImages: true })
+      if (!payload) return false
 
       // Write both HTML and Plain Text formats
       const clipboardItem = new ClipboardItem({
-        "text/html": new Blob([htmlContent], { type: "text/html" }),
-        "text/plain": new Blob([plainContent], { type: "text/plain" })
+        "text/html": new Blob([payload.html], { type: "text/html" }),
+        "text/plain": new Blob([payload.plainText], { type: "text/plain" })
       })
 
       await navigator.clipboard.write([clipboardItem])
 
-      // Visual feedback: Change icon to checkmark temporarily
-      btn.innerHTML = `<svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>`
+      if (button) {
+        // Visual feedback: Change icon to checkmark temporarily
+        button.innerHTML = `<svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>`
+      } else {
+        this.showTemporaryMessage(window.t("status.copied_to_clipboard"))
+      }
+
+      copied = true
     } catch (err) {
       console.error("Failed to copy note to clipboard", err)
-      // Visual feedback: Change icon to X temporarily
-      btn.innerHTML = `<svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>`
+      if (button) {
+        // Visual feedback: Change icon to X temporarily
+        button.innerHTML = `<svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>`
+      } else {
+        this.showTemporaryMessage(window.t("status.copy_failed"))
+      }
+
+      copied = false
+    } finally {
+      if (button) {
+        setTimeout(() => {
+          button.innerHTML = originalHtml
+        }, 2000)
+      }
     }
 
-    setTimeout(() => {
-      btn.innerHTML = originalHtml
-    }, 2000)
+    return copied
+  }
+
+  async copyTextToClipboard(text, {
+    successMessage = window.t("status.copied_to_clipboard"),
+    failureMessage = window.t("status.copy_failed")
+  } = {}) {
+    try {
+      await navigator.clipboard.writeText(text)
+      this.showTemporaryMessage(successMessage)
+      return true
+    } catch (error) {
+      console.error("Failed to copy text to clipboard", error)
+      this.showTemporaryMessage(failureMessage)
+      return false
+    }
+  }
+
+  async buildCurrentShareSnapshot() {
+    const payload = await this.collectRenderedDocumentPayload({ embedLocalImages: true })
+    if (!payload) return null
+
+    return {
+      payload,
+      documentHtml: this.buildStandaloneExportDocument(payload)
+    }
+  }
+
+  async parseShareResponse(response, fallbackErrorKey = "status.share_failed") {
+    if (response.ok) {
+      return response.json
+    }
+
+    try {
+      const data = await response.json
+      throw new Error(data?.error || window.t(fallbackErrorKey))
+    } catch (error) {
+      if (error instanceof Error) throw error
+      throw new Error(window.t(fallbackErrorKey))
+    }
+  }
+
+  async createShareLink() {
+    try {
+      const snapshot = await this.buildCurrentShareSnapshot()
+      if (!snapshot) return false
+
+      const response = await post("/shares", {
+        body: {
+          path: this.currentFile,
+          title: snapshot.payload.title,
+          html: snapshot.documentHtml
+        },
+        responseKind: "json"
+      })
+
+      const share = await this.parseShareResponse(response)
+      this.setCurrentShare(share)
+
+      return this.copyTextToClipboard(share.url, {
+        successMessage: window.t(share.created ? "status.share_link_created" : "status.share_link_copied"),
+        failureMessage: window.t("status.share_failed")
+      })
+    } catch (error) {
+      console.error("Failed to create shared link", error)
+      this.showTemporaryMessage(error.message || window.t("status.share_failed"))
+      return false
+    }
+  }
+
+  async copyShareLink() {
+    if (!this.currentShare?.url) {
+      this.showTemporaryMessage(window.t("errors.share_not_found"))
+      return false
+    }
+
+    return this.copyTextToClipboard(this.currentShare.url, {
+      successMessage: window.t("status.share_link_copied"),
+      failureMessage: window.t("status.share_failed")
+    })
+  }
+
+  async refreshShareLink() {
+    if (!this.currentShare?.url) {
+      this.showTemporaryMessage(window.t("errors.share_not_found"))
+      return false
+    }
+
+    try {
+      const snapshot = await this.buildCurrentShareSnapshot()
+      if (!snapshot) return false
+
+      const response = await patch(`/shares/${encodePath(this.currentFile)}`, {
+        body: {
+          title: snapshot.payload.title,
+          html: snapshot.documentHtml
+        },
+        responseKind: "json"
+      })
+
+      const share = await this.parseShareResponse(response)
+      this.setCurrentShare(share)
+      this.showTemporaryMessage(window.t("status.share_link_refreshed"))
+      return true
+    } catch (error) {
+      console.error("Failed to refresh shared snapshot", error)
+      this.showTemporaryMessage(error.message || window.t("status.share_failed"))
+      return false
+    }
+  }
+
+  async disableShareLink() {
+    if (!this.currentShare?.url) {
+      this.showTemporaryMessage(window.t("errors.share_not_found"))
+      return false
+    }
+
+    try {
+      const response = await destroy(`/shares/${encodePath(this.currentFile)}`, {
+        responseKind: "json"
+      })
+
+      await this.parseShareResponse(response)
+      this.clearCurrentShare()
+      this.showTemporaryMessage(window.t("status.share_link_disabled"))
+      return true
+    } catch (error) {
+      console.error("Failed to disable shared link", error)
+      this.showTemporaryMessage(error.message || window.t("status.share_failed"))
+      return false
+    }
+  }
+
+  async onExportMenuSelected(event) {
+    const actionId = event.detail?.actionId
+
+    switch (actionId) {
+      case "copy-html":
+        await this.copyFormattedHtml()
+        return
+      case "copy-markdown":
+        await this.copyMarkdown()
+        return
+      case "print-pdf":
+        await this.printNote()
+        return
+      case "export-html":
+        await this.exportHtmlDocument()
+        return
+      case "export-txt":
+        await this.exportTextDocument()
+        return
+      case "create-share-link":
+        await this.createShareLink()
+        return
+      case "copy-share-link":
+        await this.copyShareLink()
+        return
+      case "refresh-share-link":
+        await this.refreshShareLink()
+        return
+      case "disable-share-link":
+        await this.disableShareLink()
+        return
+      default:
+        return
+    }
   }
 
   // === Typewriter Mode - Delegates to typewriter_controller ===
 
-  initializeTypewriterMode() {
-    const typewriterController = this.getTypewriterController()
-    if (typewriterController) {
-      const configCtrl = this.getEditorConfigController()
-      const enabled = configCtrl ? configCtrl.typewriterModeEnabled : false
-      typewriterController.setEnabled(enabled)
+  applyPersistedPreviewWidth() {
+    const splitPaneController = this.getSplitPaneController()
+    const configCtrl = this.getEditorConfigController()
+    if (!splitPaneController || !configCtrl) return
+
+    splitPaneController.applyWidth(configCtrl.previewWidth)
+  }
+
+  getPersistedActiveMode() {
+    const configCtrl = this.getEditorConfigController()
+    return configCtrl ? configCtrl.persistedActiveMode : "raw"
+  }
+
+  restorePersistedUiState() {
+    this.applyPersistedPreviewWidth()
+
+    if (!this._codemirrorReady || !this.currentFile || !this.isMarkdownFile()) {
+      return
     }
+
+    const previewController = this.getPreviewController()
+    const typewriterController = this.getTypewriterController()
+    const targetMode = this.getPersistedActiveMode()
+
+    this._restoringPersistedUiState = true
+
+    try {
+      if (this.readingModeActive && targetMode !== "reading") {
+        this.toggleReadingMode()
+      }
+
+      if (typewriterController?.enabledValue && targetMode !== "typewriter") {
+        this.disableTypewriterMode()
+      }
+
+      switch (targetMode) {
+        case "reading":
+          if (!this.readingModeActive) {
+            this.toggleReadingMode()
+          }
+          break
+        case "preview":
+          if (previewController && !previewController.isVisible) {
+            previewController.show()
+          }
+          break
+        case "typewriter":
+          if (previewController?.isVisible) {
+            previewController.hide()
+          }
+          if (typewriterController && !typewriterController.enabledValue) {
+            typewriterController.toggle()
+          }
+          break
+        case "raw":
+        default:
+          if (previewController?.isVisible) {
+            previewController.hide()
+          }
+          break
+      }
+    } finally {
+      this._restoringPersistedUiState = false
+    }
+
+    this.refreshOutline()
+  }
+
+  persistCurrentMode() {
+    if (this._restoringPersistedUiState || !this.currentFile || !this.isMarkdownFile()) return
+
+    const mode = this.getModeState().mode
+    const configCtrl = this.getEditorConfigController()
+
+    if (configCtrl) {
+      configCtrl.activeModeValue = mode
+      configCtrl.typewriterModeValue = mode === "typewriter"
+    }
+
+    this.saveConfig({
+      active_mode: mode,
+      typewriter_mode: mode === "typewriter"
+    })
+  }
+
+  disableTypewriterMode() {
+    const typewriterController = this.getTypewriterController()
+    if (!typewriterController || !typewriterController.enabledValue) return false
+
+    typewriterController.toggle()
+    return true
   }
 
   toggleTypewriterMode() {
@@ -1099,7 +1791,6 @@ export default class extends Controller {
   // Handle typewriter:toggled event
   onTypewriterToggled(event) {
     const { enabled } = event.detail
-    this.saveConfig({ typewriter_mode: enabled })
 
     // Toggle typewriter mode on preview controller
     const previewController = this.getPreviewController()
@@ -1108,7 +1799,7 @@ export default class extends Controller {
     }
 
     // Typewriter mode: hide preview for distraction-free writing
-    // Sidebar is intentionally left untouched — it is user-controlled only
+    // Sidebar is intentionally left untouched â€” it is user-controlled only
     if (enabled) {
       // Hide preview (keep editor only for focused writing)
       if (previewController && previewController.isVisible) {
@@ -1121,6 +1812,9 @@ export default class extends Controller {
       // Remove typewriter body class
       document.body.classList.remove("typewriter-mode")
     }
+
+    this.persistCurrentMode()
+    this.emitUiStateChanged("typewriter-toggled")
   }
 
   maintainTypewriterScroll() {
@@ -1439,16 +2133,18 @@ export default class extends Controller {
     const { correctedText, range } = event.detail
     const codemirrorController = this.getCodemirrorController()
     if (codemirrorController) {
-      // Sanitize incoming AI payload — strip carriage returns but preserve newlines
-      const sanitizedText = correctedText.replace(/\r\n/g, "\n").replace(/\r/g, "\n")
+      // Sanitize incoming AI payload â€” strip carriage returns but preserve newlines
+      const sanitizedText = normalizeLineEndings(correctedText)
+      const replacingSelection = range && range.from !== undefined && range.to !== undefined
+      const from = replacingSelection ? range.from : 0
+      const to = replacingSelection ? range.to : codemirrorController.editor.state.doc.length
+      const nextCursorPosition = from + sanitizedText.length
 
-      if (range && range.from !== undefined && range.to !== undefined) {
-        codemirrorController.editor.dispatch({
-          changes: { from: range.from, to: range.to, insert: sanitizedText }
-        })
-      } else {
-        codemirrorController.setValue(sanitizedText)
-      }
+      codemirrorController.editor.dispatch({
+        changes: { from, to, insert: sanitizedText },
+        selection: { anchor: nextCursorPosition, head: nextCursorPosition }
+      })
+      codemirrorController.scrollToPosition(nextCursorPosition)
 
       // Force the preview to re-render with the new content
       const previewController = this.getPreviewController()
@@ -1459,10 +2155,7 @@ export default class extends Controller {
       // Fix: Directly update stats panel via the Stimulus outlet.
       // This ensures the line counter recalculates immediately after AI text insertion
       // (CodeMirror's doc.lines is always accurate post-dispatch).
-      if (this.hasStatsPanelOutlet) {
-        const cursorInfo = codemirrorController.getCursorInfo()
-        this.statsPanelOutlet.update(codemirrorController.getValue(), cursorInfo)
-      }
+      this.updateStats()
     }
   }
 
@@ -1472,6 +2165,12 @@ export default class extends Controller {
     const configCtrl = this.getEditorConfigController()
     if (configCtrl) configCtrl.previewZoomValue = zoom
     this.saveConfig({ preview_zoom: zoom })
+    this.emitUiStateChanged("preview-zoom-changed")
+  }
+
+  onCodeMirrorReady() {
+    this._codemirrorReady = true
+    this.restorePersistedUiState()
   }
 
   // Handle preview toggled event
@@ -1484,6 +2183,21 @@ export default class extends Controller {
         previewController.setupEditorSync(this.textareaTarget)
       }
     }
+
+    if (this._transientPreviewPreparation) return
+
+    this.persistCurrentMode()
+    this.emitUiStateChanged("preview-toggled")
+  }
+
+  onPreviewWidthChanged(event) {
+    const width = Number(event.detail?.width)
+    if (!Number.isFinite(width)) return
+
+    const nextWidth = Math.max(20, Math.min(Math.round(width), 70))
+    const configCtrl = this.getEditorConfigController()
+    if (configCtrl) configCtrl.previewWidthValue = nextWidth
+    this.saveConfig({ preview_width: nextWidth })
   }
 
   // === File Operations Event Handlers ===
@@ -1538,6 +2252,10 @@ export default class extends Controller {
       this.updateUrl(newPath)
     }
 
+    if (this.currentFile) {
+      this.refreshCurrentShareState()
+    }
+
     // Tree is already updated by Turbo Stream
   }
 
@@ -1546,11 +2264,7 @@ export default class extends Controller {
 
     // Clear editor if deleted file was currently open
     if (this.currentFile === path) {
-      this.currentFile = null
-      this.updatePathDisplay(null)
-      this.editorPlaceholderTarget.classList.remove("hidden")
-      this.editorTarget.classList.add("hidden")
-      this.hideStatsPanel()
+      this.showEditorPlaceholder("file-cleared")
     }
 
     // Tree is already updated by Turbo Stream
@@ -1565,6 +2279,18 @@ export default class extends Controller {
   newFolder() {
     const fileOps = this.getFileOperationsController()
     if (fileOps) fileOps.newFolder()
+  }
+
+  async saveCurrentNoteAsTemplate() {
+    if (!this.currentFile || !this.isMarkdownFile()) {
+      alert(window.t("errors.templates_markdown_only"))
+      return
+    }
+
+    const fileOps = this.getFileOperationsController()
+    if (fileOps) {
+      await fileOps.openSaveTemplateFromNoteDialog(this.currentFile)
+    }
   }
 
   showContextMenu(event) {

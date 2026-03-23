@@ -50,13 +50,26 @@
   <!-- File Tree -->
   <div
     id="file-tree-content"
-    class="flex-1 overflow-y-auto p-2"
+    class="flex-1 min-h-0 overflow-y-auto p-2"
     data-app-target="fileTree"
     data-controller="drag-drop"
     data-drag-drop-target="tree"
     data-action="dragover->drag-drop#onDragOverRoot dragenter->drag-drop#onDragEnterRoot dragleave->drag-drop#onDragLeaveRoot drop->drag-drop#onDropToRoot drag-drop:item-moved->app#onItemMoved"
   >
     <%= render "notes/file_tree" %>
+  </div>
+
+  <!-- Document Outline -->
+  <div data-controller="outline"
+       class="outline-panel flex-none border-t border-[var(--theme-border)] hidden"
+       data-outline-target="section">
+    <div class="px-3 py-2 border-b border-[var(--theme-border)]">
+      <span class="text-xs font-medium text-[var(--theme-text-muted)] uppercase tracking-wide"><%= t('sidebar.outline') %></span>
+    </div>
+    <div class="outline-panel__scroll px-2 py-2">
+      <div class="outline-list" data-outline-target="list"></div>
+      <p class="outline-empty hidden" data-outline-target="empty"><%= t('sidebar.no_headings_yet') %></p>
+    </div>
   </div>
 
   <!-- Document Stats Panel -->

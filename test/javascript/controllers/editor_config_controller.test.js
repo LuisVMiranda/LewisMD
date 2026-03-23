@@ -20,7 +20,10 @@ describe("EditorConfigController", () => {
            data-editor-config-font-size-value="14"
            data-editor-config-editor-width-value="72"
            data-editor-config-preview-zoom-value="100"
+           data-editor-config-preview-width-value="40"
+           data-editor-config-preview-font-family-value="sans"
            data-editor-config-line-numbers-value="0"
+           data-editor-config-active-mode-value=""
            data-editor-config-theme-value=""
            data-editor-config-codemirror-outlet='[data-controller~="mock-codemirror"]'
            data-editor-config-preview-outlet='[data-controller~="mock-preview"]'>
@@ -47,6 +50,8 @@ describe("EditorConfigController", () => {
 
   afterEach(() => {
     application.stop()
+    document.documentElement.style.removeProperty("--editor-width")
+    document.documentElement.style.removeProperty("--preview-font-family")
     vi.restoreAllMocks()
   })
 
@@ -67,6 +72,10 @@ describe("EditorConfigController", () => {
   describe("connect()", () => {
     it("applies editor width via CSS custom property", () => {
       expect(document.documentElement.style.getPropertyValue("--editor-width")).toBe("72ch")
+    })
+
+    it("applies preview font family via CSS custom property", () => {
+      expect(document.documentElement.style.getPropertyValue("--preview-font-family")).toBe("var(--font-sans)")
     })
 
     it("does not throw during initialization (outlets not connected)", () => {
@@ -102,6 +111,12 @@ describe("EditorConfigController", () => {
       const spy = vi.spyOn(controller, "applyPreviewZoom")
       controller.previewZoomValueChanged()
       expect(spy).not.toHaveBeenCalled()
+    })
+
+    it("previewFontFamilyValueChanged applies without outlets (CSS-only)", () => {
+      controller.previewFontFamilyValue = "serif"
+      controller.previewFontFamilyValueChanged()
+      expect(document.documentElement.style.getPropertyValue("--preview-font-family")).toBe('ui-serif, Georgia, Cambria, "Times New Roman", Times, serif')
     })
 
     it("editorWidthValueChanged applies without outlets (CSS-only)", () => {
@@ -174,6 +189,22 @@ describe("EditorConfigController", () => {
     })
   })
 
+  describe("applyPreviewFontFamily()", () => {
+    it("sets preview font CSS custom property from mapped value", () => {
+      controller.previewFontFamilyValue = "mono"
+      controller.applyPreviewFontFamily()
+
+      expect(document.documentElement.style.getPropertyValue("--preview-font-family")).toBe("var(--font-mono)")
+    })
+
+    it("falls back to sans for unknown values", () => {
+      controller.previewFontFamilyValue = "unknown"
+      controller.applyPreviewFontFamily()
+
+      expect(document.documentElement.style.getPropertyValue("--preview-font-family")).toBe("var(--font-sans)")
+    })
+  })
+
   describe("applyTheme()", () => {
     it("dispatches config-changed event with theme", () => {
       const spy = vi.fn()
@@ -214,6 +245,14 @@ describe("EditorConfigController", () => {
       expect(controller.previewZoom).toBe(100)
     })
 
+    it("exposes previewWidth", () => {
+      expect(controller.previewWidth).toBe(40)
+    })
+
+    it("exposes currentPreviewFontFamily", () => {
+      expect(controller.currentPreviewFontFamily).toBe("sans")
+    })
+
     it("exposes lineNumberMode as numeric value", () => {
       // 0 = OFF, 1 = ABSOLUTE, 2 = RELATIVE
       expect(controller.lineNumberMode).toBe(0)
@@ -221,6 +260,19 @@ describe("EditorConfigController", () => {
 
     it("exposes typewriterModeEnabled", () => {
       expect(controller.typewriterModeEnabled).toBe(false)
+    })
+
+    it("falls back to legacy typewriter mode when active mode is unset", () => {
+      controller.typewriterModeValue = true
+
+      expect(controller.persistedActiveMode).toBe("typewriter")
+    })
+
+    it("prefers persisted active mode when it is explicitly set", () => {
+      controller.activeModeValue = "preview"
+      controller.typewriterModeValue = true
+
+      expect(controller.persistedActiveMode).toBe("preview")
     })
 
     it("exposes fonts list", () => {

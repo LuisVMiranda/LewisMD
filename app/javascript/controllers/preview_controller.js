@@ -1,60 +1,14 @@
 import { Controller } from "@hotwired/stimulus"
 import { calculateLineFromScroll } from "lib/scroll_utils"
 import { parseWithLineNumbers, findElementByLine, findLineAtScroll } from "lib/markdown_line_mapper"
+import { stripMarkdownFrontmatter } from "lib/markdown_frontmatter"
+import { buildRenderedDocumentPayload } from "lib/rendered_document_payload"
 
 // Preview Controller
 // Handles markdown preview panel rendering, zoom, and scroll sync
 // Provides setupEditorSync() and syncToCursor() for editor synchronization
 // Dispatches preview:toggled and preview:zoom-changed events
 // Automatically strips YAML/TOML frontmatter from preview
-
-// Strip frontmatter (YAML or TOML) from markdown content
-// YAML: starts with --- and ends with ---
-// TOML: starts with +++ and ends with +++
-// Returns { content, frontmatterLines } where frontmatterLines is the count of lines stripped
-function stripFrontmatter(content) {
-  if (!content) return { content, frontmatterLines: 0 }
-
-  // Check for YAML frontmatter (---)
-  if (content.startsWith("---")) {
-    const endMatch = content.indexOf("\n---", 3)
-    if (endMatch !== -1) {
-      // Find the end of the closing --- line
-      const afterFrontmatter = content.indexOf("\n", endMatch + 4)
-      if (afterFrontmatter !== -1) {
-        const frontmatter = content.slice(0, afterFrontmatter + 1)
-        const frontmatterLines = frontmatter.split("\n").length
-        return {
-          content: content.slice(afterFrontmatter + 1).trimStart(),
-          frontmatterLines
-        }
-      }
-      // Closing --- is at end of file
-      const frontmatterLines = content.split("\n").length
-      return { content: "", frontmatterLines }
-    }
-  }
-
-  // Check for TOML frontmatter (+++)
-  if (content.startsWith("+++")) {
-    const endMatch = content.indexOf("\n+++", 3)
-    if (endMatch !== -1) {
-      const afterFrontmatter = content.indexOf("\n", endMatch + 4)
-      if (afterFrontmatter !== -1) {
-        const frontmatter = content.slice(0, afterFrontmatter + 1)
-        const frontmatterLines = frontmatter.split("\n").length
-        return {
-          content: content.slice(afterFrontmatter + 1).trimStart(),
-          frontmatterLines
-        }
-      }
-      const frontmatterLines = content.split("\n").length
-      return { content: "", frontmatterLines }
-    }
-  }
-
-  return { content, frontmatterLines: 0 }
-}
 
 export default class extends Controller {
   static targets = [
@@ -223,7 +177,7 @@ export default class extends Controller {
     }
 
     // Strip frontmatter (YAML/TOML) before rendering
-    const { content, frontmatterLines } = stripFrontmatter(markdownContent || "")
+    const { content, frontmatterLines } = stripMarkdownFrontmatter(markdownContent || "")
 
     // Store frontmatter offset for line-based sync
     this.frontmatterLines = frontmatterLines
@@ -361,6 +315,26 @@ export default class extends Controller {
   // Called when zoom value changes
   zoomValueChanged() {
     this.applyZoom()
+  }
+
+  getRenderedDocumentPayload(metadata = {}) {
+    if (!this.hasContentTarget) return null
+
+    const sanitizedContent = this._buildSanitizedContentSnapshot()
+    const computedStyle = window.getComputedStyle(this.contentTarget)
+
+    return buildRenderedDocumentPayload({
+      title: metadata.title,
+      path: metadata.path,
+      html: sanitizedContent.innerHTML,
+      plainText: sanitizedContent.innerText || sanitizedContent.textContent || "",
+      themeId: metadata.themeId,
+      typography: {
+        zoom: this.zoomValue,
+        fontFamily: computedStyle.fontFamily,
+        fontSize: computedStyle.fontSize
+      }
+    })
   }
 
   // Sync scroll based on ratio (for normal scrolling)
@@ -535,6 +509,17 @@ export default class extends Controller {
 
       pre.appendChild(btn)
     })
+  }
+
+  _buildSanitizedContentSnapshot() {
+    const snapshot = this.contentTarget.cloneNode(true)
+
+    snapshot.querySelectorAll(".code-copy-btn").forEach(button => button.remove())
+    snapshot.querySelectorAll("[data-source-line]").forEach(element => {
+      element.removeAttribute("data-source-line")
+    })
+
+    return snapshot
   }
 
   // Toggle typewriter mode styling on preview

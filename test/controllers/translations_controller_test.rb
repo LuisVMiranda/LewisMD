@@ -34,6 +34,10 @@ class TranslationsControllerTest < ActionDispatch::IntegrationTest
     assert translations.key?("success")
     assert translations.key?("editor")
     assert translations.key?("sidebar")
+    assert translations.key?("export_menu")
+    assert translations.key?("status_strip")
+    assert translations.key?("header")
+    assert translations.key?("share_view")
   end
 
   test "show returns correct English translations" do
@@ -94,6 +98,23 @@ class TranslationsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "キャンセル", translations["common"]["cancel"]
     assert_equal "保存", translations["common"]["save"]
     assert_equal "保存済み", translations["status"]["saved"]
+  end
+
+  test "show returns requested locale when locale param is provided" do
+    get translations_url(locale: "es"), as: :json
+    assert_response :success
+
+    data = JSON.parse(response.body)
+    assert_equal "es", data["locale"]
+    assert_equal "Cancelar", data["translations"]["common"]["cancel"]
+  end
+
+  test "invalid locale param falls back to active locale" do
+    get translations_url(locale: "invalid"), as: :json
+    assert_response :success
+
+    data = JSON.parse(response.body)
+    assert_equal "en", data["locale"]
   end
 
   # === Locale Configuration via Config File ===
@@ -197,6 +218,103 @@ class TranslationsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "all locales include recent export share and reader translations" do
+    checks = [
+      [ "status_strip", "mode_prefix" ],
+      [ "export_menu", "copy_formatted_html" ],
+      [ "share_view", "label" ],
+      [ "share_view", "open_exports" ],
+      [ "status", "share_link_created" ],
+      [ "header", "toggle_reading" ],
+      [ "preview", "decrease_text_width" ],
+      [ "preview", "increase_text_width" ]
+    ]
+
+    %w[en pt-BR pt-PT es he ja ko].each do |locale|
+      get translations_url(locale: locale), as: :json
+      data = JSON.parse(response.body)
+
+      checks.each do |section, key|
+        value = data.dig("translations", section, key)
+        assert value.present?, "Locale #{locale} is missing #{section}.#{key}"
+      end
+    end
+  end
+
+  test "all locales include custom ai prompt translations and ai-specific errors" do
+    checks = [
+      [ "dialogs", "custom_ai", "hint_document" ],
+      [ "dialogs", "custom_ai", "hint_selection" ],
+      [ "dialogs", "custom_ai", "processing_provider" ],
+      [ "errors", "no_text_selected" ],
+      [ "errors", "ai_markdown_only" ],
+      [ "errors", "connection_lost" ]
+    ]
+
+    %w[en pt-BR pt-PT es he ja ko].each do |locale|
+      get translations_url(locale: locale), as: :json
+      data = JSON.parse(response.body)
+
+      checks.each do |path|
+        value = data.dig("translations", *path)
+        assert value.present?, "Locale #{locale} is missing #{path.join('.')}"
+      end
+    end
+  end
+
+  test "all locales include complete template UI translations" do
+    checks = [
+      [ "header", "save_as_template" ],
+      [ "context_menu", "save_as_template" ],
+      [ "context_menu", "delete_template" ],
+      [ "dialogs", "note_type", "template" ],
+      [ "dialogs", "note_type", "template_description" ],
+      [ "dialogs", "templates", "title" ],
+      [ "dialogs", "templates", "subtitle" ],
+      [ "dialogs", "templates", "manage_action" ],
+      [ "dialogs", "templates", "manage_title" ],
+      [ "dialogs", "templates", "manage_subtitle" ],
+      [ "dialogs", "templates", "loading" ],
+      [ "dialogs", "templates", "empty" ],
+      [ "dialogs", "templates", "new_button" ],
+      [ "dialogs", "templates", "refresh_button" ],
+      [ "dialogs", "templates", "new_title" ],
+      [ "dialogs", "templates", "edit_title" ],
+      [ "dialogs", "templates", "save_from_note_title" ],
+      [ "dialogs", "templates", "save_from_note_update_title" ],
+      [ "dialogs", "templates", "path_label" ],
+      [ "dialogs", "templates", "path_placeholder" ],
+      [ "dialogs", "templates", "content_label" ],
+      [ "dialogs", "templates", "content_placeholder" ],
+      [ "dialogs", "templates", "delete_confirm" ],
+      [ "dialogs", "templates", "delete_linked_confirm" ],
+      [ "dialogs", "templates", "built_ins", "daily_note", "name" ],
+      [ "dialogs", "templates", "built_ins", "daily_note", "description" ],
+      [ "dialogs", "templates", "built_ins", "meeting_note", "name" ],
+      [ "dialogs", "templates", "built_ins", "meeting_note", "description" ],
+      [ "dialogs", "templates", "built_ins", "article_draft", "name" ],
+      [ "dialogs", "templates", "built_ins", "article_draft", "description" ],
+      [ "dialogs", "templates", "built_ins", "journal_entry", "name" ],
+      [ "dialogs", "templates", "built_ins", "journal_entry", "description" ],
+      [ "dialogs", "templates", "built_ins", "changelog", "name" ],
+      [ "dialogs", "templates", "built_ins", "changelog", "description" ],
+      [ "errors", "failed_to_load_templates" ],
+      [ "errors", "templates_markdown_only" ],
+      [ "success", "template_saved" ],
+      [ "success", "template_deleted" ]
+    ]
+
+    %w[en pt-BR pt-PT es he ja ko].each do |locale|
+      get translations_url(locale: locale), as: :json
+      data = JSON.parse(response.body)
+
+      checks.each do |path|
+        value = data.dig("translations", *path)
+        assert value.present?, "Locale #{locale} is missing #{path.join('.')}"
+      end
+    end
+  end
+
   # === Invalid Locale Handling ===
 
   test "invalid locale falls back to default" do
@@ -274,7 +392,7 @@ class TranslationsControllerTest < ActionDispatch::IntegrationTest
   # === Translations Include All Required Sections ===
 
   test "translations include all sections needed by JavaScript" do
-    expected_sections = %w[common dialogs status errors success editor sidebar preview context_menu]
+    expected_sections = %w[common dialogs status status_strip errors success editor sidebar preview context_menu connection export_menu header share_view]
 
     get translations_url, as: :json
     data = JSON.parse(response.body)

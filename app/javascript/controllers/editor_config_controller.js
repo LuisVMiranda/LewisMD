@@ -14,7 +14,10 @@ export default class extends Controller {
     fontSize: { type: Number, default: 14 },
     editorWidth: { type: Number, default: 72 },
     previewZoom: { type: Number, default: 100 },
+    previewWidth: { type: Number, default: 40 },
+    previewFontFamily: { type: String, default: "sans" },
     lineNumbers: { type: Number, default: 0 },
+    activeMode: { type: String, default: "" },
     typewriterMode: { type: Boolean, default: false },
     indent: { type: Number, default: 2 },
     theme: { type: String, default: "" }
@@ -32,11 +35,18 @@ export default class extends Controller {
     { id: "ubuntu-mono", name: "Ubuntu Mono", family: "'Ubuntu Mono', monospace" }
   ]
 
+  static previewFonts = [
+    { id: "sans", family: "var(--font-sans)" },
+    { id: "serif", family: 'ui-serif, Georgia, Cambria, "Times New Roman", Times, serif' },
+    { id: "mono", family: "var(--font-mono)" }
+  ]
+
   connect() {
     this._codemirrorReady = false
     this._previewReady = false
     // Apply non-outlet settings immediately
     this.applyEditorWidth()
+    this.applyPreviewFontFamily()
     this.applyTheme()
     // Outlet-dependent settings are applied via *OutletConnected() callbacks
   }
@@ -71,6 +81,10 @@ export default class extends Controller {
     if (this._previewReady) this.applyPreviewZoom()
   }
 
+  previewFontFamilyValueChanged() {
+    if (this.element.isConnected) this.applyPreviewFontFamily()
+  }
+
   lineNumbersValueChanged() {
     if (this._codemirrorReady) this.applyLineNumbers()
   }
@@ -99,6 +113,12 @@ export default class extends Controller {
     if (preview) {
       preview.zoomValue = this.previewZoomValue
     }
+  }
+
+  applyPreviewFontFamily() {
+    const font = this.constructor.previewFonts.find(f => f.id === this.previewFontFamilyValue)
+    const family = font ? font.family : "var(--font-sans)"
+    document.documentElement.style.setProperty("--preview-font-family", family)
   }
 
   applyLineNumbers() {
@@ -142,8 +162,19 @@ export default class extends Controller {
   get currentFontSize() { return this.fontSizeValue }
   get editorWidth() { return this.editorWidthValue }
   get previewZoom() { return this.previewZoomValue }
+  get previewWidth() { return this.previewWidthValue }
+  get currentPreviewFontFamily() { return this.previewFontFamilyValue }
   get lineNumberMode() { return normalizeLineNumberMode(this.lineNumbersValue, "off") }
   get typewriterModeEnabled() { return this.typewriterModeValue }
   get editorIndent() { return this.indentValue }
+  get persistedActiveMode() {
+    const mode = this.activeModeValue
+
+    if ([ "raw", "preview", "reading", "typewriter" ].includes(mode)) {
+      return mode
+    }
+
+    return this.typewriterModeValue ? "typewriter" : "raw"
+  }
   get fonts() { return this.constructor.editorFonts }
 }

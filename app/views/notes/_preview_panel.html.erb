@@ -19,11 +19,11 @@
       <div data-controller="fade-overlay" data-fade-overlay-target="overlay" data-action="pointermove@window->fade-overlay#onPointerMove" class="absolute bottom-6 right-6 flex items-center gap-1 bg-[var(--theme-bg-secondary)] border border-[var(--theme-border)] shadow-lg rounded-full px-3 py-1.5 opacity-0 pointer-events-none transition-opacity duration-100 z-50">
         <!-- Group: Text Width Adjuster -->
         <div class="flex items-center text-xs" data-controller="text-width">
-          <button type="button" data-action="click->text-width#decrease" class="p-1 hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-muted)] rounded transition-colors" title="Decrease Text Width">
+          <button type="button" data-action="click->text-width#decrease" class="p-1 hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-muted)] rounded transition-colors" title="<%= t('preview.decrease_text_width') %>">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/></svg>
           </button>
           <span class="px-1 min-w-[2.5rem] text-center text-[var(--theme-text-muted)] font-medium cursor-default" data-text-width-target="display">100%</span>
-          <button type="button" data-action="click->text-width#increase" class="p-1 hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-muted)] rounded transition-colors" title="Increase Text Width">
+          <button type="button" data-action="click->text-width#increase" class="p-1 hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-muted)] rounded transition-colors" title="<%= t('preview.increase_text_width') %>">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
           </button>
         </div>

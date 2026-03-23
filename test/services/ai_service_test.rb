@@ -173,6 +173,50 @@ class AiServiceTest < ActiveSupport::TestCase
     assert_equal "No text provided", result[:error]
   end
 
+  test "generate_custom_prompt returns error when prompt is blank" do
+    ENV["OPENAI_API_KEY"] = "sk-test-key"
+    result = AiService.generate_custom_prompt("Hello world", "")
+    assert_equal "No prompt provided", result[:error]
+  end
+
+  test "generate_custom_prompt allows empty note content" do
+    ENV["OPENAI_API_KEY"] = "sk-test-key"
+
+    mock_response = stub(content: "# Fresh Start\n\nGenerated from instructions.")
+    mock_chat = mock
+    mock_chat.expects(:with_instructions).returns(mock_chat)
+    mock_chat.expects(:ask).with(includes("The current note is empty.")).returns(mock_response)
+
+    RubyLLM.stubs(:chat).returns(mock_chat)
+
+    result = AiService.generate_custom_prompt("", "Write an opening section")
+
+    assert_equal "# Fresh Start\n\nGenerated from instructions.", result[:corrected]
+    assert_equal "openai", result[:provider]
+    assert_equal "gpt-4o-mini", result[:model]
+  end
+
+  test "clean_custom_prompt_output strips intro, fences, and trailing call to action" do
+    raw = <<~TEXT
+      Here's the rewritten version:
+
+      ```markdown
+      # Clean Note
+
+      Body paragraph.
+      ```
+
+      Let me know if you'd like a shorter version too.
+    TEXT
+
+    assert_equal "# Clean Note\n\nBody paragraph.", AiService.send(:clean_custom_prompt_output, raw)
+  end
+
+  test "clean_custom_prompt_output keeps direct note content unchanged" do
+    text = "# Heading\n\nBody line."
+    assert_equal text, AiService.send(:clean_custom_prompt_output, text)
+  end
+
   # Provider info tests
   test "provider_info returns correct structure" do
     ENV["OPENAI_API_KEY"] = "sk-test"
@@ -309,6 +353,23 @@ class AiServiceTest < ActiveSupport::TestCase
 
     assert_equal "Fixed by Claude", result[:corrected]
     assert_equal "anthropic", result[:provider]
+  end
+
+  test "generate_custom_prompt uses strict instructions and returns cleaned text" do
+    ENV["OPENAI_API_KEY"] = "sk-test-key"
+
+    mock_response = stub(content: "Here is the revised version:\n\nBetter text.\n\nLet me know if you'd like more changes.")
+    mock_chat = mock
+    mock_chat.expects(:with_instructions).with(includes("Return ONLY the transformed text")).returns(mock_chat)
+    mock_chat.expects(:ask).with("Original draft").returns(mock_response)
+
+    RubyLLM.stubs(:chat).returns(mock_chat)
+
+    result = AiService.generate_custom_prompt("Original draft", "Rewrite this professionally")
+
+    assert_equal "Better text.", result[:corrected]
+    assert_equal "openai", result[:provider]
+    assert_equal "gpt-4o-mini", result[:model]
   end
 
   # === Image generation response parsing ===

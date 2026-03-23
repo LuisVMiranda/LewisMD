@@ -29,6 +29,16 @@ export function escapeHtmlString(text) {
 }
 
 /**
+ * Normalize mixed line endings to LF.
+ * @param {string} text - Text to normalize
+ * @returns {string}
+ */
+export function normalizeLineEndings(text) {
+  if (text === null || text === undefined) return ""
+  return String(text).replace(/\r\n/g, "\n").replace(/\r/g, "\n")
+}
+
+/**
  * Calculate fuzzy match score for file finder
  * Higher score = better match
  * @param {string} str - String to search in

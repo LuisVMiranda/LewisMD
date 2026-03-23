@@ -553,4 +553,81 @@ describe("AutosaveController — Content Loss Detection", () => {
       expect(saveNowSpy).not.toHaveBeenCalled()
     })
   })
+  describe("autosave:status events", () => {
+    it("emits idle, unsaved, and saved without duplicate unsaved events", async () => {
+      const events = []
+      container.addEventListener("autosave:status", (event) => {
+        events.push(event.detail)
+      })
+
+      controller.setFile("test.md", "old")
+      mockCodemirrorValue = "new"
+
+      controller.scheduleAutoSave()
+      controller.scheduleAutoSave()
+      await controller.saveNow()
+
+      expect(events.map((event) => event.status)).toEqual(["idle", "unsaved", "saved"])
+      expect(events.every((event) => event.currentFile === "test.md")).toBe(true)
+    })
+
+    it("emits idle for a no-op save after an unsaved state", async () => {
+      const events = []
+      container.addEventListener("autosave:status", (event) => {
+        events.push(event.detail)
+      })
+
+      controller.setFile("test.md", "same")
+      mockCodemirrorValue = "same"
+      controller.hasUnsavedChanges = true
+      controller.emitStatusChanged("unsaved")
+
+      await controller.saveNow()
+
+      expect(events.map((event) => event.status)).toEqual(["idle", "unsaved", "idle"])
+    })
+
+    it("emits offline and then idle when the connection is restored without pending changes", () => {
+      const events = []
+      container.addEventListener("autosave:status", (event) => {
+        events.push(event.detail)
+      })
+
+      controller.setFile("test.md", "same")
+      controller.onConnectionLost()
+      controller.onConnectionRestored()
+
+      expect(events.map((event) => event.status)).toEqual(["idle", "offline", "idle"])
+    })
+
+    it("emits error when saving fails", async () => {
+      const events = []
+      container.addEventListener("autosave:status", (event) => {
+        events.push(event.detail)
+      })
+
+      controller.setFile("test.md", "old")
+      mockCodemirrorValue = "new"
+      controller.scheduleAutoSave()
+      global.fetch = vi.fn().mockRejectedValue(new Error("network error"))
+
+      await controller.saveNow()
+
+      expect(events.map((event) => event.status)).toEqual(["idle", "unsaved", "error"])
+    })
+
+    it("emits unsaved when backup content is restored", () => {
+      const events = []
+      container.addEventListener("autosave:status", (event) => {
+        events.push(event.detail)
+      })
+
+      controller.setFile("test.md", "server content")
+      controller.onRecoveryResolved({
+        detail: { source: "backup", content: "backup content" }
+      })
+
+      expect(events.map((event) => event.status)).toEqual(["idle", "unsaved"])
+    })
+  })
 })

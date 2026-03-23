@@ -3,6 +3,7 @@
 class ImagesService
   SUPPORTED_EXTENSIONS = %w[.jpg .jpeg .png .gif .webp .svg .bmp].freeze
   MAX_RESULTS = 10
+  DEFAULT_ROOT = ".frankmd/images"
 
   class << self
     def enabled?
@@ -265,6 +266,12 @@ class ImagesService
     private
 
     def resolved_images_path
+      configured_images_path.presence ||
+        legacy_images_path_if_present ||
+        managed_images_path_if_present
+    end
+
+    def configured_images_path
       # Config handles: .fed file > IMAGES_PATH env > default (nil)
       # XDG/Pictures fallbacks are handled by the initializer setting IMAGES_PATH
       Config.new.get("images_path")
@@ -366,17 +373,17 @@ class ImagesService
     end
 
     # Save uploaded file to the configured images directory (served via /images/preview/*)
-    # Falls back to notes/images/ if images_path is not configured.
+    # Falls back to a hidden managed images folder for new installs, while preserving
+    # the legacy notes/images location if it already exists.
     def save_to_notes_directory(temp_path, original_filename, resize: nil)
       require "fileutils"
 
-      # Use images_path (served by /images/preview/*) when available;
-      # otherwise fall back to notes/images/ (not routed through preview)
-      if images_path
-        dest_dir = images_path
+      dest_dir = if configured_images_path.present?
+        images_path
+      elsif legacy_images_path_if_present
+        legacy_images_path_if_present
       else
-        notes_path = Pathname.new(ENV.fetch("NOTES_PATH", Rails.root.join("notes")))
-        dest_dir = notes_path.join("images")
+        managed_images_path
       end
       FileUtils.mkdir_p(dest_dir)
 
@@ -399,6 +406,28 @@ class ImagesService
         FileUtils.cp(temp_path, dest_path)
         { url: "/images/preview/#{dest_filename}" }
       end
+    end
+
+    def notes_path
+      Pathname.new(ENV.fetch("NOTES_PATH", Rails.root.join("notes"))).expand_path
+    end
+
+    def managed_images_path
+      notes_path.join(DEFAULT_ROOT)
+    end
+
+    def managed_images_path_if_present
+      path = managed_images_path
+      path if path.exist?
+    end
+
+    def legacy_images_path
+      notes_path.join("images")
+    end
+
+    def legacy_images_path_if_present
+      path = legacy_images_path
+      path if path.exist?
     end
 
     def imagemagick_resize_arg(ratio)

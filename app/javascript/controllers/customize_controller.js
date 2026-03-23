@@ -1,20 +1,22 @@
 import { Controller } from "@hotwired/stimulus"
 
 // Customize Controller
-// Handles editor font and size customization dialog
-// Dispatches customize:applied event with { font, fontSize }
+// Handles editor typography plus the shared preview/reading font dialog
+// Dispatches customize:applied with { font, fontSize, previewFontFamily }
 
 export default class extends Controller {
   static targets = [
     "dialog",
     "fontSelect",
     "fontSizeSelect",
+    "previewFontSelect",
     "preview"
   ]
 
   static values = {
     font: { type: String, default: "cascadia-code" },
-    fontSize: { type: Number, default: 14 }
+    fontSize: { type: Number, default: 14 },
+    previewFontFamily: { type: String, default: "sans" }
   }
 
   connect() {
@@ -43,12 +45,13 @@ export default class extends Controller {
   }
 
   // Open the customization dialog
-  open(currentFont = null, currentFontSize = null) {
+  open(currentFont = null, currentFontSize = null, currentPreviewFontFamily = null) {
     if (!this.hasDialogTarget) return
 
     // Use provided values or fall back to stored values
     const font = currentFont || this.fontValue
     const fontSize = currentFontSize || this.fontSizeValue
+    const previewFontFamily = currentPreviewFontFamily || this.previewFontFamilyValue
 
     // Set current values in selects
     if (this.hasFontSelectTarget) {
@@ -56,6 +59,9 @@ export default class extends Controller {
     }
     if (this.hasFontSizeSelectTarget) {
       this.fontSizeSelectTarget.value = fontSize
+    }
+    if (this.hasPreviewFontSelectTarget) {
+      this.previewFontSelectTarget.value = previewFontFamily
     }
 
     // Update preview
@@ -100,18 +106,21 @@ export default class extends Controller {
   apply() {
     const fontId = this.hasFontSelectTarget ? this.fontSelectTarget.value : this.fontValue
     const fontSize = this.hasFontSizeSelectTarget ? parseInt(this.fontSizeSelectTarget.value, 10) : this.fontSizeValue
+    const previewFontFamily = this.hasPreviewFontSelectTarget ? this.previewFontSelectTarget.value : this.previewFontFamilyValue
     const font = this.fonts.find(f => f.id === fontId)
 
     // Update stored values
     this.fontValue = fontId
     this.fontSizeValue = fontSize
+    this.previewFontFamilyValue = previewFontFamily
 
     // Dispatch event with settings
     this.dispatch("applied", {
       detail: {
         font: fontId,
         fontFamily: font ? font.family : null,
-        fontSize: fontSize
+        fontSize: fontSize,
+        previewFontFamily
       }
     })
 

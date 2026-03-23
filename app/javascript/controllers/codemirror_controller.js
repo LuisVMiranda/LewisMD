@@ -85,6 +85,19 @@ export default class extends Controller {
 
     // Track mouse selection state to prevent scroll jitter during selection
     this.setupMouseTracking()
+
+    // Let parent controllers wait for an explicit editor-ready signal before
+    // doing startup-dependent work such as outline hydration and mode restore.
+    setTimeout(() => {
+      if (this.element.isConnected && this.editor) {
+        this.dispatch("ready", {
+          detail: {
+            content: this.getValue(),
+            cursorInfo: this.getCursorInfo()
+          }
+        })
+      }
+    }, 0)
   }
 
   setupMouseTracking() {

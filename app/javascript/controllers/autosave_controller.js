@@ -23,6 +23,7 @@ export default class extends Controller {
     this._contentLossWarningActive = false
     this._contentLossOverride = false
     this._offlineBackupTimeout = null
+    this._lastStatusSignature = null
   }
 
   disconnect() {
@@ -37,12 +38,28 @@ export default class extends Controller {
   getOfflineBackupController() { return this.offlineBackupOutlets[0] ?? null }
   getRecoveryDiffController() { return this.recoveryDiffOutlets[0] ?? null }
 
+  emitStatusChanged(status, extra = {}) {
+    const detail = {
+      status,
+      hasUnsavedChanges: this.hasUnsavedChanges,
+      currentFile: this.currentFile,
+      ...extra
+    }
+    const signature = JSON.stringify(detail)
+
+    if (signature === this._lastStatusSignature) return
+
+    this._lastStatusSignature = signature
+    this.dispatch("status", { detail })
+  }
+
   // === Public API (called by app controller) ===
 
   setFile(path, content) {
     this.currentFile = path
     this._lastSavedContent = content
     this.hasUnsavedChanges = false
+    this.emitStatusChanged("idle")
   }
 
   checkOfflineBackup(serverContent) {
@@ -103,6 +120,7 @@ export default class extends Controller {
     if (!this.hasUnsavedChanges) {
       this.hasUnsavedChanges = true
       this.showSaveStatus(window.t("status.unsaved"))
+      this.emitStatusChanged("unsaved")
     }
 
     if (this.saveTimeout) {
@@ -146,6 +164,7 @@ export default class extends Controller {
     if (content === this._lastSavedContent) {
       this.hasUnsavedChanges = false
       this.showSaveStatus("")
+      this.emitStatusChanged("idle")
       return
     }
 
@@ -177,6 +196,7 @@ export default class extends Controller {
       const backupController = this.getOfflineBackupController()
       if (backupController) backupController.clear(this.currentFile)
       this.showSaveStatus(window.t("status.saved"))
+      this.emitStatusChanged("saved")
       setTimeout(() => this.showSaveStatus(""), 2000)
 
       if (isConfigFile) {
@@ -193,6 +213,7 @@ export default class extends Controller {
     } catch (error) {
       console.error("Error saving:", error)
       this.showSaveStatus(window.t("status.error_saving"), true)
+      this.emitStatusChanged("error")
     } finally {
       this._isSaving = false
     }
@@ -216,6 +237,7 @@ export default class extends Controller {
     this.dispatch("offline-changed", { detail: { offline: true } })
 
     this.showSaveStatus(window.t("connection.disconnected"), true)
+    this.emitStatusChanged("offline")
 
     if (this.currentFile) {
       const cm = this.getCodemirrorController()
@@ -233,7 +255,10 @@ export default class extends Controller {
 
     if (this.hasUnsavedChanges && this.currentFile) {
       this.saveNow()
+      return
     }
+
+    this.emitStatusChanged("idle")
   }
 
   // === Content Loss Warning ===
@@ -284,6 +309,7 @@ export default class extends Controller {
       if (cm) cm.setValue(content)
       this._lastSavedContent = null
       this.hasUnsavedChanges = true
+      this.emitStatusChanged("unsaved")
       this.scheduleAutoSave()
     }
   }

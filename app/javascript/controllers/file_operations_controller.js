@@ -1,6 +1,29 @@
 import { Controller } from "@hotwired/stimulus"
-import { post, destroy } from "@rails/request.js"
+import { get, post, patch, destroy } from "@rails/request.js"
 import { encodePath } from "lib/url_utils"
+
+const BUILT_IN_TEMPLATE_METADATA = {
+  "daily-note.md": {
+    nameKey: "dialogs.templates.built_ins.daily_note.name",
+    descriptionKey: "dialogs.templates.built_ins.daily_note.description"
+  },
+  "meeting-note.md": {
+    nameKey: "dialogs.templates.built_ins.meeting_note.name",
+    descriptionKey: "dialogs.templates.built_ins.meeting_note.description"
+  },
+  "article-draft.md": {
+    nameKey: "dialogs.templates.built_ins.article_draft.name",
+    descriptionKey: "dialogs.templates.built_ins.article_draft.description"
+  },
+  "journal-entry.md": {
+    nameKey: "dialogs.templates.built_ins.journal_entry.name",
+    descriptionKey: "dialogs.templates.built_ins.journal_entry.description"
+  },
+  "changelog.md": {
+    nameKey: "dialogs.templates.built_ins.changelog.name",
+    descriptionKey: "dialogs.templates.built_ins.changelog.description"
+  }
+}
 
 // File Operations Controller
 // Handles file/folder creation, renaming, deletion and context menu
@@ -9,9 +32,26 @@ import { encodePath } from "lib/url_utils"
 export default class extends Controller {
   static targets = [
     "contextMenu",
+    "templateNoteMenuItem",
+    "templateNoteMenuLabel",
     "renameDialog",
     "renameInput",
     "noteTypeDialog",
+    "templateDialog",
+    "templateList",
+    "templateLoading",
+    "templateEmpty",
+    "templateManagerDialog",
+    "templateManagerList",
+    "templateManagerNotice",
+    "templateFormTitle",
+    "templatePathInput",
+    "templateContentInput",
+    "templateDeleteButton",
+    "saveTemplateDialog",
+    "saveTemplateTitle",
+    "saveTemplateNotePath",
+    "saveTemplateInput",
     "newItemDialog",
     "newItemTitle",
     "newItemInput"
@@ -21,8 +61,18 @@ export default class extends Controller {
     this.contextItem = null
     this.newItemType = null
     this.newItemParent = ""
+    this.newItemTemplate = null
     this.contextClickX = 0
     this.contextClickY = 0
+    this.templates = []
+    this.currentTemplatePath = null
+    this.returnToTemplatePicker = false
+    this.templateManagerRefreshVersion = 0
+    this.currentTemplateSourceNotePath = null
+    this.currentTemplateLinkedPath = null
+    this.templateManagerNoticeTimeout = null
+    this.contextItemTemplateLinked = false
+    this.contextItemTemplatePath = null
 
     this.setupContextMenuClose()
     this.setupDialogClickOutside()
@@ -49,7 +99,10 @@ export default class extends Controller {
     const dialogs = [
       this.renameDialogTarget,
       this.newItemDialogTarget,
-      this.noteTypeDialogTarget
+      this.noteTypeDialogTarget,
+      this.templateDialogTarget,
+      this.templateManagerDialogTarget,
+      this.saveTemplateDialogTarget
     ].filter(d => d)
 
     dialogs.forEach(dialog => {
@@ -62,6 +115,7 @@ export default class extends Controller {
   }
 
   disconnect() {
+    this.clearTemplateManagerNotice({ preserveText: false })
     if (this.boundContextMenuClose) {
       document.removeEventListener("click", this.boundContextMenuClose)
     }
@@ -80,9 +134,11 @@ export default class extends Controller {
     // Don't show context menu for config files
     if (fileType === "config") return
 
-    this.contextItem = { path, type }
+    this.contextItem = { path, type, fileType }
     this.contextClickX = event.clientX
     this.contextClickY = event.clientY
+    this.contextItemTemplateLinked = false
+    this.contextItemTemplatePath = null
 
     // Update menu items based on type
     const renameItem = this.contextMenuTarget.querySelector('[data-action*="renameItem"]')
@@ -95,6 +151,7 @@ export default class extends Controller {
 
     const newFolderItem = this.contextMenuTarget.querySelector('[data-action*="newFolderInFolder"]')
     if (newFolderItem) newFolderItem.classList.toggle("hidden", type !== "folder")
+    this.updateTemplateContextMenuItem()
 
     // Position and show menu
     this.contextMenuTarget.style.left = `${event.clientX}px`
@@ -117,6 +174,28 @@ export default class extends Controller {
     }
   }
 
+  async updateTemplateContextMenuItem() {
+    if (!this.hasTemplateNoteMenuItemTarget || !this.hasTemplateNoteMenuLabelTarget) return
+
+    this.templateNoteMenuItemTarget.classList.add("hidden")
+    const notePath = this.contextItem?.path
+    if (!notePath || this.contextItem?.type !== "file" || this.contextItem?.fileType !== "markdown") return
+
+    try {
+      const status = await this.fetchTemplateLinkStatus(notePath)
+      if (!this.contextItem || this.contextItem.path !== notePath) return
+
+      this.contextItemTemplateLinked = Boolean(status.linked)
+      this.contextItemTemplatePath = status.template_path || null
+      this.templateNoteMenuLabelTarget.textContent = window.t(
+        this.contextItemTemplateLinked ? "context_menu.delete_template" : "context_menu.save_as_template"
+      )
+      this.templateNoteMenuItemTarget.classList.remove("hidden")
+    } catch (error) {
+      console.error("Failed to load template link status:", error)
+    }
+  }
+
   // New Note
   newNote() {
     if (this.hasNoteTypeDialogTarget) {
@@ -133,6 +212,11 @@ export default class extends Controller {
   selectNoteTypeEmpty() {
     this.closeNoteTypeDialog()
     this.openNewItemDialog("note", "", "empty")
+  }
+
+  async selectNoteTypeTemplate() {
+    this.closeNoteTypeDialog()
+    await this.openTemplateDialog()
   }
 
   selectNoteTypeHugo() {
@@ -164,13 +248,434 @@ export default class extends Controller {
     }
   }
 
+  async openTemplateDialog() {
+    if (!this.hasTemplateDialogTarget) return
+
+    this.renderTemplateLoadingState()
+    this.templateDialogTarget.showModal()
+
+    try {
+      this.templates = await this.fetchTemplates()
+      this.renderTemplateList()
+    } catch (error) {
+      console.error("Failed to load templates:", error)
+      this.renderTemplateEmptyState()
+      alert(error.message || window.t("errors.failed_to_load_templates"))
+    }
+  }
+
+  closeTemplateDialog() {
+    if (this.hasTemplateDialogTarget) {
+      this.templateDialogTarget.close()
+    }
+  }
+
+  async fetchTemplates() {
+    const response = await get("/templates", { responseKind: "json" })
+
+    if (!response.ok) {
+      const data = await response.json
+      throw new Error(data.error || window.t("errors.failed_to_load_templates"))
+    }
+
+    return await response.json
+  }
+
+  async fetchTemplateLinkStatus(notePath) {
+    const response = await get(`/templates/status/${encodePath(notePath)}`, { responseKind: "json" })
+
+    if (!response.ok) {
+      const data = await response.json
+      throw new Error(data.error || window.t("errors.failed_to_load_templates"))
+    }
+
+    return await response.json
+  }
+
+  renderTemplateLoadingState() {
+    this.templateLoadingTarget?.classList.remove("hidden")
+    this.templateEmptyTarget?.classList.add("hidden")
+    if (this.hasTemplateListTarget) this.templateListTarget.innerHTML = ""
+  }
+
+  renderTemplateEmptyState() {
+    this.templateLoadingTarget?.classList.add("hidden")
+    this.templateEmptyTarget?.classList.remove("hidden")
+    if (this.hasTemplateListTarget) this.templateListTarget.innerHTML = ""
+  }
+
+  renderTemplateList() {
+    this.templateLoadingTarget?.classList.add("hidden")
+
+    if (!this.hasTemplateListTarget || this.templates.length === 0) {
+      this.renderTemplateEmptyState()
+      return
+    }
+
+    this.templateEmptyTarget?.classList.add("hidden")
+    this.templateListTarget.innerHTML = this.templates.map((template) => {
+      const title = this.escapeHtml(this.templateDisplayName(template))
+      const description = this.escapeHtml(this.templateDescription(template))
+      const path = this.escapeHtml(template.path)
+
+      return `
+        <button
+          type="button"
+          class="w-full px-3 py-2.5 text-left text-sm rounded-md hover:bg-[var(--theme-bg-hover)] border border-[var(--theme-border)]"
+          data-template-path="${path}"
+          data-action="click->file-operations#selectTemplate"
+        >
+          <div class="font-medium text-[var(--theme-text-primary)]">${title}</div>
+          <div class="text-xs text-[var(--theme-text-muted)]">${description}</div>
+        </button>
+      `
+    }).join("")
+  }
+
+  selectTemplate(event) {
+    const templatePath = event.currentTarget.dataset.templatePath
+    const template = this.templates.find((entry) => entry.path === templatePath)
+    if (!template) return
+
+    this.closeTemplateDialog()
+    this.openNewItemDialog("note", "", template.path)
+
+    if (this.hasNewItemInputTarget) {
+      this.newItemInputTarget.value = this.defaultNoteNameForTemplate(template)
+      this.newItemInputTarget.select()
+    }
+  }
+
+  async openTemplateManager() {
+    if (!this.hasTemplateManagerDialogTarget) return
+
+    this.returnToTemplatePicker = this.hasTemplateDialogTarget && this.templateDialogTarget.open
+    if (this.returnToTemplatePicker) this.closeTemplateDialog()
+
+    this.clearTemplateManagerNotice()
+    this.templateManagerDialogTarget.showModal()
+    await this.refreshTemplateManager({ selectFirst: true })
+  }
+
+  async closeTemplateManager() {
+    this.clearTemplateManagerNotice()
+    if (this.hasTemplateManagerDialogTarget) {
+      this.templateManagerDialogTarget.close()
+    }
+
+    const shouldReturnToPicker = this.returnToTemplatePicker
+    this.returnToTemplatePicker = false
+
+    if (shouldReturnToPicker) {
+      await this.openTemplateDialog()
+    }
+  }
+
+  async refreshTemplateManager(options = {}) {
+    const normalizedOptions = options instanceof Event
+      ? { selectPath: this.currentTemplatePath, selectFirst: !this.currentTemplatePath }
+      : options
+    const { selectPath = null, selectFirst = false } = normalizedOptions
+    const refreshVersion = ++this.templateManagerRefreshVersion
+
+    try {
+      this.templates = await this.fetchTemplates()
+      if (refreshVersion !== this.templateManagerRefreshVersion) return
+
+      this.renderTemplateManagerList()
+
+      const pathToLoad = selectPath || this.currentTemplatePath || (selectFirst ? this.templates[0]?.path : null)
+      if (pathToLoad) {
+        await this.loadTemplateForEditing(pathToLoad, { refreshVersion })
+      } else {
+        if (refreshVersion !== this.templateManagerRefreshVersion) return
+        this.prepareNewTemplate()
+      }
+    } catch (error) {
+      console.error("Failed to refresh templates:", error)
+      alert(error.message || window.t("errors.failed_to_load_templates"))
+    }
+  }
+
+  renderTemplateManagerList() {
+    if (!this.hasTemplateManagerListTarget) return
+
+    if (this.templates.length === 0) {
+      this.templateManagerListTarget.innerHTML = `
+        <div class="text-sm text-[var(--theme-text-muted)] px-3 py-2">
+          ${this.escapeHtml(window.t("dialogs.templates.empty"))}
+        </div>
+      `
+      return
+    }
+
+    this.templateManagerListTarget.innerHTML = this.templates.map((template) => {
+      const title = this.escapeHtml(this.templateDisplayName(template))
+      const path = this.escapeHtml(template.path)
+      const active = template.path === this.currentTemplatePath
+
+      return `
+        <button
+          type="button"
+          class="w-full px-3 py-2 text-left rounded-md border ${active ? "border-[var(--theme-accent)] bg-[var(--theme-bg-hover)]" : "border-[var(--theme-border)] hover:bg-[var(--theme-bg-hover)]"}"
+          data-template-path="${path}"
+          data-action="click->file-operations#editTemplate"
+        >
+          <div class="text-sm font-medium text-[var(--theme-text-primary)]">${title}</div>
+          <div class="text-xs text-[var(--theme-text-muted)]">${path}</div>
+        </button>
+      `
+    }).join("")
+  }
+
+  async editTemplate(event) {
+    const templatePath = event.currentTarget.dataset.templatePath
+    if (!templatePath) return
+
+    this.templateManagerRefreshVersion += 1
+    await this.loadTemplateForEditing(templatePath)
+  }
+
+  async loadTemplateForEditing(templatePath, { refreshVersion = null } = {}) {
+    try {
+      const response = await get(`/templates/${encodePath(templatePath)}`, { responseKind: "json" })
+      if (!response.ok) {
+        const data = await response.json
+        throw new Error(data.error || window.t("errors.failed_to_load_templates"))
+      }
+
+      const template = await response.json
+      if (refreshVersion && refreshVersion !== this.templateManagerRefreshVersion) return
+
+      this.currentTemplatePath = template.path
+      this.clearTemplateManagerNotice()
+
+      if (this.hasTemplateFormTitleTarget) {
+        this.templateFormTitleTarget.textContent = window.t("dialogs.templates.edit_title")
+      }
+      if (this.hasTemplatePathInputTarget) {
+        this.templatePathInputTarget.value = template.path
+        this.templatePathInputTarget.readOnly = true
+      }
+      if (this.hasTemplateContentInputTarget) {
+        this.templateContentInputTarget.value = template.content
+      }
+      this.templateDeleteButtonTarget?.classList.remove("hidden")
+      this.renderTemplateManagerList()
+    } catch (error) {
+      console.error("Failed to load template:", error)
+      alert(error.message || window.t("errors.failed_to_load_templates"))
+    }
+  }
+
+  newTemplate() {
+    this.templateManagerRefreshVersion += 1
+    this.prepareNewTemplate()
+    this.renderTemplateManagerList()
+  }
+
+  prepareNewTemplate() {
+    this.currentTemplatePath = null
+    this.clearTemplateManagerNotice()
+
+    if (this.hasTemplateFormTitleTarget) {
+      this.templateFormTitleTarget.textContent = window.t("dialogs.templates.new_title")
+    }
+    if (this.hasTemplatePathInputTarget) {
+      this.templatePathInputTarget.value = ""
+      this.templatePathInputTarget.readOnly = false
+      this.templatePathInputTarget.focus()
+    }
+    if (this.hasTemplateContentInputTarget) {
+      this.templateContentInputTarget.value = ""
+    }
+    this.templateDeleteButtonTarget?.classList.add("hidden")
+  }
+
+  async submitTemplateSave() {
+    if (!this.hasTemplatePathInputTarget || !this.hasTemplateContentInputTarget) return
+
+    const path = this.templatePathInputTarget.value.trim()
+    const content = this.templateContentInputTarget.value
+    if (!path) {
+      alert(window.t("errors.no_file_provided"))
+      return
+    }
+
+    try {
+      let response
+      if (this.currentTemplatePath) {
+        response = await patch(`/templates/${encodePath(this.currentTemplatePath)}`, {
+          body: { content },
+          responseKind: "json"
+        })
+      } else {
+        response = await post("/templates", {
+          body: { path, content },
+          responseKind: "json"
+        })
+      }
+
+      if (!response.ok) {
+        const data = await response.json
+        throw new Error(data.error || window.t("errors.failed_to_save"))
+      }
+
+      const data = await response.json
+      await this.refreshTemplateManager({ selectPath: data.path })
+      this.showTemplateManagerNotice(window.t("success.template_saved"))
+    } catch (error) {
+      console.error("Failed to save template:", error)
+      alert(error.message || window.t("errors.failed_to_save"))
+    }
+  }
+
+  async deleteTemplate() {
+    if (!this.currentTemplatePath) return
+
+    const displayName = this.templateDisplayName({ path: this.currentTemplatePath, name: this.currentTemplatePath.replace(/\.(md|markdown)$/i, "") })
+    if (!confirm(window.t("dialogs.templates.delete_confirm", { name: displayName }))) {
+      return
+    }
+
+    try {
+      const response = await destroy(`/templates/${encodePath(this.currentTemplatePath)}`, {
+        responseKind: "json"
+      })
+
+      if (!response.ok) {
+        const data = await response.json
+        throw new Error(data.error || window.t("errors.failed_to_delete"))
+      }
+
+      this.currentTemplatePath = null
+      await this.refreshTemplateManager({ selectFirst: true })
+      this.showTemplateManagerNotice(window.t("success.template_deleted"))
+    } catch (error) {
+      console.error("Failed to delete template:", error)
+      alert(error.message || window.t("errors.failed_to_delete"))
+    }
+  }
+
+  async openSaveTemplateFromNoteDialog(notePath) {
+    if (!this.hasSaveTemplateDialogTarget || !this.hasSaveTemplateInputTarget) return
+    if (!notePath) return
+
+    try {
+      const status = await this.fetchTemplateLinkStatus(notePath)
+      this.currentTemplateSourceNotePath = notePath
+      this.currentTemplateLinkedPath = status.template_path || null
+
+      if (this.hasSaveTemplateTitleTarget) {
+        this.saveTemplateTitleTarget.textContent = window.t(
+          status.linked ? "dialogs.templates.save_from_note_update_title" : "dialogs.templates.save_from_note_title"
+        )
+      }
+      if (this.hasSaveTemplateNotePathTarget) {
+        this.saveTemplateNotePathTarget.textContent = notePath
+      }
+
+      const defaultTemplatePath = status.template_path || notePath
+      this.saveTemplateInputTarget.value = defaultTemplatePath.replace(/\.(md|markdown)$/i, "")
+      this.saveTemplateDialogTarget.showModal()
+      this.saveTemplateInputTarget.focus()
+      this.saveTemplateInputTarget.select()
+    } catch (error) {
+      console.error("Failed to open save template dialog:", error)
+      alert(error.message || window.t("errors.failed_to_load_templates"))
+    }
+  }
+
+  closeSaveTemplateDialog() {
+    if (this.hasSaveTemplateDialogTarget) {
+      this.saveTemplateDialogTarget.close()
+    }
+    this.currentTemplateSourceNotePath = null
+    this.currentTemplateLinkedPath = null
+  }
+
+  async submitSaveTemplateFromNote() {
+    if (!this.currentTemplateSourceNotePath || !this.hasSaveTemplateInputTarget) return
+
+    const templatePath = this.saveTemplateInputTarget.value.trim()
+    if (!templatePath) {
+      alert(window.t("errors.no_file_provided"))
+      return
+    }
+
+    try {
+      const response = await post("/templates/save_from_note", {
+        body: {
+          note_path: this.currentTemplateSourceNotePath,
+          template_path: templatePath
+        },
+        responseKind: "json"
+      })
+
+      if (!response.ok) {
+        const data = await response.json
+        throw new Error(data.error || window.t("errors.failed_to_save"))
+      }
+
+      const data = await response.json
+      this.currentTemplateLinkedPath = data.path
+      this.closeSaveTemplateDialog()
+
+      if (this.contextItem?.path === data.note_path) {
+        this.contextItemTemplateLinked = true
+        this.contextItemTemplatePath = data.path
+      }
+    } catch (error) {
+      console.error("Failed to save template from note:", error)
+      alert(error.message || window.t("errors.failed_to_save"))
+    }
+  }
+
+  async handleTemplateContextAction() {
+    if (!this.contextItem || this.contextItem.type !== "file") return
+
+    if (this.contextItemTemplateLinked) {
+      await this.deleteTemplateForNote(this.contextItem.path)
+    } else {
+      this.hideContextMenu()
+      await this.openSaveTemplateFromNoteDialog(this.contextItem.path)
+    }
+  }
+
+  async deleteTemplateForNote(notePath) {
+    try {
+      const status = await this.fetchTemplateLinkStatus(notePath)
+      const displayName = status.template_path || notePath
+      if (!confirm(window.t("dialogs.templates.delete_linked_confirm", { name: displayName }))) {
+        return
+      }
+
+      const response = await destroy("/templates/save_from_note", {
+        body: { note_path: notePath },
+        responseKind: "json"
+      })
+
+      if (!response.ok) {
+        const data = await response.json
+        throw new Error(data.error || window.t("errors.failed_to_delete"))
+      }
+
+      this.hideContextMenu()
+      this.contextItemTemplateLinked = false
+      this.contextItemTemplatePath = null
+    } catch (error) {
+      console.error("Failed to delete linked template:", error)
+      alert(error.message || window.t("errors.failed_to_delete"))
+    }
+  }
+
   openNewItemDialog(type, parent = "", template = null) {
     this.newItemType = type
     this.newItemParent = parent || this.newItemParent || ""
     this.newItemTemplate = template
 
     if (this.hasNewItemTitleTarget) {
-      const titleKey = type === "folder" ? "dialogs.new_item.new_folder" : "dialogs.new_item.new_note"
+      const titleKey = this.newItemDialogTitleKey(type, template)
       this.newItemTitleTarget.textContent = window.t(titleKey)
     }
 
@@ -234,9 +739,14 @@ export default class extends Controller {
       // Regular notes use simple filename
       const fileName = name.endsWith(".md") ? name : `${name}.md`
       const path = parent ? `${parent}/${fileName}` : fileName
+      const body = { content: "", expanded }
+
+      if (template && template !== "empty") {
+        body.template_path = template
+      }
 
       response = await post(`/notes/${encodePath(path)}`, {
-        body: { content: "", expanded },
+        body,
         responseKind: "turbo-stream"
       })
     }
@@ -420,6 +930,107 @@ export default class extends Controller {
       this.submitNewItem()
     } else if (event.key === "Escape") {
       this.closeNewItemDialog()
+    }
+  }
+
+  onSaveTemplateKeydown(event) {
+    if (event.key === "Enter") {
+      event.preventDefault()
+      this.submitSaveTemplateFromNote()
+    } else if (event.key === "Escape") {
+      this.closeSaveTemplateDialog()
+    }
+  }
+
+  newItemDialogTitleKey(type, template) {
+    if (type === "folder") return "dialogs.new_item.new_folder"
+    if (template && template !== "empty" && template !== "hugo") return "dialogs.new_item.new_note_from_template"
+    return "dialogs.new_item.new_note"
+  }
+
+  templateDisplayName(template) {
+    const builtIn = BUILT_IN_TEMPLATE_METADATA[template.path]
+    if (builtIn) return window.t(builtIn.nameKey)
+
+    return this.humanizeTemplateName(template.name)
+  }
+
+  templateDescription(template) {
+    const builtIn = BUILT_IN_TEMPLATE_METADATA[template.path]
+    if (builtIn) return window.t(builtIn.descriptionKey)
+
+    return template.directory || template.path
+  }
+
+  defaultNoteNameForTemplate(template) {
+    switch (template.path) {
+      case "daily-note.md":
+        return this.todayStamp()
+      case "meeting-note.md":
+        return `meeting-${this.todayStamp()}`
+      case "article-draft.md":
+        return "article-draft"
+      case "journal-entry.md":
+        return `journal-${this.todayStamp()}`
+      case "changelog.md":
+        return "changelog"
+      default:
+        return template.name
+    }
+  }
+
+  todayStamp() {
+    return new Date().toISOString().slice(0, 10)
+  }
+
+  humanizeTemplateName(name) {
+    return name
+      .replace(/[-_]+/g, " ")
+      .replace(/(^|[\s])([\p{L}\p{N}])/gu, (match, prefix, char) => `${prefix}${char.toLocaleUpperCase()}`)
+  }
+
+  escapeHtml(value) {
+    return String(value)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+  }
+
+  showTemplateManagerNotice(message, tone = "success") {
+    if (!this.hasTemplateManagerNoticeTarget || !message) return
+
+    if (this.templateManagerNoticeTimeout) {
+      clearTimeout(this.templateManagerNoticeTimeout)
+      this.templateManagerNoticeTimeout = null
+    }
+
+    this.templateManagerNoticeTarget.textContent = message
+    this.templateManagerNoticeTarget.dataset.tone = tone
+    this.templateManagerNoticeTarget.style.color = tone === "error"
+      ? "var(--theme-error)"
+      : "var(--theme-success)"
+    this.templateManagerNoticeTarget.classList.remove("hidden")
+
+    this.templateManagerNoticeTimeout = setTimeout(() => {
+      this.clearTemplateManagerNotice({ preserveText: false })
+    }, 3500)
+  }
+
+  clearTemplateManagerNotice({ preserveText = true } = {}) {
+    if (!this.hasTemplateManagerNoticeTarget) return
+
+    if (this.templateManagerNoticeTimeout) {
+      clearTimeout(this.templateManagerNoticeTimeout)
+      this.templateManagerNoticeTimeout = null
+    }
+
+    this.templateManagerNoticeTarget.classList.add("hidden")
+    this.templateManagerNoticeTarget.removeAttribute("data-tone")
+    this.templateManagerNoticeTarget.style.removeProperty("color")
+
+    if (!preserveText) {
+      this.templateManagerNoticeTarget.textContent = ""
     }
   }
 }

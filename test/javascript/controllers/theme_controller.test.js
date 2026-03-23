@@ -126,6 +126,38 @@ describe("ThemeController", () => {
       controller.selectTheme(event)
       expect(controller.menuTarget.classList.contains("hidden")).toBe(true)
     })
+
+    it("updates the URL instead of patching config in local-only mode", async () => {
+      application.stop()
+
+      document.body.innerHTML = `
+        <div
+          data-controller="theme"
+          data-theme-initial-value="light"
+          data-theme-persist-value="false"
+          data-theme-query-param-value="true"
+          data-theme-allow-omarchy-value="false"
+        >
+          <span data-theme-target="currentTheme"></span>
+          <div data-theme-target="menu" class="hidden"></div>
+        </div>
+      `
+
+      element = document.querySelector('[data-controller="theme"]')
+      application = Application.start()
+      application.register("theme", ThemeController)
+      await new Promise((resolve) => setTimeout(resolve, 0))
+      controller = application.getControllerForElementAndIdentifier(element, "theme")
+
+      const replaceStateSpy = vi.spyOn(window.history, "replaceState").mockImplementation(() => {})
+      fetch.mockClear()
+
+      controller.selectTheme({ currentTarget: { dataset: { theme: "dark" } } })
+
+      expect(fetch).not.toHaveBeenCalledWith("/config", expect.anything())
+      expect(replaceStateSpy).toHaveBeenCalled()
+      expect(replaceStateSpy.mock.calls[0][2]).toContain("theme=dark")
+    })
   })
 
   describe("applyTheme()", () => {
@@ -345,6 +377,22 @@ describe("ThemeController", () => {
 
       expect(clearTimeoutSpy).toHaveBeenCalled()
       vi.useRealTimers()
+    })
+  })
+
+  describe("theme changed event", () => {
+    it("dispatches frankmd:theme-changed after applying a theme", () => {
+      const eventSpy = vi.fn()
+      window.addEventListener("frankmd:theme-changed", eventSpy)
+
+      controller.currentThemeId = "light"
+      controller.applyTheme()
+
+      expect(eventSpy).toHaveBeenCalled()
+      expect(eventSpy.mock.calls.at(-1)[0].detail).toEqual({
+        theme: "light",
+        colorScheme: "light"
+      })
     })
   })
 })
