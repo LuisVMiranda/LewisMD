@@ -39,7 +39,7 @@
 - **Reading mode** for focused reviewing (hides Explorer & Editor, centers typography)
 - **Dynamic Layout Scaling**: Fluid percentage slider to restrict ultra-wide `.prose` line-lengths
 - **Resizable Splitters**: Draggable boundary adjusting the Editor vs Preview proportions instantly
-- **Exporters**: One-click Export to PDF and Copy as Formatted HTML
+- **Export & Share Menu**: Export HTML, TXT, or themed PDF, copy formatted HTML, and publish stable snapshot links from one menu
 - Customizable fonts and sizes
 - Multiple color themes (light/dark variants)
 
@@ -55,6 +55,9 @@
 - Quick file finder (`Ctrl+P`) sorted by recency
 - Full-text search with regex support (`Ctrl+Shift+F`)
 - Find and replace with regex support (`Ctrl+H`)
+- Sidebar document outline for markdown headings with click-to-jump navigation
+- Filesystem-backed markdown templates with built-in starter notes and user-managed `.md` templates
+- Save any existing markdown note as a reusable template from the header or note context menu
 - **Hugo blog post support** - Create posts with proper directory structure
 
 <p align="center">
@@ -80,6 +83,15 @@
 - Synchronized scrolling (including typewriter mode)
 - Zoom controls
 - GitHub-flavored markdown support
+- Shared font-family controls between Preview and Reading mode
+
+### Export & Share
+- Standalone HTML export based on the rendered preview
+- Plain-text TXT export for universal compatibility
+- Colored PDF export with print-safe typography, tables, images, and links
+- Local note images are embedded into exported HTML/PDF so the files remain portable
+- Snapshot sharing with stable local links
+- Read-only shared page with only zoom, text width, and font-family controls
 
 <p align="center">
   <img src="https://new-uploads-LuisVMiranda.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_14-13-29.jpg" alt="Preview panel" width="700">
@@ -303,11 +315,15 @@ locale = en
 editor_font = fira-code
 editor_font_size = 16
 preview_zoom = 100
+preview_font_family = sans
 sidebar_visible = true
 typewriter_mode = false
 
 # Local images path
 images_path = /home/user/Pictures
+
+# Templates path
+templates_path = /home/user/templates
 
 # AWS S3 (overrides environment variables)
 aws_access_key_id = your-key
@@ -360,9 +376,11 @@ The `.fed` file appears in the explorer panel with a gear icon. You can click it
 | `editor_font` | string | cascadia-code | Editor font family |
 | `editor_font_size` | integer | 14 | Font size in pixels (8-32) |
 | `preview_zoom` | integer | 100 | Preview zoom percentage (50-200) |
+| `preview_font_family` | string | sans | Shared font family for Preview and Reading mode (`sans`, `serif`, `mono`) |
 | `sidebar_visible` | boolean | true | Show explorer panel on startup |
 | `typewriter_mode` | boolean | false | Enable typewriter mode on startup |
-| `images_path` | string | - | Local images directory path |
+| `images_path` | string | - | Local images directory path (defaults to `.frankmd/images` for new installs when not explicitly configured) |
+| `templates_path` | string | - | Markdown templates directory path (defaults to `.frankmd/templates` inside the notes root) |
 | `aws_access_key_id` | string | - | AWS access key for S3 |
 | `aws_secret_access_key` | string | - | AWS secret key for S3 |
 | `aws_s3_bucket` | string | - | S3 bucket name |
@@ -645,16 +663,82 @@ This mimics the experience of a typewriter where your typing position stays cons
 
 ## Hugo Blog Post Support
 
-LewisMD includes built-in support for creating Hugo-compatible blog posts. When you click the "New Note" button (or press `Ctrl+N`), you can choose between:
+LewisMD includes built-in support for creating new notes in three ways. When you click the "New Note" button (or press `Ctrl+N`), you can choose between:
 
 - **Empty Document** - A plain markdown file
+- **Template** - Start from a built-in or user-managed markdown template
 - **Hugo Blog Post** - A properly structured Hugo post
 
 <p align="center">
   <img src="https://new-uploads-LuisVMiranda.s3.us-east-2.amazonaws.com/frankmd/2026/02/screenshot-2026-02-01_14-39-53.jpg" alt="New note dialog" width="500">
   <br>
-  <em>New note dialog with Hugo blog post option</em>
+  <em>New note dialog with Empty, Template, and Hugo options</em>
 </p>
+
+## Templates
+
+LewisMD includes a filesystem-backed template system for reusable markdown scaffolds.
+
+### How templates work
+
+- Templates are plain `.md` or `.markdown` files stored outside the normal note tree
+- Built-in starter templates are seeded automatically the first time the template system is used
+- Any markdown file you add manually to the templates folder appears automatically in the picker and manager
+- Creating a note from a template copies the markdown into a normal note; there is no database and no hidden note type
+
+### Default template storage
+
+By default, LewisMD stores templates in:
+
+```text
+.frankmd/templates
+```
+
+inside your notes root. This keeps reusable scaffolds out of the Explorer while still making them easy to back up or edit manually.
+
+You can override this with `.fed`:
+
+```ini
+templates_path = /absolute/path/to/templates
+```
+
+### Built-in templates
+
+LewisMD seeds these starter templates if they do not already exist:
+
+- Daily Note
+- Meeting Note
+- Article Draft
+- Journal Entry
+- Changelog
+
+These are just markdown files. You can edit them, duplicate them, move them into subfolders, or add your own.
+
+### Managing templates in the UI
+
+From the New Note flow:
+
+1. Click `New Note`
+2. Choose `Template`
+3. Pick a template to create a new note from it
+4. Or click `Manage Templates` to create, edit, refresh, or delete templates
+
+### Saving an existing note as a template
+
+You can turn any markdown note into a reusable template in two ways:
+
+- Click the top-bar `Save as Template` button while the note is open
+- Right-click a markdown note in the Explorer and choose `Save as Template`
+
+If a note is already linked to a saved template, the context menu shows `Delete Template` instead, which removes both the linked template file and the note-to-template association.
+
+LewisMD tracks these note-template links in:
+
+```text
+.frankmd/template_links.json
+```
+
+This file is managed automatically.
 
 ### Hugo Post Structure
 

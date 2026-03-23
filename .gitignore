@@ -39,6 +39,7 @@
 !/app/assets/builds/.keep
 /notes/*
 !/notes/.gitkeep
+!/notes/.fed
 /images/*
 !/images/.gitkeep
 /.fed
