@@ -153,6 +153,10 @@ he:
   share_view:
     label: הערה משותפת
     open_exports: פתח פעולות ייצוא
+    display: תצוגה
+    display_controls: בקרי קריאה
+    show_controls: הצג בקרי קריאה
+    hide_controls: הסתר בקרי קריאה
     zoom: זום
     zoom_in: התקרב
     zoom_out: התרחק

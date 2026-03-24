@@ -7,10 +7,54 @@ class ShareViewTest < ApplicationSystemTestCase
     share = create_shared_snapshot("Shared Snapshot")
 
     visit share_snapshot_url(token: share[:token])
+    page.current_window.resize_to(390, 844)
 
-    assert_text "Shared note"
+    assert_selector ".share-view__eyebrow", text: /shared note/i
     assert_text "Shared Snapshot"
     assert_selector "iframe[data-share-view-target='frame']", wait: 2
+    assert_button "Display"
+    assert_no_selector "[data-share-view-target='zoomValue']", text: "100%"
+    assert_no_selector "[data-share-view-target='widthValue']", text: "72ch"
+
+    layout = page.evaluate_script(<<~JS)
+      (function() {
+        const toolbar = document.querySelector('.share-view__toolbar');
+        const top = toolbar.querySelector('.share-view__toolbar-top');
+        const displayPanel = toolbar.querySelector('.share-view__display-panel');
+        const displayToggle = document.querySelector('[data-share-view-target="displayToggle"]');
+        const identity = toolbar.querySelector('.share-view__identity');
+        const actions = toolbar.querySelector('.share-view__toolbar-actions');
+        const content = document.querySelector('.share-view__content');
+        const frame = document.querySelector('.share-view__frame');
+        const shareView = document.querySelector('.share-view');
+        return {
+          hasTopRow: !!top,
+          hasDisplayPanel: !!displayPanel,
+          displayExpanded: displayToggle ? displayToggle.getAttribute('aria-expanded') : null,
+          toolbarRows: toolbar.children.length,
+          viewportWidth: window.innerWidth,
+          shareViewHeight: parseFloat(getComputedStyle(shareView).height),
+          toolbarHeight: parseFloat(getComputedStyle(toolbar).height),
+          topHeight: parseFloat(getComputedStyle(top).height),
+          topDirection: getComputedStyle(top).flexDirection,
+          identityHeight: parseFloat(getComputedStyle(identity).height),
+          actionsHeight: parseFloat(getComputedStyle(actions).height),
+          actionsDisplay: getComputedStyle(actions).display,
+          contentHeight: parseFloat(getComputedStyle(content).height),
+          frameHeight: parseFloat(getComputedStyle(frame).height),
+          viewportHeight: window.innerHeight
+        };
+      })()
+    JS
+
+    assert_equal true, layout["hasTopRow"]
+    assert_equal true, layout["hasDisplayPanel"]
+    assert_equal "false", layout["displayExpanded"]
+    assert_equal 2, layout["toolbarRows"]
+    assert_operator layout["frameHeight"], :>, (layout["viewportHeight"] * 0.5), layout.inspect
+
+    click_button "Display"
+
     assert_selector "[data-share-view-target='zoomValue']", text: "100%"
     assert_selector "[data-share-view-target='widthValue']", text: "72ch"
 
@@ -25,6 +69,8 @@ class ShareViewTest < ApplicationSystemTestCase
 
     visit share_snapshot_url(token: share[:token])
     assert_selector "iframe[data-share-view-target='frame']", wait: 2
+    assert_button "Display"
+    click_button "Display" if has_no_selector?("[data-share-view-target='zoomValue']", text: "100%", wait: 0)
     within_share_frame { assert_text "Formatting Snapshot" }
 
     click_button_with_title("Zoom in")
@@ -39,6 +85,40 @@ class ShareViewTest < ApplicationSystemTestCase
     assert_equal "17.6px", metrics["fontSize"]
     assert_equal "76ch", metrics["maxWidth"]
     assert_includes metrics["fontFamily"], "Georgia"
+  end
+
+  test "desktop shared reader keeps display controls visible by default" do
+    share = create_shared_snapshot("Desktop Snapshot")
+
+    visit share_snapshot_url(token: share[:token])
+    page.current_window.resize_to(1280, 900)
+
+    assert_button "Display"
+    assert_selector "[data-share-view-target='zoomValue']", text: "100%"
+    assert_selector "[data-share-view-target='widthValue']", text: "72ch"
+
+    layout = page.evaluate_script(<<~JS)
+      (function() {
+        const displayToggle = document.querySelector('[data-share-view-target="displayToggle"]');
+        const displayPanel = document.querySelector('[data-share-view-target="displayPanel"]');
+        const groupCenters = Array.from(displayPanel.querySelectorAll('.share-view__group')).map((group) => {
+          const rect = group.getBoundingClientRect();
+          return rect.top + (rect.height / 2);
+        });
+        const panelRect = displayPanel.getBoundingClientRect();
+        const panelCenter = panelRect.top + (panelRect.height / 2);
+        return {
+          expanded: displayToggle ? displayToggle.getAttribute('aria-expanded') : null,
+          hidden: displayPanel ? displayPanel.classList.contains('hidden') : null,
+          panelCenter: panelCenter,
+          groupCenterOffsets: groupCenters.map((center) => Math.abs(center - panelCenter))
+        };
+      })()
+    JS
+
+    assert_equal "true", layout["expanded"]
+    assert_equal false, layout["hidden"]
+    assert layout["groupCenterOffsets"].all? { |offset| offset < 8 }, layout.inspect
   end
 
   test "shared reader exposes export actions without share management actions" do
@@ -76,14 +156,16 @@ class ShareViewTest < ApplicationSystemTestCase
     share = create_shared_snapshot("Localized Snapshot")
 
     visit share_snapshot_url(token: share[:token])
-    assert_text "Shared note"
+    assert_selector ".share-view__eyebrow", text: /shared note/i
+    assert_button "Display"
 
     find("button[title='Change Language']").click
     within "[data-locale-target='menu']" do
       click_button "Español"
     end
 
-    assert_text "Nota compartida", wait: 2
+    assert_selector ".share-view__eyebrow", text: /nota compartida/i, wait: 2
+    assert_button "Visualización"
     assert_includes page.current_url, "locale=es"
   end
 

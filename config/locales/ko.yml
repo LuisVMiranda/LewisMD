@@ -156,6 +156,10 @@ ko:
   share_view:
     label: 공유 노트
     open_exports: 내보내기 작업 열기
+    display: 표시
+    display_controls: 읽기 컨트롤
+    show_controls: 읽기 컨트롤 표시
+    hide_controls: 읽기 컨트롤 숨기기
     zoom: 확대
     zoom_in: 확대
     zoom_out: 축소

@@ -160,6 +160,10 @@ pt-BR:
   share_view:
     label: Nota compartilhada
     open_exports: Abrir ações de exportação
+    display: Exibição
+    display_controls: Controles de leitura
+    show_controls: Mostrar controles de leitura
+    hide_controls: Ocultar controles de leitura
     zoom: Zoom
     zoom_in: Aumentar zoom
     zoom_out: Diminuir zoom

@@ -26,12 +26,14 @@ const FONT_FAMILIES = {
 }
 
 export default class extends Controller {
-  static targets = ["frame", "zoomValue", "widthValue", "fontSelect"]
+  static targets = ["frame", "zoomValue", "widthValue", "fontSelect", "displayPanel", "displayToggle"]
 
   static values = {
     defaultZoom: { type: Number, default: 100 },
     defaultWidth: { type: Number, default: 72 },
-    title: String
+    title: String,
+    showControlsLabel: String,
+    hideControlsLabel: String
   }
 
   connect() {
@@ -39,18 +41,27 @@ export default class extends Controller {
     this.currentWidth = this.defaultWidthValue
     this.currentFontFamily = DEFAULT_FONT_FAMILY
     this.baseFontSize = null
+    this.displayPanelExpanded = true
 
     this.boundThemeChanged = () => {
       this.syncFrameTheme()
     }
+    this.boundResize = () => {
+      this.syncResponsiveDisplayPanel()
+    }
 
     window.addEventListener("frankmd:theme-changed", this.boundThemeChanged)
+    window.addEventListener("resize", this.boundResize)
     this.updateDisplays()
+    this.syncResponsiveDisplayPanel()
   }
 
   disconnect() {
     if (this.boundThemeChanged) {
       window.removeEventListener("frankmd:theme-changed", this.boundThemeChanged)
+    }
+    if (this.boundResize) {
+      window.removeEventListener("resize", this.boundResize)
     }
   }
 
@@ -77,6 +88,11 @@ export default class extends Controller {
   changeFontFamily(event) {
     this.currentFontFamily = event.target.value || DEFAULT_FONT_FAMILY
     this.applySettings()
+  }
+
+  toggleDisplayPanel() {
+    this.displayPanelExpanded = !this.displayPanelExpanded
+    this.applyDisplayPanelState()
   }
 
   onFrameLoad() {
@@ -295,5 +311,37 @@ export default class extends Controller {
     return this.hasTitleValue && this.titleValue
       ? this.titleValue
       : (this.frameDocument?.title || "shared-note")
+  }
+
+  syncResponsiveDisplayPanel() {
+    this.displayPanelExpanded = this.defaultDisplayPanelExpanded()
+    this.applyDisplayPanelState()
+  }
+
+  defaultDisplayPanelExpanded() {
+    const width = window.innerWidth || document.documentElement.clientWidth || 0
+    const height = window.innerHeight || document.documentElement.clientHeight || 0
+    const isLandscape = width > height
+
+    if (width < 768) return false
+    if (width < 1024) return isLandscape
+    return true
+  }
+
+  applyDisplayPanelState() {
+    if (this.hasDisplayPanelTarget) {
+      this.displayPanelTarget.classList.toggle("hidden", !this.displayPanelExpanded)
+    }
+
+    if (this.hasDisplayToggleTarget) {
+      this.displayToggleTarget.setAttribute("aria-expanded", String(this.displayPanelExpanded))
+      const toggleLabel = this.displayPanelExpanded
+        ? this.hideControlsLabelValue
+        : this.showControlsLabelValue
+      if (toggleLabel) {
+        this.displayToggleTarget.setAttribute("title", toggleLabel)
+        this.displayToggleTarget.setAttribute("aria-label", toggleLabel)
+      }
+    }
   }
 }

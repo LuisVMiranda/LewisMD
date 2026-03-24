@@ -156,6 +156,10 @@ ja:
   share_view:
     label: 共有ノート
     open_exports: エクスポート操作を開く
+    display: 表示
+    display_controls: 閲覧コントロール
+    show_controls: 閲覧コントロールを表示
+    hide_controls: 閲覧コントロールを隠す
     zoom: ズーム
     zoom_in: 拡大
     zoom_out: 縮小

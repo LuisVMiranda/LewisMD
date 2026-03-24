@@ -13,6 +13,8 @@ describe("ShareViewController", () => {
   let frame
   let article
   let frameDocument
+  let originalInnerWidth
+  let originalInnerHeight
 
   beforeEach(async () => {
     setupJsdomGlobals()
@@ -31,6 +33,8 @@ describe("ShareViewController", () => {
     document.documentElement.style.setProperty("--theme-border", "#334155")
     document.documentElement.style.setProperty("--font-sans", "Inter, sans-serif")
     document.documentElement.style.setProperty("--font-mono", "JetBrains Mono, monospace")
+    originalInnerWidth = window.innerWidth
+    originalInnerHeight = window.innerHeight
 
     document.body.innerHTML = `
       <div
@@ -38,16 +42,25 @@ describe("ShareViewController", () => {
         data-share-view-default-width-value="72"
         data-share-view-default-zoom-value="100"
         data-share-view-title-value="Shared Snapshot"
+        data-share-view-show-controls-label-value="Show reading controls"
+        data-share-view-hide-controls-label-value="Hide reading controls"
       >
+        <button
+          type="button"
+          data-share-view-target="displayToggle"
+          aria-expanded="true"
+        >Display</button>
+        <div data-share-view-target="displayPanel">
+          <output data-share-view-target="zoomValue"></output>
+          <output data-share-view-target="widthValue"></output>
+          <select data-share-view-target="fontSelect">
+            <option value="default">Default</option>
+            <option value="sans">Sans</option>
+            <option value="serif">Serif</option>
+            <option value="mono">Mono</option>
+          </select>
+        </div>
         <iframe data-share-view-target="frame"></iframe>
-        <output data-share-view-target="zoomValue"></output>
-        <output data-share-view-target="widthValue"></output>
-        <select data-share-view-target="fontSelect">
-          <option value="default">Default</option>
-          <option value="sans">Sans</option>
-          <option value="serif">Serif</option>
-          <option value="mono">Mono</option>
-        </select>
       </div>
     `
 
@@ -81,8 +94,23 @@ describe("ShareViewController", () => {
 
   afterEach(() => {
     application.stop()
+    window.innerWidth = originalInnerWidth
+    window.innerHeight = originalInnerHeight
     vi.restoreAllMocks()
   })
+
+  function setViewport(width, height) {
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      writable: true,
+      value: width
+    })
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      writable: true,
+      value: height
+    })
+  }
 
   it("applies initial defaults and syncs the outer theme into the embedded snapshot", () => {
     controller.onFrameLoad()
@@ -114,6 +142,41 @@ describe("ShareViewController", () => {
 
     controller.changeFontFamily({ target: { value: "default" } })
     expect(article.style.fontFamily).toBe("")
+  })
+
+  it("collapses the display panel by default on mobile-sized viewports", () => {
+    setViewport(390, 844)
+
+    controller.syncResponsiveDisplayPanel()
+
+    expect(controller.displayPanelTarget.classList.contains("hidden")).toBe(true)
+    expect(controller.displayToggleTarget.getAttribute("aria-expanded")).toBe("false")
+    expect(controller.displayToggleTarget.getAttribute("title")).toBe("Show reading controls")
+  })
+
+  it("keeps the display panel expanded by default on desktop-sized viewports", () => {
+    setViewport(1280, 900)
+
+    controller.syncResponsiveDisplayPanel()
+
+    expect(controller.displayPanelTarget.classList.contains("hidden")).toBe(false)
+    expect(controller.displayToggleTarget.getAttribute("aria-expanded")).toBe("true")
+    expect(controller.displayToggleTarget.getAttribute("title")).toBe("Hide reading controls")
+  })
+
+  it("toggles the display panel from the display button state", () => {
+    setViewport(1280, 900)
+    controller.syncResponsiveDisplayPanel()
+
+    controller.toggleDisplayPanel()
+    expect(controller.displayPanelTarget.classList.contains("hidden")).toBe(true)
+    expect(controller.displayToggleTarget.getAttribute("aria-expanded")).toBe("false")
+    expect(controller.displayToggleTarget.getAttribute("title")).toBe("Show reading controls")
+
+    controller.toggleDisplayPanel()
+    expect(controller.displayPanelTarget.classList.contains("hidden")).toBe(false)
+    expect(controller.displayToggleTarget.getAttribute("aria-expanded")).toBe("true")
+    expect(controller.displayToggleTarget.getAttribute("title")).toBe("Hide reading controls")
   })
 
   it("routes export menu selections to the matching controller actions", async () => {

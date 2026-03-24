@@ -177,7 +177,7 @@ class ExportMenuTest < ApplicationSystemTestCase
     assert_equal first_share[:token], second_share[:token]
 
     visit first_share_url
-    assert_text "Shared note"
+    assert_selector ".share-view__eyebrow", text: /shared note/i
     within_frame(find("iframe[data-share-view-target='frame']", wait: 2)) do
       assert_text "Version two"
     end

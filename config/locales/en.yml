@@ -178,6 +178,10 @@ en:
   share_view:
     label: "Shared note"
     open_exports: "Open export actions"
+    display: "Display"
+    display_controls: "Reading controls"
+    show_controls: "Show reading controls"
+    hide_controls: "Hide reading controls"
     zoom: "Zoom"
     zoom_in: "Zoom in"
     zoom_out: "Zoom out"

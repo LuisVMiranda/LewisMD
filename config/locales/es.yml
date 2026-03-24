@@ -156,6 +156,10 @@ es:
   share_view:
     label: Nota compartida
     open_exports: Abrir acciones de exportación
+    display: Visualización
+    display_controls: Controles de lectura
+    show_controls: Mostrar controles de lectura
+    hide_controls: Ocultar controles de lectura
     zoom: Zoom
     zoom_in: Acercar
     zoom_out: Alejar
