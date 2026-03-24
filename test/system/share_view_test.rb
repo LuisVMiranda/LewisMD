@@ -46,6 +46,7 @@ class ShareViewTest < ApplicationSystemTestCase
 
     visit share_snapshot_url(token: share[:token])
     assert_selector "iframe[data-share-view-target='frame']", wait: 2
+    assert_button "Share"
 
     install_download_capture
     open_share_export_menu
@@ -189,7 +190,7 @@ class ShareViewTest < ApplicationSystemTestCase
   end
 
   def open_share_export_menu
-    find("button[title='Open export actions']").click
+    find("button[title='Open share, export, and copy actions']").click
     assert_selector "[data-export-menu-target='menu']:not(.hidden)", wait: 2
   end
 
