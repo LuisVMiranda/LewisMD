@@ -496,6 +496,7 @@ ja:
     note_is_empty: ノートが空です
     folder_not_found: フォルダが見つかりません
     folder_already_exists: フォルダは既に存在します
+    template_already_exists: テンプレートは既に存在します
     file_not_found: このファイルは存在しないか、削除されました。
     no_file_open: ファイルが開かれていません
     no_text_to_check: チェックするテキストがありません

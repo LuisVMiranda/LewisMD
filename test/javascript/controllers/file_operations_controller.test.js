@@ -50,6 +50,7 @@ describe("FileOperationsController", () => {
           <input data-file-operations-target="templatePathInput" type="text" />
           <textarea data-file-operations-target="templateContentInput"></textarea>
           <button data-file-operations-target="templateDeleteButton" class="hidden">Delete</button>
+          <button data-file-operations-target="templateSaveButton">Save</button>
         </dialog>
         <dialog data-file-operations-target="newItemDialog">
           <h3 data-file-operations-target="newItemTitle"></h3>
@@ -479,7 +480,7 @@ describe("FileOperationsController", () => {
 
       expect(controller.currentTemplatePath).toBe("team/retro.md")
       expect(controller.templatePathInputTarget.value).toBe("team/retro.md")
-      expect(controller.templatePathInputTarget.readOnly).toBe(true)
+      expect(controller.templatePathInputTarget.readOnly).toBe(false)
       expect(controller.templateContentInputTarget.value).toContain("## Wins")
       expect(controller.templateDeleteButtonTarget.classList.contains("hidden")).toBe(false)
     })
@@ -510,14 +511,14 @@ describe("FileOperationsController", () => {
 
     it("updates an existing template via the templates API", async () => {
       controller.currentTemplatePath = "team/retro.md"
-      controller.templatePathInputTarget.value = "team/retro.md"
+      controller.templatePathInputTarget.value = "team/retro-renamed.md"
       controller.templateContentInputTarget.value = "# Updated"
 
       await controller.submitTemplateSave()
 
       expect(global.fetch).toHaveBeenCalledWith("/templates/team/retro.md", expect.objectContaining({
         method: "PATCH",
-        body: expect.stringContaining('"content":"# Updated"')
+        body: expect.stringContaining('"new_path":"team/retro-renamed.md"')
       }))
     })
 

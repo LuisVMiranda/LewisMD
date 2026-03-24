@@ -496,6 +496,7 @@ es:
     note_is_empty: La nota está vacía
     folder_not_found: Carpeta no encontrada
     folder_already_exists: La carpeta ya existe
+    template_already_exists: La plantilla ya existe
     file_not_found: Este archivo ya no existe o fue eliminado.
     no_file_open: Ningún archivo abierto
     no_text_to_check: No hay texto para revisar

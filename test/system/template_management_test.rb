@@ -60,6 +60,7 @@ class TemplateManagementTest < ApplicationSystemTestCase
 
     within "[data-file-operations-target='templateManagerDialog']" do
       click_button "Retro"
+      assert_field placeholder: "e.g. team/retro", with: "team/retro.md", wait: 3
       fill_in placeholder: "Write your template markdown here...", with: "# Retro\n\n## Wins\n\n- Updated"
       click_button "Save"
     end
@@ -79,6 +80,7 @@ class TemplateManagementTest < ApplicationSystemTestCase
 
     accept_confirm do
       within "[data-file-operations-target='templateManagerDialog']" do
+        assert_button "Delete", disabled: false, wait: 3
         click_button "Delete"
       end
     end
@@ -89,6 +91,40 @@ class TemplateManagementTest < ApplicationSystemTestCase
 
     assert_eventually do
       !File.exist?(@test_notes_dir.join(".frankmd/templates/team/retro.md"))
+    end
+  end
+
+  test "template manager renames an existing template" do
+    TemplatesService.new(base_path: @test_notes_dir).write("team/retro.md", "# Retro\n\n## Wins")
+
+    visit root_url
+    assert_selector "[data-app-target='fileTree']"
+
+    page.execute_script("document.querySelector('button[title=\"New Note (Ctrl+N)\"]').click()")
+    assert_selector "[data-file-operations-target='noteTypeDialog'][open]", wait: 3
+
+    within "[data-file-operations-target='noteTypeDialog']" do
+      click_button "Template", exact_text: true
+    end
+    assert_selector "[data-file-operations-target='templateDialog'][open]", wait: 3
+
+    within "[data-file-operations-target='templateDialog']" do
+      click_button "Manage Templates"
+    end
+
+    assert_selector "[data-file-operations-target='templateManagerDialog'][open]", wait: 3
+
+    within "[data-file-operations-target='templateManagerDialog']" do
+      click_button "Retro"
+      assert_field placeholder: "e.g. team/retro", with: "team/retro.md", wait: 3
+      fill_in placeholder: "e.g. team/retro", with: "team/retro-renamed"
+      click_button "Save"
+      assert_text "Template saved"
+    end
+
+    assert_eventually do
+      !File.exist?(@test_notes_dir.join(".frankmd/templates/team/retro.md")) &&
+        File.exist?(@test_notes_dir.join(".frankmd/templates/team/retro-renamed.md"))
     end
   end
 

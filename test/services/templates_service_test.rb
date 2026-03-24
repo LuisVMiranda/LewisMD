@@ -80,6 +80,30 @@ class TemplatesServiceTest < ActiveSupport::TestCase
     refute @service.exists?("obsolete.md")
   end
 
+  test "update renames a template and preserves linked notes" do
+    @service.save_from_note(note_path: "drafts/weekly.md", template_path: "saved/weekly-template")
+
+    renamed_path = @service.update(
+      path: "saved/weekly-template.md",
+      new_path: "saved/weekly-template-renamed",
+      content: "# Weekly\n\nRenamed"
+    )
+
+    assert_equal "saved/weekly-template-renamed.md", renamed_path
+    refute @service.exists?("saved/weekly-template.md")
+    assert_equal "# Weekly\n\nRenamed", @service.read("saved/weekly-template-renamed.md")
+    assert_equal "saved/weekly-template-renamed.md", @service.linked_template_path_for("drafts/weekly.md")
+  end
+
+  test "update rejects renaming over an existing template" do
+    @service.write("drafts/one", "# One")
+    @service.write("drafts/two", "# Two")
+
+    assert_raises(TemplatesService::ConflictError) do
+      @service.update(path: "drafts/one.md", new_path: "drafts/two", content: "# One")
+    end
+  end
+
   test "read raises not found when a template disappears during access" do
     path = @service.base_path.join("vanishing.md")
     path.stubs(:file?).returns(true)

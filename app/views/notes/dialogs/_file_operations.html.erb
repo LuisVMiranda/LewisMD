@@ -267,7 +267,7 @@
             type="button"
             data-file-operations-target="templateDeleteButton"
             data-action="click->file-operations#deleteTemplate"
-            class="hidden px-3 py-1.5 text-sm rounded-md hover:bg-[var(--theme-bg-hover)] text-[var(--theme-error)]"
+            class="hidden px-3 py-1.5 text-sm rounded-md hover:bg-[var(--theme-bg-hover)] text-[var(--theme-error)] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <%= t('common.delete') %>
           </button>
@@ -280,8 +280,9 @@
           </button>
           <button
             type="button"
+            data-file-operations-target="templateSaveButton"
             data-action="click->file-operations#submitTemplateSave"
-            class="px-3 py-1.5 text-sm rounded-md bg-[var(--theme-accent)] text-[var(--theme-accent-text)] hover:bg-[var(--theme-accent-hover)]"
+            class="px-3 py-1.5 text-sm rounded-md bg-[var(--theme-accent)] text-[var(--theme-accent-text)] hover:bg-[var(--theme-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <%= t('common.save') %>
           </button>

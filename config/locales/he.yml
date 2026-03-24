@@ -470,6 +470,7 @@ he:
     note_is_empty: ההערה ריקה
     folder_not_found: התיקייה לא נמצאה
     folder_already_exists: התיקייה כבר קיימת
+    template_already_exists: התבנית כבר קיימת
     file_not_found: קובץ זה כבר לא קיים או נמחק.
     no_file_open: אין קובץ פתוח
     no_text_to_check: אין טקסט לבדיקה

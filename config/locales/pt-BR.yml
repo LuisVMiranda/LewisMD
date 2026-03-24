@@ -501,6 +501,7 @@ pt-BR:
     note_is_empty: A nota está vazia
     folder_not_found: Pasta não encontrada
     folder_already_exists: Pasta já existe
+    template_already_exists: Modelo já existe
     file_not_found: Este arquivo não existe mais ou foi excluído.
     no_file_open: Nenhum arquivo aberto
     no_text_to_check: Nenhum texto para verificar

@@ -48,6 +48,7 @@ export default class extends Controller {
     "templatePathInput",
     "templateContentInput",
     "templateDeleteButton",
+    "templateSaveButton",
     "saveTemplateDialog",
     "saveTemplateTitle",
     "saveTemplateNotePath",
@@ -392,6 +393,7 @@ export default class extends Controller {
         this.prepareNewTemplate()
       }
     } catch (error) {
+      if (refreshVersion && refreshVersion !== this.templateManagerRefreshVersion) return
       console.error("Failed to refresh templates:", error)
       alert(error.message || window.t("errors.failed_to_load_templates"))
     }
@@ -437,6 +439,8 @@ export default class extends Controller {
   }
 
   async loadTemplateForEditing(templatePath, { refreshVersion = null } = {}) {
+    this.setTemplateFormBusy(true)
+
     try {
       const response = await get(`/templates/${encodePath(templatePath)}`, { responseKind: "json" })
       if (!response.ok) {
@@ -455,14 +459,17 @@ export default class extends Controller {
       }
       if (this.hasTemplatePathInputTarget) {
         this.templatePathInputTarget.value = template.path
-        this.templatePathInputTarget.readOnly = true
+        this.templatePathInputTarget.readOnly = false
       }
       if (this.hasTemplateContentInputTarget) {
         this.templateContentInputTarget.value = template.content
       }
       this.templateDeleteButtonTarget?.classList.remove("hidden")
       this.renderTemplateManagerList()
+      this.setTemplateFormBusy(false)
     } catch (error) {
+      if (refreshVersion && refreshVersion !== this.templateManagerRefreshVersion) return
+      this.setTemplateFormBusy(false)
       console.error("Failed to load template:", error)
       alert(error.message || window.t("errors.failed_to_load_templates"))
     }
@@ -477,6 +484,7 @@ export default class extends Controller {
   prepareNewTemplate() {
     this.currentTemplatePath = null
     this.clearTemplateManagerNotice()
+    this.setTemplateFormBusy(false)
 
     if (this.hasTemplateFormTitleTarget) {
       this.templateFormTitleTarget.textContent = window.t("dialogs.templates.new_title")
@@ -506,7 +514,7 @@ export default class extends Controller {
       let response
       if (this.currentTemplatePath) {
         response = await patch(`/templates/${encodePath(this.currentTemplatePath)}`, {
-          body: { content },
+          body: { content, new_path: path },
           responseKind: "json"
         })
       } else {
@@ -1032,5 +1040,12 @@ export default class extends Controller {
     if (!preserveText) {
       this.templateManagerNoticeTarget.textContent = ""
     }
+  }
+
+  setTemplateFormBusy(isBusy) {
+    this.templatePathInputTarget?.toggleAttribute("disabled", isBusy)
+    this.templateContentInputTarget?.toggleAttribute("disabled", isBusy)
+    this.templateDeleteButtonTarget?.toggleAttribute("disabled", isBusy)
+    this.templateSaveButtonTarget?.toggleAttribute("disabled", isBusy)
   }
 }

@@ -577,6 +577,7 @@ en:
     note_is_empty: "Note is empty"
     folder_not_found: "Folder not found"
     folder_already_exists: "Folder already exists"
+    template_already_exists: "Template already exists"
     file_not_found: "This file no longer exists or was deleted."
     no_file_open: "No file open"
     no_text_to_check: "No text to check"

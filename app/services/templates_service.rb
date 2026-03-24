@@ -7,6 +7,7 @@ class TemplatesService
   class NotFoundError < StandardError; end
   class InvalidPathError < StandardError; end
   class InvalidNoteError < StandardError; end
+  class ConflictError < StandardError; end
 
   SUPPORTED_EXTENSIONS = %w[.md .markdown].freeze
   DEFAULT_ROOT = ".frankmd/templates"
@@ -54,6 +55,29 @@ class TemplatesService
     FileUtils.mkdir_p(full_path.dirname)
     full_path.write(content.to_s)
     full_path.relative_path_from(base_path).to_s
+  end
+
+  def update(path:, content:, new_path: nil)
+    normalized_current_path = normalize_path(path)
+    normalized_new_path = normalize_path(new_path.presence || path)
+    current_full_path = safe_path(normalized_current_path)
+    raise NotFoundError, "Template not found: #{path}" unless current_full_path.file?
+
+    destination_full_path = safe_path(normalized_new_path, must_exist: false)
+    if normalized_new_path != normalized_current_path
+      if destination_full_path.exist?
+        raise ConflictError, "Template already exists: #{normalized_new_path}"
+      end
+
+      FileUtils.mkdir_p(destination_full_path.dirname)
+      FileUtils.mv(current_full_path, destination_full_path)
+      rewrite_linked_template_paths(normalized_current_path, normalized_new_path)
+    end
+
+    destination_full_path.write(content.to_s)
+    destination_full_path.relative_path_from(base_path).to_s
+  rescue Errno::ENOENT
+    raise NotFoundError, "Template not found: #{path}"
   end
 
   def delete(path)
@@ -247,6 +271,20 @@ class TemplatesService
 
   def write_template_links(links)
     atomic_write(template_links_path, JSON.pretty_generate(links))
+  end
+
+  def rewrite_linked_template_paths(old_template_path, new_template_path)
+    links = template_links
+    updated = false
+
+    links.each do |note_path, linked_template_path|
+      next unless normalize_path(linked_template_path) == old_template_path
+
+      links[note_path] = new_template_path
+      updated = true
+    end
+
+    write_template_links(links) if updated
   end
 
   def atomic_write(pathname, content)

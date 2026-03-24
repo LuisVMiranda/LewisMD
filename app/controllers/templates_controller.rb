@@ -46,9 +46,17 @@ class TemplatesController < ApplicationController
   end
 
   def update
-    render json: { path: @service.write(template_path, params[:content] || "") }
+    render json: {
+      path: @service.update(
+        path: template_path,
+        content: params[:content] || "",
+        new_path: params[:new_path]
+      )
+    }
   rescue TemplatesService::NotFoundError
     render json: { error: t("errors.file_not_found") }, status: :not_found
+  rescue TemplatesService::ConflictError
+    render json: { error: t("errors.template_already_exists") }, status: :unprocessable_entity
   rescue TemplatesService::InvalidPathError => e
     render json: { error: e.message }, status: :unprocessable_entity
   end

@@ -66,6 +66,33 @@ class TemplatesControllerTest < ActionDispatch::IntegrationTest
     assert_equal "# New", @service.read("drafts/article.md")
   end
 
+  test "update renames a template when new_path is provided" do
+    @service.write("drafts/article", "# Old")
+
+    patch update_template_file_url(path: "drafts/article.md"),
+      params: { content: "# New", new_path: "drafts/article-renamed" },
+      as: :json
+    assert_response :success
+
+    data = JSON.parse(response.body)
+    assert_equal "drafts/article-renamed.md", data["path"]
+    refute @service.exists?("drafts/article.md")
+    assert_equal "# New", @service.read("drafts/article-renamed.md")
+  end
+
+  test "update returns validation error when target path already exists" do
+    @service.write("drafts/article", "# Old")
+    @service.write("drafts/existing", "# Existing")
+
+    patch update_template_file_url(path: "drafts/article.md"),
+      params: { content: "# New", new_path: "drafts/existing" },
+      as: :json
+    assert_response :unprocessable_entity
+
+    data = JSON.parse(response.body)
+    assert_equal I18n.t("errors.template_already_exists"), data["error"]
+  end
+
   test "destroy removes template file" do
     @service.write("obsolete", "# Old")
 
