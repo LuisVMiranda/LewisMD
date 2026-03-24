@@ -90,6 +90,8 @@ he:
     rename: שנה שם
     save_as_template: שמור כתבנית
     delete_template: מחק תבנית
+    backup_note: ??? ????
+    backup_folder: ??? ??????
     delete: מחק
   status:
     copied_to_clipboard: התוכן הועתק ללוח
@@ -115,6 +117,9 @@ he:
     content_loss_warning: זוהתה מחיקת תוכן גדולה. לחץ Ctrl+Z לביטול אם זה היה בטעות.
     undo: בטל
     save_anyway: שמור בכל זאת
+    backup_preparing: ???? ?????...
+    backup_started: ????? ?????? ??????
+    backup_failed: ????? ?????? ?????
     share_link_created: קישור השיתוף נוצר והועתק
     share_link_copied: קישור השיתוף הועתק
     share_link_refreshed: תמונת המצב המשותפת עודכנה

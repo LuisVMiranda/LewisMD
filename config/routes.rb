@@ -1,6 +1,10 @@
 Rails.application.routes.draw do
   root "notes#index"
 
+  # Backup export API
+  get "backup/note/*path", to: "backups#note", as: :backup_note, format: false
+  get "backup/folder/*path", to: "backups#folder", as: :backup_folder, format: false
+
   # Notes API
   get "notes/tree", to: "notes#tree"
   get "notes/search", to: "notes#search"

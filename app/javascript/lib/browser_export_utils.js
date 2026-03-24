@@ -1,6 +1,4 @@
-export function downloadExportFile(filename, content, contentType) {
-  const blob = new Blob([content], { type: contentType })
-  const url = URL.createObjectURL(blob)
+function triggerFileDownload(filename, url) {
   const link = document.createElement("a")
 
   link.href = url
@@ -17,6 +15,15 @@ export function downloadExportFile(filename, content, contentType) {
   }, 0)
 
   return true
+}
+
+export function downloadBlobFile(filename, blob) {
+  return triggerFileDownload(filename, URL.createObjectURL(blob))
+}
+
+export function downloadExportFile(filename, content, contentType) {
+  const blob = new Blob([content], { type: contentType })
+  return downloadBlobFile(filename, blob)
 }
 
 export async function waitForDocumentImages(frameDocument, timeoutMs = 5000) {

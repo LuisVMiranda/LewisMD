@@ -93,6 +93,8 @@ pt-BR:
     rename: Renomear
     save_as_template: Salvar como Modelo
     delete_template: Excluir Modelo
+    backup_note: Fazer backup da nota
+    backup_folder: Fazer backup da pasta
     delete: Excluir
   status:
     copied_to_clipboard: Conteúdo copiado para a área de transferência
@@ -118,6 +120,9 @@ pt-BR:
     content_loss_warning: Grande exclusão de conteúdo detectada. Pressione Ctrl+Z para desfazer se foi acidental.
     undo: Desfazer
     save_anyway: Salvar Mesmo Assim
+    backup_preparing: Preparando backup...
+    backup_started: Download do backup iniciado
+    backup_failed: Falha ao baixar o backup
     share_link_created: Link compartilhado criado e copiado
     share_link_copied: Link compartilhado copiado
     share_link_refreshed: Snapshot compartilhado atualizado

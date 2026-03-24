@@ -7,6 +7,8 @@ import FileOperationsController from "../../../app/javascript/controllers/file_o
 
 describe("FileOperationsController", () => {
   let application, controller, element
+  let originalCreateObjectURL
+  let originalRevokeObjectURL
 
   beforeEach(() => {
     // Mock window.t for translations
@@ -19,12 +21,22 @@ describe("FileOperationsController", () => {
     document.head.innerHTML = '<meta name="csrf-token" content="test-token">'
 
     document.body.innerHTML = `
-      <div data-controller="file-operations">
+      <div
+        data-controller="file-operations"
+        data-file-operations-backup-note-label-value="Back up note"
+        data-file-operations-backup-folder-label-value="Back up folder"
+        data-file-operations-backup-preparing-message-value="Preparing backup..."
+        data-file-operations-backup-started-message-value="Backup download started"
+        data-file-operations-backup-failed-message-value="Failed to download backup"
+      >
         <div data-file-operations-target="contextMenu" class="hidden">
           <button data-action="click->file-operations#renameItem">Rename</button>
           <button data-action="click->file-operations#deleteItem">Delete</button>
           <button data-action="click->file-operations#newNoteInFolder">New Note</button>
           <button data-action="click->file-operations#newFolderInFolder">New Folder</button>
+          <button data-file-operations-target="backupMenuItem" class="hidden">
+            <span data-file-operations-target="backupMenuLabel"></span>
+          </button>
           <button data-file-operations-target="templateNoteMenuItem" class="hidden">
             <span data-file-operations-target="templateNoteMenuLabel"></span>
           </button>
@@ -146,6 +158,30 @@ describe("FileOperationsController", () => {
         })
       }
 
+      if (url === "/backup/note/folder/test%20note.md") {
+        return Promise.resolve({
+          ok: true,
+          headers: new Headers({
+            "Content-Disposition": 'attachment; filename="test note-backup.zip"'
+          }),
+          blob: () => Promise.resolve(new Blob(["zip"], { type: "application/zip" })),
+          json: () => Promise.resolve({}),
+          text: () => Promise.resolve("")
+        })
+      }
+
+      if (url === "/backup/folder/team%20docs") {
+        return Promise.resolve({
+          ok: true,
+          headers: new Headers({
+            "Content-Disposition": 'attachment; filename="team docs-backup.zip"'
+          }),
+          blob: () => Promise.resolve(new Blob(["zip"], { type: "application/zip" })),
+          json: () => Promise.resolve({}),
+          text: () => Promise.resolve("")
+        })
+      }
+
       return Promise.resolve({
         ok: true,
         headers: { get: () => "application/json" },
@@ -157,6 +193,11 @@ describe("FileOperationsController", () => {
     // Mock confirm
     global.confirm = vi.fn().mockReturnValue(true)
     global.alert = vi.fn()
+    originalCreateObjectURL = URL.createObjectURL
+    originalRevokeObjectURL = URL.revokeObjectURL
+    URL.createObjectURL = vi.fn(() => "blob:backup-test")
+    URL.revokeObjectURL = vi.fn()
+    HTMLAnchorElement.prototype.click = vi.fn()
 
     element = document.querySelector('[data-controller="file-operations"]')
     application = Application.start()
@@ -171,6 +212,8 @@ describe("FileOperationsController", () => {
   })
 
   afterEach(() => {
+    URL.createObjectURL = originalCreateObjectURL
+    URL.revokeObjectURL = originalRevokeObjectURL
     application.stop()
     vi.restoreAllMocks()
   })
@@ -261,6 +304,40 @@ describe("FileOperationsController", () => {
       expect(global.fetch).toHaveBeenCalledWith("/templates/status/test.md", expect.any(Object))
       expect(controller.templateNoteMenuItemTarget.classList.contains("hidden")).toBe(false)
       expect(controller.templateNoteMenuLabelTarget.textContent).toBe("context_menu.save_as_template")
+    })
+
+    it("shows back up note for files", () => {
+      const event = {
+        preventDefault: vi.fn(),
+        stopPropagation: vi.fn(),
+        clientX: 100,
+        clientY: 200,
+        currentTarget: {
+          dataset: { path: "test.md", type: "file", fileType: "markdown" }
+        }
+      }
+
+      controller.showContextMenu(event)
+
+      expect(controller.backupMenuItemTarget.classList.contains("hidden")).toBe(false)
+      expect(controller.backupMenuLabelTarget.textContent).toBe("Back up note")
+    })
+
+    it("shows back up folder for folders", () => {
+      const event = {
+        preventDefault: vi.fn(),
+        stopPropagation: vi.fn(),
+        clientX: 100,
+        clientY: 200,
+        currentTarget: {
+          dataset: { path: "projects", type: "folder" }
+        }
+      }
+
+      controller.showContextMenu(event)
+
+      expect(controller.backupMenuItemTarget.classList.contains("hidden")).toBe(false)
+      expect(controller.backupMenuLabelTarget.textContent).toBe("Back up folder")
     })
   })
 
@@ -820,6 +897,99 @@ describe("FileOperationsController", () => {
 
       expect(handler).toHaveBeenCalled()
       expect(handler.mock.calls[0][0].detail.path).toBe("test.md")
+    })
+  })
+
+  describe("downloadBackup()", () => {
+    it("fetches and downloads a note backup with status feedback", async () => {
+      controller.contextItem = { path: "folder/test note.md", type: "file", fileType: "markdown" }
+      const dispatchSpy = vi.spyOn(controller, "dispatch")
+
+      await controller.downloadBackup()
+
+      expect(global.fetch).toHaveBeenCalledWith("/backup/note/folder/test%20note.md", expect.objectContaining({
+        credentials: "same-origin"
+      }))
+      expect(HTMLAnchorElement.prototype.click).toHaveBeenCalled()
+      const downloadLink = HTMLAnchorElement.prototype.click.mock.instances.at(-1)
+      expect(downloadLink.href).toBe("blob:backup-test")
+      expect(downloadLink.download).toBe("test note-backup.zip")
+      expect(controller.contextMenuTarget.classList.contains("hidden")).toBe(true)
+      expect(dispatchSpy).toHaveBeenCalledWith("status-message", expect.objectContaining({
+        detail: expect.objectContaining({ message: "Preparing backup..." })
+      }))
+      expect(dispatchSpy).toHaveBeenCalledWith("status-message", expect.objectContaining({
+        detail: expect.objectContaining({ message: "Backup download started", error: false })
+      }))
+    })
+
+    it("fetches and downloads a folder backup with status feedback", async () => {
+      controller.contextItem = { path: "team docs", type: "folder" }
+      const dispatchSpy = vi.spyOn(controller, "dispatch")
+
+      await controller.downloadBackup()
+
+      expect(global.fetch).toHaveBeenCalledWith("/backup/folder/team%20docs", expect.objectContaining({
+        credentials: "same-origin"
+      }))
+      const downloadLink = HTMLAnchorElement.prototype.click.mock.instances.at(-1)
+      expect(downloadLink.download).toBe("team docs-backup.zip")
+      expect(dispatchSpy).toHaveBeenCalledWith("status-message", expect.objectContaining({
+        detail: expect.objectContaining({ message: "Backup download started" })
+      }))
+    })
+
+    it("shows an error message when the backup request fails", async () => {
+      controller.contextItem = { path: "folder/test note.md", type: "file", fileType: "markdown" }
+      global.fetch = vi.fn((url) => {
+        if (url === "/backup/note/folder/test%20note.md") {
+          return Promise.resolve({
+            ok: false,
+            headers: new Headers({ "Content-Type": "application/json" }),
+            json: () => Promise.resolve({ error: "Note not found" })
+          })
+        }
+
+        return Promise.resolve({
+          ok: true,
+          headers: { get: () => "application/json" },
+          json: () => Promise.resolve({ path: "test.md" }),
+          text: () => Promise.resolve('{"path": "test.md"}')
+        })
+      })
+      const dispatchSpy = vi.spyOn(controller, "dispatch")
+
+      await controller.downloadBackup()
+
+      expect(HTMLAnchorElement.prototype.click).not.toHaveBeenCalled()
+      expect(dispatchSpy).toHaveBeenCalledWith("status-message", expect.objectContaining({
+        detail: expect.objectContaining({ message: "Note not found", error: true })
+      }))
+    })
+
+    it("falls back to a generated filename when the download response omits Content-Disposition", async () => {
+      controller.contextItem = { path: "folder/test note.md", type: "file", fileType: "markdown" }
+      global.fetch = vi.fn((url) => {
+        if (url === "/backup/note/folder/test%20note.md") {
+          return Promise.resolve({
+            ok: true,
+            headers: new Headers(),
+            blob: () => Promise.resolve(new Blob(["zip"], { type: "application/zip" }))
+          })
+        }
+
+        return Promise.resolve({
+          ok: true,
+          headers: { get: () => "application/json" },
+          json: () => Promise.resolve({ path: "test.md" }),
+          text: () => Promise.resolve('{"path": "test.md"}')
+        })
+      })
+
+      await controller.downloadBackup()
+
+      const downloadLink = HTMLAnchorElement.prototype.click.mock.instances.at(-1)
+      expect(downloadLink.download).toBe("test note-backup.zip")
     })
   })
 

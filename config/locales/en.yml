@@ -110,6 +110,8 @@ en:
     rename: "Rename"
     save_as_template: "Save as Template"
     delete_template: "Delete Template"
+    backup_note: "Back up note"
+    backup_folder: "Back up folder"
     delete: "Delete"
 
   # Status messages
@@ -137,6 +139,9 @@ en:
     content_loss_warning: "Large content deletion detected. Press Ctrl+Z to undo if accidental."
     undo: "Undo"
     save_anyway: "Save Anyway"
+    backup_preparing: "Preparing backup..."
+    backup_started: "Backup download started"
+    backup_failed: "Failed to download backup"
     offline_backup_saved: "Backed up locally"
     share_link_created: Shared link created and copied
     share_link_copied: Shared link copied

@@ -1835,13 +1835,15 @@ export default class extends Controller {
   }
 
   // Show a temporary message to the user (auto-dismisses)
-  showTemporaryMessage(message, duration = 2000) {
+  showTemporaryMessage(message, duration = 2000, isError = false) {
     // Remove any existing message
     const existing = document.querySelector(".temporary-message")
     if (existing) existing.remove()
 
     const el = document.createElement("div")
-    el.className = "temporary-message fixed bottom-4 left-1/2 -translate-x-1/2 bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] px-4 py-2 rounded-lg shadow-lg border border-[var(--theme-border)] text-sm z-50"
+    el.className = isError
+      ? "temporary-message fixed bottom-4 left-1/2 -translate-x-1/2 bg-[var(--theme-bg-secondary)] text-[var(--theme-error)] px-4 py-2 rounded-lg shadow-lg border border-[var(--theme-error)] text-sm z-50"
+      : "temporary-message fixed bottom-4 left-1/2 -translate-x-1/2 bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] px-4 py-2 rounded-lg shadow-lg border border-[var(--theme-border)] text-sm z-50"
     el.textContent = message
     document.body.appendChild(el)
 
@@ -2268,6 +2270,13 @@ export default class extends Controller {
     }
 
     // Tree is already updated by Turbo Stream
+  }
+
+  onFileOperationsStatusMessage(event) {
+    const { message, duration = 2500, error = false } = event.detail || {}
+    if (!message) return
+
+    this.showTemporaryMessage(message, duration, error)
   }
 
   // File Operations - delegate to file-operations controller

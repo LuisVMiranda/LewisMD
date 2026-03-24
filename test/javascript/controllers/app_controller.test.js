@@ -719,6 +719,20 @@ describe("AppController shared UI state", () => {
     expect(fileOperationsController.openSaveTemplateFromNoteDialog).toHaveBeenCalledWith("notes/test.md")
   })
 
+  it("forwards file operation status messages into temporary feedback", () => {
+    controller.showTemporaryMessage = vi.fn()
+
+    controller.onFileOperationsStatusMessage({
+      detail: {
+        message: "Backup download started",
+        duration: 3200,
+        error: true
+      }
+    })
+
+    expect(controller.showTemporaryMessage).toHaveBeenCalledWith("Backup download started", 3200, true)
+  })
+
   it("alerts when attempting to save a non-markdown file as a template", async () => {
     controller.currentFile = ".fed"
     controller.currentFileType = "config"

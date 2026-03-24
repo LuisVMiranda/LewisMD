@@ -93,6 +93,8 @@ ko:
     rename: 이름 변경
     save_as_template: 템플릿으로 저장
     delete_template: 템플릿 삭제
+    backup_note: ?? ??
+    backup_folder: ?? ??
     delete: 삭제
   status:
     copied_to_clipboard: 클립보드에 복사되었습니다
@@ -118,6 +120,9 @@ ko:
     content_loss_warning: 대량의 콘텐츠 삭제가 감지되었습니다. 실수인 경우 Ctrl+Z를 눌러 되돌리세요.
     undo: 실행 취소
     save_anyway: 그래도 저장
+    backup_preparing: ??? ???? ?...
+    backup_started: ?? ????? ??????
+    backup_failed: ?? ????? ??????
     share_link_created: 공유 링크를 만들고 복사했습니다
     share_link_copied: 공유 링크를 복사했습니다
     share_link_refreshed: 공유 스냅샷을 업데이트했습니다

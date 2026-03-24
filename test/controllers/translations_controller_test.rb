@@ -343,6 +343,26 @@ class TranslationsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "all locales include backup menu and status translations" do
+    checks = [
+      [ "context_menu", "backup_note" ],
+      [ "context_menu", "backup_folder" ],
+      [ "status", "backup_preparing" ],
+      [ "status", "backup_started" ],
+      [ "status", "backup_failed" ]
+    ]
+
+    %w[en pt-BR pt-PT es he ja ko].each do |locale|
+      get translations_url(locale: locale), as: :json
+      data = JSON.parse(response.body)
+
+      checks.each do |path|
+        value = data.dig("translations", *path)
+        assert value.present?, "Locale #{locale} is missing #{path.join('.')}"
+      end
+    end
+  end
+
   # === Invalid Locale Handling ===
 
   test "invalid locale falls back to default" do

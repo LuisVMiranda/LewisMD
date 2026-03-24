@@ -435,6 +435,7 @@ DEPENDENCIES
   requestjs-rails
   rubocop-rails-omakase
   ruby_llm
+  rubyzip
   selenium-webdriver
   simplecov
   stimulus-rails

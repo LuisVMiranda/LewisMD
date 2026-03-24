@@ -1,6 +1,11 @@
 <!-- File Operations - Context Menu and Dialogs -->
 <div data-controller="file-operations"
-     data-action="file-operations:file-created->app#onFileCreated file-operations:folder-created->app#onFolderCreated file-operations:file-renamed->app#onFileRenamed file-operations:file-deleted->app#onFileDeleted">
+     data-file-operations-backup-note-label-value="<%= t('context_menu.backup_note', default: 'Back up note') %>"
+     data-file-operations-backup-folder-label-value="<%= t('context_menu.backup_folder', default: 'Back up folder') %>"
+     data-file-operations-backup-preparing-message-value="<%= t('status.backup_preparing', default: 'Preparing backup...') %>"
+     data-file-operations-backup-started-message-value="<%= t('status.backup_started', default: 'Backup download started') %>"
+     data-file-operations-backup-failed-message-value="<%= t('status.backup_failed', default: 'Failed to download backup') %>"
+     data-action="file-operations:file-created->app#onFileCreated file-operations:folder-created->app#onFolderCreated file-operations:file-renamed->app#onFileRenamed file-operations:file-deleted->app#onFileDeleted file-operations:status-message->app#onFileOperationsStatusMessage">
 
   <!-- Context Menu -->
   <div
@@ -48,6 +53,17 @@
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h10M7 12h10M7 17h6M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z" />
       </svg>
       <span data-file-operations-target="templateNoteMenuLabel"><%= t('context_menu.save_as_template') %></span>
+    </button>
+    <button
+      type="button"
+      data-file-operations-target="backupMenuItem"
+      data-action="click->file-operations#downloadBackup"
+      class="hidden w-full px-3 py-1.5 text-left text-sm hover:bg-[var(--theme-bg-hover)] flex items-center gap-2"
+    >
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 16V4m0 12l-4-4m4 4l4-4M5 20h14" />
+      </svg>
+      <span data-file-operations-target="backupMenuLabel"><%= t('context_menu.backup_note', default: 'Back up note') %></span>
     </button>
     <button
       type="button"

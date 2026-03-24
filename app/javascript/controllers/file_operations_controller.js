@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { get, post, patch, destroy } from "@rails/request.js"
+import { downloadBlobFile } from "lib/browser_export_utils"
 import { encodePath } from "lib/url_utils"
 
 const BUILT_IN_TEMPLATE_METADATA = {
@@ -30,8 +31,18 @@ const BUILT_IN_TEMPLATE_METADATA = {
 // Dispatches events: file-created, file-renamed, file-deleted, folder-created
 
 export default class extends Controller {
+  static values = {
+    backupNoteLabel: String,
+    backupFolderLabel: String,
+    backupPreparingMessage: String,
+    backupStartedMessage: String,
+    backupFailedMessage: String
+  }
+
   static targets = [
     "contextMenu",
+    "backupMenuItem",
+    "backupMenuLabel",
     "templateNoteMenuItem",
     "templateNoteMenuLabel",
     "renameDialog",
@@ -152,6 +163,7 @@ export default class extends Controller {
 
     const newFolderItem = this.contextMenuTarget.querySelector('[data-action*="newFolderInFolder"]')
     if (newFolderItem) newFolderItem.classList.toggle("hidden", type !== "folder")
+    this.updateBackupContextMenuItem()
     this.updateTemplateContextMenuItem()
 
     // Position and show menu
@@ -195,6 +207,107 @@ export default class extends Controller {
     } catch (error) {
       console.error("Failed to load template link status:", error)
     }
+  }
+
+  updateBackupContextMenuItem() {
+    if (!this.hasBackupMenuItemTarget || !this.hasBackupMenuLabelTarget) return
+
+    const itemType = this.contextItem?.type
+    const canBackup = itemType === "folder" || itemType === "file"
+
+    this.backupMenuItemTarget.classList.toggle("hidden", !canBackup)
+    if (!canBackup) return
+
+    this.backupMenuLabelTarget.textContent = itemType === "folder"
+      ? this.backupFolderLabelValue
+      : this.backupNoteLabelValue
+  }
+
+  async downloadBackup() {
+    if (!this.contextItem) return
+
+    const backupType = this.contextItem.type === "folder" ? "folder" : "note"
+    const downloadUrl = `/backup/${backupType}/${encodePath(this.contextItem.path)}`
+    const fallbackFilename = this.defaultBackupFilename()
+
+    this.hideContextMenu()
+    this.showStatusMessage(this.backupPreparingMessageValue || "Preparing backup...")
+
+    try {
+      const response = await fetch(downloadUrl, {
+        headers: {
+          Accept: "application/zip, application/json"
+        },
+        credentials: "same-origin"
+      })
+
+      if (!response.ok) {
+        throw new Error(await this.extractBackupError(response))
+      }
+
+      const blob = await response.blob()
+      const filename = this.extractDownloadFilename(
+        response.headers.get("Content-Disposition"),
+        fallbackFilename
+      )
+
+      downloadBlobFile(filename, blob)
+      this.showStatusMessage(this.backupStartedMessageValue || "Backup download started")
+    } catch (error) {
+      console.error("Failed to download backup:", error)
+      this.showStatusMessage(
+        error.message || this.backupFailedMessageValue || "Failed to download backup",
+        true
+      )
+    }
+  }
+
+  defaultBackupFilename() {
+    const itemName = (this.contextItem?.path || "backup")
+      .split("/")
+      .pop()
+      .replace(/\.(md|markdown)$/i, "")
+
+    return `${itemName}-backup.zip`
+  }
+
+  async extractBackupError(response) {
+    const contentType = response.headers.get("Content-Type") || ""
+
+    if (contentType.includes("application/json")) {
+      try {
+        const data = await response.json()
+        if (data?.error) return data.error
+      } catch {
+        // Fall through to the generic message below.
+      }
+    }
+
+    return this.backupFailedMessageValue || "Failed to download backup"
+  }
+
+  extractDownloadFilename(contentDisposition, fallbackName) {
+    if (!contentDisposition) return fallbackName
+
+    const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i)
+    if (utf8Match?.[1]) {
+      return decodeURIComponent(utf8Match[1])
+    }
+
+    const filenameMatch = contentDisposition.match(/filename="?([^";]+)"?/i)
+    return filenameMatch?.[1] || fallbackName
+  }
+
+  showStatusMessage(message, error = false, duration = 2500) {
+    if (!message) return
+
+    this.dispatch("status-message", {
+      detail: {
+        message,
+        error,
+        duration
+      }
+    })
   }
 
   // New Note

@@ -93,6 +93,8 @@ es:
     rename: Renombrar
     save_as_template: Guardar como Plantilla
     delete_template: Eliminar Plantilla
+    backup_note: Respaldar nota
+    backup_folder: Respaldar carpeta
     delete: Eliminar
   status:
     copied_to_clipboard: Contenido copiado al portapapeles
@@ -118,6 +120,9 @@ es:
     content_loss_warning: Se detectó una gran eliminación de contenido. Presiona Ctrl+Z para deshacer si fue accidental.
     undo: Deshacer
     save_anyway: Guardar de Todos Modos
+    backup_preparing: Preparando respaldo...
+    backup_started: Descarga de respaldo iniciada
+    backup_failed: Error al descargar el respaldo
     share_link_created: Enlace compartido creado y copiado
     share_link_copied: Enlace compartido copiado
     share_link_refreshed: Instantánea compartida actualizada
