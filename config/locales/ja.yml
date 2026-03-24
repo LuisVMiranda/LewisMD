@@ -348,6 +348,7 @@ ja:
       toggle_hint: F1で切替
       tab_markdown: マークダウン
       tab_shortcuts: キーボードショートカット
+      tab_editor_extras: エディター補助
       headings: 見出し
       emphasis: 強調
       lists: リスト
@@ -357,6 +358,19 @@ ja:
       code_block: コードブロック
       table: テーブル
       horizontal_rule: 水平線
+      editor_extras:
+        editing: 編集
+        selection: 選択とコメント
+        duplicate_line_down: 行を下に複製
+        duplicate_line_up: 行を上に複製
+        move_line_down: 行を下へ移動
+        move_line_up: 行を上へ移動
+        delete_line: 行を削除
+        insert_blank_line: 空行を挿入
+        toggle_line_comment: 行コメントを切り替え
+        toggle_block_comment: ブロックコメントを切り替え
+        select_next_occurrence: 次の一致を選択
+        select_all_occurrences: すべての一致を選択
       shortcuts:
         file_operations: ファイル操作
         save: ファイルを保存
@@ -543,3 +557,14 @@ ja:
   notes:
     show:
       ai_error: 'AIエラー: %{message}'
+
+
+
+
+
+
+
+
+
+
+

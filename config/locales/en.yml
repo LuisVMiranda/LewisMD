@@ -403,6 +403,7 @@ en:
       toggle_hint: "Press F1 to toggle"
       tab_markdown: "Markdown"
       tab_shortcuts: "Keyboard Shortcuts"
+      tab_editor_extras: "Editor Extras"
       headings: "Headings"
       emphasis: "Emphasis"
       lists: "Lists"
@@ -412,6 +413,19 @@ en:
       code_block: "Code Block"
       table: "Table"
       horizontal_rule: "Horizontal Rule"
+      editor_extras:
+        editing: "Editing"
+        selection: "Selection & Comments"
+        duplicate_line_down: "Duplicate line down"
+        duplicate_line_up: "Duplicate line up"
+        move_line_down: "Move line down"
+        move_line_up: "Move line up"
+        delete_line: "Delete line"
+        insert_blank_line: "Insert blank line"
+        toggle_line_comment: "Toggle line comment"
+        toggle_block_comment: "Toggle block comment"
+        select_next_occurrence: "Select next occurrence"
+        select_all_occurrences: "Select all occurrences"
       shortcuts:
         file_operations: "File Operations"
         save: "Save file"
@@ -631,3 +645,14 @@ en:
     template_saved: "Template saved"
     template_deleted: "Template deleted"
     settings_saved: "Settings saved"
+
+
+
+
+
+
+
+
+
+
+

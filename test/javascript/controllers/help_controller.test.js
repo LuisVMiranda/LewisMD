@@ -11,7 +11,26 @@ describe("HelpController", () => {
   beforeEach(() => {
     document.body.innerHTML = `
       <div data-controller="help">
-        <dialog data-help-target="helpDialog"></dialog>
+        <dialog data-help-target="helpDialog">
+          <button
+            type="button"
+            data-help-target="tabMarkdown"
+            data-tab="markdown"
+          ></button>
+          <button
+            type="button"
+            data-help-target="tabShortcuts"
+            data-tab="shortcuts"
+          ></button>
+          <button
+            type="button"
+            data-help-target="tabEditorExtras"
+            data-tab="editor-extras"
+          ></button>
+          <div data-help-target="panelMarkdown"></div>
+          <div data-help-target="panelShortcuts" class="hidden"></div>
+          <div data-help-target="panelEditorExtras" class="hidden"></div>
+        </dialog>
         <dialog data-help-target="aboutDialog"></dialog>
       </div>
     `
@@ -46,6 +65,17 @@ describe("HelpController", () => {
       controller.openHelp()
 
       expect(controller.helpDialogTarget.showModal).toHaveBeenCalled()
+    })
+
+    it("resets to the markdown tab when opening help", () => {
+      controller.switchToTab("editor-extras")
+
+      controller.openHelp()
+
+      expect(controller.currentTab).toBe("markdown")
+      expect(controller.panelMarkdownTarget.classList.contains("hidden")).toBe(false)
+      expect(controller.panelShortcutsTarget.classList.contains("hidden")).toBe(true)
+      expect(controller.panelEditorExtrasTarget.classList.contains("hidden")).toBe(true)
     })
   })
 
@@ -116,6 +146,79 @@ describe("HelpController", () => {
       controller.helpDialogTarget.dispatchEvent(clickEvent)
 
       expect(controller.helpDialogTarget.close).toHaveBeenCalled()
+    })
+  })
+
+  describe("tab navigation", () => {
+    it("includes editor extras in the tab order", () => {
+      expect(controller.getTabOrder()).toEqual(["markdown", "shortcuts", "editor-extras"])
+    })
+
+    it("switches to the editor extras tab", () => {
+      controller.switchToTab("editor-extras")
+
+      expect(controller.currentTab).toBe("editor-extras")
+      expect(controller.panelMarkdownTarget.classList.contains("hidden")).toBe(true)
+      expect(controller.panelShortcutsTarget.classList.contains("hidden")).toBe(true)
+      expect(controller.panelEditorExtrasTarget.classList.contains("hidden")).toBe(false)
+      expect(controller.tabEditorExtrasTarget.getAttribute("aria-selected")).toBe("true")
+      expect(controller.panelEditorExtrasTarget.innerHTML).toContain("Shift+Alt+Down")
+      expect(controller.panelEditorExtrasTarget.innerHTML).toContain("Duplicate line down")
+      expect(controller.panelEditorExtrasTarget.innerHTML).toContain("Ctrl+/")
+    })
+
+    it("ignores unknown tab names", () => {
+      controller.switchToTab("markdown")
+      controller.switchToTab("missing-tab")
+
+      expect(controller.currentTab).toBe("markdown")
+    })
+
+    it("cycles through all three tabs with arrow keys", () => {
+      const preventDefault = vi.fn()
+
+      controller.switchToTab("markdown")
+      controller.onTabKeydown({ key: "ArrowRight", preventDefault })
+      expect(controller.currentTab).toBe("shortcuts")
+
+      controller.onTabKeydown({ key: "ArrowRight", preventDefault })
+      expect(controller.currentTab).toBe("editor-extras")
+
+      controller.onTabKeydown({ key: "ArrowRight", preventDefault })
+      expect(controller.currentTab).toBe("markdown")
+
+      expect(preventDefault).toHaveBeenCalled()
+    })
+
+    it("cycles through all three tabs with the mouse wheel", () => {
+      const preventDefault = vi.fn()
+
+      controller.switchToTab("markdown")
+      controller.onTabWheel({ deltaY: 10, deltaX: 0, preventDefault })
+      expect(controller.currentTab).toBe("shortcuts")
+
+      controller.onTabWheel({ deltaY: 10, deltaX: 0, preventDefault })
+      expect(controller.currentTab).toBe("editor-extras")
+
+      controller.onTabWheel({ deltaY: -10, deltaX: 0, preventDefault })
+      expect(controller.currentTab).toBe("shortcuts")
+
+      expect(preventDefault).toHaveBeenCalled()
+    })
+
+    it("re-renders the editor extras panel when translations load", () => {
+      const previousT = window.t
+      window.t = vi.fn((key) => ({
+        "dialogs.help.editor_extras.editing": "Editing Translated",
+        "dialogs.help.editor_extras.duplicate_line_down": "Duplicate line down translated"
+      }[key] || key))
+
+      window.dispatchEvent(new CustomEvent("frankmd:translations-loaded"))
+
+      expect(controller.panelEditorExtrasTarget.innerHTML).toContain("Editing Translated")
+      expect(controller.panelEditorExtrasTarget.innerHTML).toContain("Duplicate line down translated")
+
+      window.t = previousT
     })
   })
 })

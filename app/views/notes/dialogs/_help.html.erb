@@ -2,42 +2,53 @@
 <div data-controller="help">
   <!-- Help Dialog (Markdown Cheatsheet & Keyboard Shortcuts) -->
   <dialog
-    class="p-0 rounded-lg shadow-xl backdrop:bg-black/50 bg-[var(--theme-bg-secondary)] border border-[var(--theme-border)] max-w-4xl w-full max-h-[85vh]"
+    class="p-0 rounded-lg shadow-xl backdrop:bg-black/50 bg-[var(--theme-bg-secondary)] border border-[var(--theme-border)] max-w-4xl w-full max-h-[85vh] overflow-hidden"
     data-help-target="helpDialog"
     data-app-target="helpDialog"
   >
-    <div class="p-4 text-[var(--theme-text-primary)] overflow-y-auto">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-lg font-semibold"><%= t('dialogs.help.title') %></h3>
-        <div class="flex items-center gap-2">
-          <span class="text-xs text-[var(--theme-text-muted)]"><%= t('dialogs.help.toggle_hint') %></span>
-          <%= render "shared/dialog_close_button", action: "click->help#closeHelp", size: "w-5 h-5" %>
+    <div class="flex max-h-[85vh] flex-col text-[var(--theme-text-primary)]">
+      <div class="px-4 pt-4 pb-3 bg-[var(--theme-bg-secondary)] border-b border-[var(--theme-border)]">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold"><%= t('dialogs.help.title') %></h3>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-[var(--theme-text-muted)]"><%= t('dialogs.help.toggle_hint') %></span>
+            <%= render "shared/dialog_close_button", action: "click->help#closeHelp", size: "w-5 h-5" %>
+          </div>
+        </div>
+
+        <!-- Tab buttons -->
+        <div class="flex flex-wrap gap-1" role="tablist" data-action="wheel->help#onTabWheel">
+          <button
+            type="button"
+            role="tab"
+            data-help-target="tabMarkdown"
+            data-tab="markdown"
+            data-action="click->help#switchTab keydown->help#onTabKeydown"
+            class="px-3 py-1 text-sm rounded-md bg-[var(--theme-accent)] text-[var(--theme-accent-text)]"
+          ><%= t('dialogs.help.tab_markdown') %></button>
+          <button
+            type="button"
+            role="tab"
+            data-help-target="tabShortcuts"
+            data-tab="shortcuts"
+            data-action="click->help#switchTab keydown->help#onTabKeydown"
+            class="px-3 py-1 text-sm rounded-md hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-muted)]"
+          ><%= t('dialogs.help.tab_shortcuts') %></button>
+          <button
+            type="button"
+            role="tab"
+            data-help-target="tabEditorExtras"
+            data-tab="editor-extras"
+            data-action="click->help#switchTab keydown->help#onTabKeydown"
+            class="px-3 py-1 text-sm rounded-md hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-muted)]"
+          ><%= t('dialogs.help.tab_editor_extras', default: 'Editor Extras') %></button>
         </div>
       </div>
 
-      <!-- Tab buttons -->
-      <div class="flex gap-1 mb-4" role="tablist" data-action="wheel->help#onTabWheel">
-        <button
-          type="button"
-          role="tab"
-          data-help-target="tabMarkdown"
-          data-tab="markdown"
-          data-action="click->help#switchTab keydown->help#onTabKeydown"
-          class="px-3 py-1 text-sm rounded-md bg-[var(--theme-accent)] text-[var(--theme-accent-text)]"
-        ><%= t('dialogs.help.tab_markdown') %></button>
-        <button
-          type="button"
-          role="tab"
-          data-help-target="tabShortcuts"
-          data-tab="shortcuts"
-          data-action="click->help#switchTab keydown->help#onTabKeydown"
-          class="px-3 py-1 text-sm rounded-md hover:bg-[var(--theme-bg-hover)] text-[var(--theme-text-muted)]"
-        ><%= t('dialogs.help.tab_shortcuts') %></button>
-      </div>
-
-      <!-- Markdown Cheatsheet Panel -->
-      <div data-help-target="panelMarkdown">
-        <div class="grid grid-cols-2 gap-4">
+      <div class="min-h-0 flex-1 overflow-y-auto px-4 pt-4 pb-4">
+        <!-- Markdown Cheatsheet Panel -->
+        <div data-help-target="panelMarkdown">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <!-- Column 1 -->
           <div class="space-y-3">
             <div class="bg-[var(--theme-bg-tertiary)] rounded-lg p-3">
@@ -162,12 +173,12 @@
               </div>
             </div>
           </div>
+          </div>
         </div>
-      </div>
 
-      <!-- Keyboard Shortcuts Panel -->
-      <div data-help-target="panelShortcuts" class="hidden">
-        <div class="grid grid-cols-2 gap-4">
+        <!-- Keyboard Shortcuts Panel -->
+        <div data-help-target="panelShortcuts" class="hidden">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <!-- Column 1 -->
           <div class="space-y-3">
             <div class="bg-[var(--theme-bg-tertiary)] rounded-lg p-3">
@@ -330,6 +341,11 @@
               </div>
             </div>
           </div>
+          </div>
+        </div>
+
+        <!-- Editor Extras Panel -->
+        <div data-help-target="panelEditorExtras" class="hidden">
         </div>
       </div>
     </div>

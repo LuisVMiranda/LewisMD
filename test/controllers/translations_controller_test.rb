@@ -315,6 +315,34 @@ class TranslationsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "all locales include editor extra shortcut help translations" do
+    checks = [
+      [ "dialogs", "help", "tab_editor_extras" ],
+      [ "dialogs", "help", "editor_extras", "editing" ],
+      [ "dialogs", "help", "editor_extras", "selection" ],
+      [ "dialogs", "help", "editor_extras", "duplicate_line_down" ],
+      [ "dialogs", "help", "editor_extras", "duplicate_line_up" ],
+      [ "dialogs", "help", "editor_extras", "move_line_down" ],
+      [ "dialogs", "help", "editor_extras", "move_line_up" ],
+      [ "dialogs", "help", "editor_extras", "delete_line" ],
+      [ "dialogs", "help", "editor_extras", "insert_blank_line" ],
+      [ "dialogs", "help", "editor_extras", "toggle_line_comment" ],
+      [ "dialogs", "help", "editor_extras", "toggle_block_comment" ],
+      [ "dialogs", "help", "editor_extras", "select_next_occurrence" ],
+      [ "dialogs", "help", "editor_extras", "select_all_occurrences" ]
+    ]
+
+    %w[en pt-BR pt-PT es he ja ko].each do |locale|
+      get translations_url(locale: locale), as: :json
+      data = JSON.parse(response.body)
+
+      checks.each do |path|
+        value = data.dig("translations", *path)
+        assert value.present?, "Locale #{locale} is missing #{path.join('.')}"
+      end
+    end
+  end
+
   # === Invalid Locale Handling ===
 
   test "invalid locale falls back to default" do

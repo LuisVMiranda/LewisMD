@@ -348,15 +348,29 @@ ko:
       toggle_hint: F1로 전환
       tab_markdown: 마크다운
       tab_shortcuts: 키보드 단축키
+      tab_editor_extras: 편집기 추가
       headings: 제목
       emphasis: 강조
       lists: 목록
       task_list: 작업 목록
-      links_images: 링크 및 이미지
-      blockquote: 인용
+      links_images: 링크와 이미지
+      blockquote: 인용문
       code_block: 코드 블록
-      table: 테이블
+      table: 표
       horizontal_rule: 수평선
+      editor_extras:
+        editing: 편집
+        selection: 선택 및 주석
+        duplicate_line_down: 아래로 줄 복제
+        duplicate_line_up: 위로 줄 복제
+        move_line_down: 줄 아래로 이동
+        move_line_up: 줄 위로 이동
+        delete_line: 줄 삭제
+        insert_blank_line: 빈 줄 삽입
+        toggle_line_comment: 줄 주석 전환
+        toggle_block_comment: 블록 주석 전환
+        select_next_occurrence: 다음 일치 항목 선택
+        select_all_occurrences: 모든 일치 항목 선택
       shortcuts:
         file_operations: 파일 작업
         save: 파일 저장
@@ -543,3 +557,14 @@ ko:
   notes:
     show:
       ai_error: 'AI 오류: %{message}'
+
+
+
+
+
+
+
+
+
+
+

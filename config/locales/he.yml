@@ -345,6 +345,7 @@ he:
       toggle_hint: לחץ F1 להחלפה
       tab_markdown: מרקדאון
       tab_shortcuts: קיצורי מקלדת
+      tab_editor_extras: תוספות עורך
       headings: כותרות
       emphasis: הדגשה
       lists: רשימות
@@ -354,6 +355,19 @@ he:
       code_block: בלוק קוד
       table: טבלה
       horizontal_rule: קו אופקי
+      editor_extras:
+        editing: עריכה
+        selection: בחירה והערות
+        duplicate_line_down: שכפל שורה למטה
+        duplicate_line_up: שכפל שורה למעלה
+        move_line_down: העבר שורה למטה
+        move_line_up: העבר שורה למעלה
+        delete_line: מחק שורה
+        insert_blank_line: הוסף שורה ריקה
+        toggle_line_comment: החלף הערת שורה
+        toggle_block_comment: החלף הערת בלוק
+        select_next_occurrence: בחר את המופע הבא
+        select_all_occurrences: בחר את כל המופעים
       shortcuts:
         file_operations: פעולות קובץ
         save: שמור קובץ
@@ -517,3 +531,14 @@ he:
   notes:
     show:
       ai_error: 'שגיאת AI: %{message}'
+
+
+
+
+
+
+
+
+
+
+

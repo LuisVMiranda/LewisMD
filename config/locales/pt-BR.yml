@@ -352,6 +352,7 @@ pt-BR:
       toggle_hint: Pressione F1 para alternar
       tab_markdown: Markdown
       tab_shortcuts: Atalhos de Teclado
+      tab_editor_extras: Extras do Editor
       headings: Títulos
       emphasis: Ênfase
       lists: Listas
@@ -361,6 +362,19 @@ pt-BR:
       code_block: Bloco de Código
       table: Tabela
       horizontal_rule: Linha Horizontal
+      editor_extras:
+        editing: Edição
+        selection: Seleção e Comentários
+        duplicate_line_down: Duplicar linha abaixo
+        duplicate_line_up: Duplicar linha acima
+        move_line_down: Mover linha para baixo
+        move_line_up: Mover linha para cima
+        delete_line: Excluir linha
+        insert_blank_line: Inserir linha em branco
+        toggle_line_comment: Alternar comentário de linha
+        toggle_block_comment: Alternar comentário de bloco
+        select_next_occurrence: Selecionar próxima ocorrência
+        select_all_occurrences: Selecionar todas as ocorrências
       shortcuts:
         file_operations: Operações de Arquivo
         save: Salvar arquivo
@@ -548,3 +562,14 @@ pt-BR:
   notes:
     show:
       ai_error: 'Erro da IA: %{message}'
+
+
+
+
+
+
+
+
+
+
+
