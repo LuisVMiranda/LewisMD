@@ -2528,3 +2528,227 @@ Verification:
 
 Notes:
 - An initial combined system run hit a transient 404 in the stable-link export/share test at the disposable Puma host (`127.0.0.1`). The focused rerun and the final combined rerun both passed cleanly, so the toolbar change did not introduce a persistent regression there.
+
+## 2026-03-24 - Editor Extra Shortcuts Foundation (Phase 1)
+
+Goal:
+- Audit the useful hidden CodeMirror shortcuts already available in LewisMD and create a lightweight source of truth before changing the Help UI.
+
+Findings:
+- The hidden line-duplication shortcut comes from CodeMirror's `defaultKeymap`, which LewisMD enables through `app/javascript/lib/codemirror_extensions.js`.
+- Useful undocumented editor-native actions are split across `defaultKeymap` and `searchKeymap`, not LewisMD's own `app/javascript/lib/keyboard_shortcuts.js` registry.
+- The current Help dialog is manually authored in `app/views/notes/dialogs/_help.html.erb`, so documenting these actions safely requires a curated list rather than trying to infer every CodeMirror binding at render time.
+
+Implementation:
+- Added `app/javascript/lib/editor_extra_shortcuts.js` as a small curated metadata module for the editor-native shortcuts worth surfacing in Help later.
+- Grouped the shortcuts into `editing` and `selection` so the future Help UI can render them cleanly without re-deciding structure.
+- Stored the CodeMirror binding string, a user-facing display string, the originating keymap source, the command name, and the future translation key for each item.
+- Kept the list intentionally curated instead of exhaustive to avoid over-documenting low-level CodeMirror behavior.
+
+Verification:
+- `cmd /c npx vitest run test/javascript/lib/editor_extra_shortcuts.test.js test/javascript/lib/codemirror_extensions.test.js`
+  - Passed: 2 files, 23 tests, 0 failures.
+
+Notes:
+- This phase does not change the Help dialog yet. It only establishes a test-backed source of truth for the useful hidden shortcuts already enabled in the editor.
+
+## 2026-03-24 - Editor Extra Shortcuts Help Tab (Phase 2)
+
+Goal:
+- Add the third Help tab foundation for editor-native shortcut documentation without yet rendering the full shortcut list.
+
+Implementation:
+- Updated `app/javascript/controllers/help_controller.js` to support a third tab, `editor-extras`, using generalized tab-button and tab-panel helpers instead of two hardcoded branches.
+- Expanded the tab order from `markdown -> shortcuts` to `markdown -> shortcuts -> editor-extras`.
+- Preserved the existing Help behavior: opening Help still resets to `markdown`, arrow-key navigation cycles through the tabs, and mouse-wheel navigation cycles through them as well.
+- Updated `app/views/notes/dialogs/_help.html.erb` with a third tab button and a lightweight placeholder panel shell for the future Editor Extras content.
+- Used `default:` fallbacks for the new tab label and intro copy in this phase so the UI remains stable before the dedicated localization phase.
+- Extended `test/javascript/controllers/help_controller.test.js` to verify the three-tab order, the new tab switching behavior, and navigation cycling across all three tabs.
+
+Verification:
+- `cmd /c npx vitest run test/javascript/controllers/help_controller.test.js test/javascript/lib/editor_extra_shortcuts.test.js`
+  - Passed: 2 files, 19 tests, 0 failures.
+- `cmd /c npx vitest run`
+  - Same unrelated baseline failures only in `keyboard_shortcuts.test.js` and `offline_backup_controller.test.js`.
+- `docker exec lewismd-test-env bash -lc "cd /rails && export CHROME_BIN=/usr/bin/chromium && RAILS_ENV=test bundle exec rails test"`
+  - Same unrelated baseline failures only in `note_test.rb`, `folder_test.rb`, `images_controller_test.rb`, and `logs_controller_test.rb`.
+
+Notes:
+- I intentionally did not populate the new panel with the actual shortcut rows yet. That remains for the next phase so the UI and localization concerns stay cleanly separated.
+
+## 2026-03-24 - Editor Extra Shortcuts Help Panel (Phase 3)
+
+Goal:
+- Populate the new `Editor Extras` Help tab with the curated editor-native shortcuts from the previous phases, while keeping the Help dialog lightweight and translation-ready.
+
+Implementation:
+- Extended `app/javascript/lib/editor_extra_shortcuts.js` with section metadata (`editing`, `selection`) and per-shortcut fallback labels so the Help UI can render the panel from one curated source of truth.
+- Updated `app/javascript/controllers/help_controller.js` to render the `Editor Extras` panel dynamically from that metadata instead of hardcoding another long ERB block.
+- Grouped the content into two cards: `Editing` and `Selection & Comments`, each reusing the same visual language as the existing Help cards and keyboard rows.
+- Added a small translation-aware render path in the Help controller so the panel can use `window.t(...)` when translations are loaded, but still fall back cleanly to curated English defaults if they are not present yet.
+- Re-rendered the panel on the existing `frankmd:translations-loaded` event so future locale work can update the Help content without reopening the dialog.
+- Kept the panel content intentionally curated instead of dumping the full CodeMirror keymap, which keeps the Help surface honest and readable.
+
+Verification:
+- `cmd /c npx vitest run test/javascript/controllers/help_controller.test.js test/javascript/lib/editor_extra_shortcuts.test.js`
+  - Passed: 2 files, 20 tests, 0 failures.
+- `cmd /c npx vitest run test/javascript/lib/codemirror_extensions.test.js`
+  - Passed: 1 file, 18 tests, 0 failures.
+- `cmd /c npx vitest run`
+  - Same unrelated baseline failures only in `keyboard_shortcuts.test.js` and `offline_backup_controller.test.js`.
+- `docker exec lewismd-test-env bash -lc "cd /rails && export CHROME_BIN=/usr/bin/chromium && RAILS_ENV=test bundle exec rails test"`
+  - Same unrelated baseline failures only in `note_test.rb`, `folder_test.rb`, `images_controller_test.rb`, and the existing `logs_controller_test.rb` log-file warning/noise.
+- `docker exec lewismd-test-env bash -lc "cd /rails && bundle exec rubocop"`
+  - Passed: 77 files inspected, 0 offenses.
+
+Notes:
+- This phase intentionally stops short of locale-file additions. The panel is now structurally complete and ready for the dedicated localization pass.
+
+## 2026-03-24 - Editor Extra Shortcuts Localization (Phase 4)
+
+Goal:
+- Add complete translations for the new `Editor Extras` Help tab and verify that both the server-rendered tab label and the dynamically rendered shortcut rows follow the active UI language.
+
+Implementation:
+- Added `dialogs.help.tab_editor_extras` and the full `dialogs.help.editor_extras.*` key set to all shipped locale files: `en.yml`, `pt-BR.yml`, `pt-PT.yml`, `es.yml`, `he.yml`, `ja.yml`, and `ko.yml`.
+- Kept the new Help copy on the existing `dialogs.help` namespace so the third tab stays aligned with the rest of the Help dialog structure.
+- Extended `test/controllers/translations_controller_test.rb` with a dedicated audit that verifies every shipped locale exposes the full editor-extra Help translation set through the JavaScript translations endpoint.
+- Added `test/system/help_localization_test.rb` to verify the real Help dialog shows the localized `Editor Extras` tab and localized editor-shortcut descriptions in the browser.
+- Fixed an implementation hazard during the locale pass: PowerShell rewrites initially introduced UTF-8 BOM markers and malformed line breaks in the locale files, which Rails/Psych rejected. I rewrote the touched locale files as UTF-8 without BOM and normalized the affected Help-section YAML before rerunning the tests.
+
+Verification:
+- `docker exec lewismd-test-env bash -lc "cd /rails && RAILS_ENV=test bundle exec rails test test/controllers/translations_controller_test.rb test/system/help_localization_test.rb"`
+  - Passed: 24 runs, 956 assertions, 0 failures.
+- `cmd /c npx vitest run test/javascript/controllers/help_controller.test.js test/javascript/lib/editor_extra_shortcuts.test.js`
+  - Passed: 2 files, 20 tests, 0 failures.
+- `docker exec lewismd-test-env bash -lc "cd /rails && bundle exec rubocop test/controllers/translations_controller_test.rb test/system/help_localization_test.rb"`
+  - Passed: 2 files inspected, 0 offenses.
+- `cmd /c npx vitest run`
+  - Same unrelated baseline failures only in `keyboard_shortcuts.test.js` and `offline_backup_controller.test.js`.
+- `docker exec lewismd-test-env bash -lc "cd /rails && export CHROME_BIN=/usr/bin/chromium && RAILS_ENV=test bundle exec rails test"`
+  - Same unrelated baseline failures only in `folder_test.rb`, `note_test.rb`, `images_controller_test.rb`, plus the existing `logs_controller_test.rb` log-file warning/noise.
+
+Notes:
+- The Help dialog is now structurally ready for the next phase without relying on English fallbacks for the third tab in normal localized use.
+- The main risk in this phase was not translation logic itself, but preserving YAML validity and encoding while updating seven locale files. That is now stabilized and test-backed.
+
+## 2026-03-24 - Help Dialog Scroll and Layout Audit (Phase 5)
+
+Goal:
+- Make sure the Help dialog remains comfortable after adding the third `Editor Extras` tab, especially on shorter heights and narrower widths, without introducing nested scrolling complexity.
+
+Findings:
+- The Help dialog already had `max-h-[85vh]` and an `overflow-y-auto` body, but the structure relied on implicit sizing. With three tabs and more content, that made the scroll behavior more fragile than it needed to be.
+- The existing two-column grids in the Markdown and Shortcuts panels would stay cramped on narrower desktop widths once the new tab content was added.
+- The cleanest fix was still a single scroll container, not an inner panel-specific scrollbar.
+
+Implementation:
+- Updated `app/views/notes/dialogs/_help.html.erb` so the Help dialog is now an explicit flex column with `overflow-hidden`, and the content body is the single `flex-1 overflow-y-auto` scroll container.
+- Kept the title and tab row inside the same scroll surface, but made that top region sticky so users can switch tabs without having to scroll all the way back to the top.
+- Updated the Markdown and Shortcuts panel grids from fixed two-column layouts to responsive `grid-cols-1 lg:grid-cols-2` layouts so the dialog collapses cleanly on narrower widths.
+- Updated `app/javascript/controllers/help_controller.js` so the dynamically rendered `Editor Extras` grid uses the same responsive one-column / two-column pattern as the static Help panels.
+- Added `test/system/help_layout_test.rb` to verify the dialog uses one constrained scroll container and that the Editor Extras grid collapses to a single column at a narrower viewport width.
+
+Verification:
+- `cmd /c npx vitest run test/javascript/controllers/help_controller.test.js test/javascript/lib/editor_extra_shortcuts.test.js`
+  - Passed: 2 files, 20 tests, 0 failures.
+- `docker exec lewismd-test-env bash -lc "cd /rails && RAILS_ENV=test bundle exec rails test test/system/help_layout_test.rb test/system/help_localization_test.rb test/controllers/translations_controller_test.rb"`
+  - Passed: 25 runs, 962 assertions, 0 failures.
+- `docker exec lewismd-test-env bash -lc "cd /rails && bundle exec rubocop test/system/help_layout_test.rb test/system/help_localization_test.rb test/controllers/translations_controller_test.rb"`
+  - Passed: 3 files inspected, 0 offenses.
+- `cmd /c npx vitest run`
+  - Same unrelated baseline failures only in `keyboard_shortcuts.test.js` and `offline_backup_controller.test.js`.
+- `docker exec lewismd-test-env bash -lc "cd /rails && export CHROME_BIN=/usr/bin/chromium && RAILS_ENV=test bundle exec rails test"`
+  - Same unrelated baseline issues only in `folder_test.rb`, `note_test.rb`, `images_controller_test.rb`, plus the long-standing `logs_controller_test.rb` log-file error/noise.
+
+Notes:
+- I briefly pointed RuboCop at the ERB partial while checking this phase, which only produced parser noise because RuboCop is not the right tool for ERB. The real lint pass against the Ruby test files passed cleanly.
+- This phase deliberately keeps a single Help scroll container. No nested shortcut-panel scrollbar was introduced.
+
+## 2026-03-24 - Help Dialog Open/Close Regression Fix
+
+Goal:
+- Fix the Help dialog getting stuck permanently visible after the recent layout work, which made the main app unusable and broke the close button flow.
+
+Root cause:
+- The Help `<dialog>` element itself had been given Tailwind's `flex` display class during the layout refactor.
+- That overrode the browser's default `dialog:not([open]) { display: none; }` behavior, so the modal stayed visible even when it was not open.
+
+Implementation:
+- Removed the `flex flex-col` layout classes from the `<dialog>` element in `app/views/notes/dialogs/_help.html.erb`.
+- Moved the layout structure into the inner wrapper instead, keeping the responsive flex/scroll behavior without forcing the dialog visible.
+- Added a regression check in `test/system/help_layout_test.rb` to verify the Help dialog starts closed, opens on demand, and closes again through the close button.
+- Kept the single scroll-container structure intact after the fix.
+
+Verification:
+- `cmd /c npx vitest run test/javascript/controllers/help_controller.test.js test/javascript/lib/editor_extra_shortcuts.test.js`
+  - Passed: 2 files, 20 tests, 0 failures.
+- `docker exec lewismd-test-env bash -lc "cd /rails && RAILS_ENV=test bundle exec rails test test/system/help_layout_test.rb test/system/help_localization_test.rb test/controllers/translations_controller_test.rb"`
+  - Passed: 26 runs, 966 assertions, 0 failures.
+- `docker exec lewismd-test-env bash -lc "cd /rails && bundle exec rubocop test/system/help_layout_test.rb test/system/help_localization_test.rb test/controllers/translations_controller_test.rb"`
+  - Passed: 3 files inspected, 0 offenses.
+- `cmd /c npx vitest run`
+  - Same unrelated baseline failures only in `keyboard_shortcuts.test.js` and `offline_backup_controller.test.js`.
+- `docker exec lewismd-test-env bash -lc "cd /rails && export CHROME_BIN=/usr/bin/chromium && RAILS_ENV=test bundle exec rails test"`
+  - Same unrelated baseline failures only in `folder_test.rb`, `note_test.rb`, `images_controller_test.rb`, plus the existing `logs_controller_test.rb` log-file warning/noise.
+
+Notes:
+- The layout fix from Phase 5 was still the right direction; the regression came specifically from applying the flex display class to the dialog root instead of its inner wrapper.
+
+## 2026-03-24 - Help Dialog Editor Extras Test Coverage (Phase 6)
+
+Goal:
+- Finish the dedicated test phase for the Help dialog `Editor Extras` tab, making sure the new documentation surface is covered at both the JS-controller and browser/system levels.
+
+Findings:
+- Most of the foundational coverage was already in place from earlier phases: `help_controller.test.js` covered tab order and rendering, and the localization path was already covered through `help_localization_test.rb`.
+- The main remaining gap was a direct browser-level assertion that the `Editor Extras` tab is visible in the Help dialog and that representative shortcut descriptions actually render in the live UI, not just in jsdom.
+
+Implementation:
+- Tightened `test/system/help_layout_test.rb` so the browser test now explicitly verifies that:
+  - the `Editor Extras` tab is present,
+  - clicking it reveals the panel,
+  - representative shortcut descriptions are visible in the live dialog (`Duplicate line down`, `Toggle line comment`, `Select next occurrence`),
+  - the responsive one-column layout still holds on a narrower viewport.
+- Kept the JS-layer coverage in `test/javascript/controllers/help_controller.test.js` and `test/javascript/lib/editor_extra_shortcuts.test.js` as the focused source of truth for tab behavior and curated shortcut metadata.
+
+Verification:
+- `cmd /c npx vitest run test/javascript/controllers/help_controller.test.js test/javascript/lib/editor_extra_shortcuts.test.js`
+  - Passed: 2 files, 20 tests, 0 failures.
+- `docker exec lewismd-test-env bash -lc "cd /rails && RAILS_ENV=test bundle exec rails test test/system/help_layout_test.rb test/system/help_localization_test.rb test/controllers/translations_controller_test.rb"`
+  - Passed: 26 runs, 970 assertions, 0 failures.
+- `docker exec lewismd-test-env bash -lc "cd /rails && bundle exec rubocop test/system/help_layout_test.rb test/system/help_localization_test.rb test/controllers/translations_controller_test.rb"`
+  - Passed: 3 files inspected, 0 offenses.
+- `cmd /c npx vitest run`
+  - Same unrelated baseline failures only in `keyboard_shortcuts.test.js` and `offline_backup_controller.test.js`.
+- `docker exec lewismd-test-env bash -lc "cd /rails && export CHROME_BIN=/usr/bin/chromium && RAILS_ENV=test bundle exec rails test"`
+  - Same unrelated baseline failures only in `folder_test.rb`, `note_test.rb`, `images_controller_test.rb`, plus the existing `logs_controller_test.rb` log-file error/noise.
+
+Notes:
+- This phase intentionally avoided adding more UI code. The right outcome here was stronger verification, not more implementation complexity.
+
+## 2026-03-24 - Editor Extra Shortcuts Documentation Closeout (Phase 7)
+
+Goal:
+- Close out the Editor Extra Shortcuts feature with user-facing documentation and a final audit log entry.
+
+Implementation:
+- Updated `README.md` so the public shortcut documentation now reflects the current app behavior instead of the older preview binding.
+- Corrected the main Editor shortcut table to show `Ctrl+Y` for preview and `Ctrl+Shift+Y` for reading mode.
+- Added a dedicated `Editor Extras` subsection to `README.md` that documents the curated editor-native shortcuts surfaced in the new Help tab:
+  - duplicate line up/down,
+  - move line up/down,
+  - delete line,
+  - insert blank line,
+  - toggle line/block comment,
+  - select next/all occurrences.
+- Updated the Help shortcut description in `README.md` to call out the three Help tabs: `Markdown`, `Shortcuts`, and `Editor Extras`.
+
+Verification:
+- `cmd /c npx vitest run`
+  - Same unrelated baseline failures only in `keyboard_shortcuts.test.js` and `offline_backup_controller.test.js`.
+- `docker exec lewismd-test-env bash -lc "cd /rails && export CHROME_BIN=/usr/bin/chromium && RAILS_ENV=test bundle exec rails test"`
+  - Same unrelated baseline failures only in `folder_test.rb`, `note_test.rb`, `images_controller_test.rb`, plus the existing `logs_controller_test.rb` log-file error/noise.
+
+Notes:
+- This phase intentionally avoided more code changes. The goal was to leave the feature fully documented and keep the public README aligned with the actual shortcut behavior now exposed in the app.

@@ -614,13 +614,31 @@ This is useful for:
 | Shortcut | Action |
 |----------|--------|
 | `Ctrl+E` | Toggle sidebar |
-| `Ctrl+Shift+V` | Toggle preview panel |
+| `Ctrl+Y` | Toggle preview panel |
+| `Ctrl+Shift+Y` | Toggle reading mode |
 | `Ctrl+\` | Toggle typewriter mode |
 | `Ctrl+L` | Toggle line numbers |
 | `Ctrl+Shift++` | Increase editor width |
 | `Ctrl+Shift+-` | Decrease editor width |
 | `Tab` | Indent line/block |
 | `Shift+Tab` | Unindent block |
+
+### Editor Extras
+
+These editor-native shortcuts are available inside the markdown editor and are documented in the Help dialog under the `Editor Extras` tab.
+
+| Shortcut | Action |
+|----------|--------|
+| `Shift+Alt+Down` | Duplicate line down |
+| `Shift+Alt+Up` | Duplicate line up |
+| `Alt+Down` | Move line down |
+| `Alt+Up` | Move line up |
+| `Ctrl+Shift+K` | Delete line |
+| `Ctrl+Enter` | Insert blank line |
+| `Ctrl+/` | Toggle line comment |
+| `Shift+Alt+A` | Toggle block comment |
+| `Ctrl+D` | Select next occurrence |
+| `Ctrl+Shift+L` | Select all occurrences |
 
 ### Text Formatting
 | Shortcut | Action |
@@ -633,7 +651,7 @@ This is useful for:
 ### Help
 | Shortcut | Action |
 |----------|--------|
-| `F1` | Open help dialog |
+| `F1` | Open help dialog (`Markdown`, `Shortcuts`, `Editor Extras`) |
 | `Escape` | Close dialogs |
 
 ## Typewriter Mode
