@@ -2752,3 +2752,302 @@ Verification:
 
 Notes:
 - This phase intentionally avoided more code changes. The goal was to leave the feature fully documented and keep the public README aligned with the actual shortcut behavior now exposed in the app.
+
+## 2026-03-24 - Shared Reader Responsive Toolbar Foundation (Phases 1-2)
+
+Goal:
+- Start fixing the shared-note mobile reading experience by removing fragile iframe height math and splitting the crowded sticky toolbar into clearer structural layers.
+
+Findings:
+- The existing shared-reader toolbar in `app/views/shares/show.html.erb` mixed global actions (theme, language, share) and reading controls (zoom, width, font) into one wrapping sticky block.
+- On smaller screens that caused the sticky header to grow unpredictably, while the iframe still used a fixed `calc(100vh - Xrem)` height estimate.
+- The cleanest first step was to restructure the toolbar and let the iframe fill the remaining real layout space instead of guessing the toolbar height.
+
+Implementation:
+- Updated `app/views/shares/show.html.erb` so the shared-reader header now has two explicit layers:
+  - `share-view__toolbar-top` for note identity plus global actions,
+  - `share-view__display-panel` for zoom, width, and font controls.
+- Updated `app/assets/tailwind/components/share_view.css` so the shared-reader shell now uses flex-based height allocation:
+  - `.share-view` now uses `min-height: 100vh` and `min-height: 100dvh`,
+  - `.share-view__content` remains the flexible remaining area,
+  - `.share-view__frame` now fills that space with `height: 100%` instead of `calc(100vh - Xrem)`.
+- Removed the old fixed iframe height calculations for desktop and mobile.
+- Added/updated `test/system/share_view_test.rb` so the browser test now verifies the toolbar has two structural rows and that the reading frame still renders with non-zero height at a mobile-sized viewport.
+
+Verification:
+- `cmd /c npx vitest run test/javascript/controllers/share_view_controller.test.js`
+  - Passed: 1 file, 5 tests, 0 failures.
+- `docker exec lewismd-test-env bash -lc "cd /rails && export CHROME_BIN=/usr/bin/chromium && RAILS_ENV=test bundle exec rails test test/system/share_view_test.rb test/system/export_menu_test.rb"`
+  - Passed: 11 runs, 113 assertions, 0 failures.
+
+Notes:
+- This phase intentionally stops short of adding the collapsible `Display` toggle. The toolbar is now structurally ready for that next step without relying on fragile viewport-height subtraction.
+- The next phase should add the actual collapse/expand behavior and viewport-aware defaults for mobile, tablet, and desktop.
+
+## 2026-03-24 - Shared Reader Display Panel Toggle (Phase 3)
+
+Goal:
+- Add the first real mobile-friendly control collapse behavior to the shared-note reader, while keeping desktop fully usable and without introducing persistence or server-side state.
+
+Implementation:
+- Updated `app/javascript/controllers/share_view_controller.js` to manage a responsive `displayPanelExpanded` state.
+- Added `toggleDisplayPanel()`, `syncResponsiveDisplayPanel()`, and `defaultDisplayPanelExpanded()` so the shared reader now chooses sensible defaults by viewport:
+  - mobile (`< 768px`): collapsed,
+  - tablet portrait: collapsed,
+  - tablet landscape: expanded,
+  - desktop (`>= 1024px`): expanded.
+- Added a new `Display` button to the shared-reader top row in `app/views/shares/show.html.erb` and wired it to the Stimulus controller.
+- Marked the button with `aria-expanded` and connected it to the `share-view-display-panel` container so the collapse state is explicit and accessible.
+- Updated `app/assets/tailwind/components/share_view.css` so the mobile top row now stacks more predictably and the shared-reader layout remains compact when the display controls are collapsed.
+- Extended `test/javascript/controllers/share_view_controller.test.js` with coverage for:
+  - mobile default collapsed state,
+  - desktop default expanded state,
+  - manual toggling of the display panel.
+- Extended `test/system/share_view_test.rb` so the shared snapshot page now verifies the `Display` button controls the reading settings row on a mobile-sized viewport.
+
+Verification:
+- `cmd /c npx vitest run test/javascript/controllers/share_view_controller.test.js`
+  - Passed: 1 file, 8 tests, 0 failures.
+- `docker exec lewismd-test-env bash -lc "cd /rails && export CHROME_BIN=/usr/bin/chromium && RAILS_ENV=test bundle exec rails test test/system/share_view_test.rb test/system/export_menu_test.rb"`
+  - Passed: 11 runs, 118 assertions, 0 failures.
+
+Notes:
+- This phase intentionally uses `t(..., default: ...)` for the new `Display` label so the feature can land before the dedicated translation pass.
+- The next phase should refine the responsive CSS further and complete the viewport-specific polish, but the main mobile reading-space issue now has a real behavioral fix instead of only structural groundwork.
+
+## 2026-03-24 - Shared Reader Height Bug Audit and Responsive Polish (Phase 4)
+
+Goal:
+- Fix the shared-reader regression where even short notes could feel overly scroll-heavy because the note viewport had collapsed to an unexpectedly small height.
+- Continue the responsive polish for mobile, tablet, and desktop after the new `Display` toggle landed.
+
+Root cause:
+- The shared-reader iframe still fell back to the browser's default intrinsic height (`150px`) in the real browser, even after the earlier layout refactor.
+- The shell had been moving in the right direction, but the iframe itself still needed an explicit resolved height based on the actual toolbar size.
+
+Implementation:
+- Updated `app/assets/tailwind/components/share_view.css` so the shared-reader shell now has a real viewport-anchored height (`height: 100vh; height: 100dvh`) in addition to the previous minimum height.
+- Added `overflow: hidden` to the shared-reader shell/content area so the reading surface behaves like a dedicated app shell instead of a document that can grow unpredictably.
+- Improved responsive CSS for Phase 4:
+  - the toolbar identity now has a real flexible basis,
+  - tablet widths now left-align the action/control rows more predictably,
+  - mobile action buttons now use a compact 2-column grid,
+  - the display controls stack vertically on mobile for clearer scanning and less sticky-header sprawl.
+- Updated `app/javascript/controllers/share_view_controller.js` so the controller now measures the actual toolbar height and explicitly sets the remaining viewport height on both the content container and the iframe itself.
+- This keeps the height dynamic and accurate without going back to a hardcoded `calc(100vh - Xrem)` guess.
+- Tightened `test/system/share_view_test.rb` so the mobile-sized shared page now verifies the note frame keeps more than half of the viewport height before the display controls are opened.
+
+Verification:
+- `cmd /c npx vitest run test/javascript/controllers/share_view_controller.test.js`
+  - Passed: 1 file, 8 tests, 0 failures.
+- `docker exec lewismd-test-env bash -lc "cd /rails && export CHROME_BIN=/usr/bin/chromium && RAILS_ENV=test bundle exec rails test test/system/share_view_test.rb test/system/export_menu_test.rb"`
+  - Passed: 11 runs, 119 assertions, 0 failures.
+
+Notes:
+- The audit test was valuable here because it exposed a real browser-level difference that the earlier structural refactor and jsdom checks did not catch.
+- The next phases can now focus on accessibility/translation completion instead of fighting a broken reader-height model.
+
+## 2026-03-24 - Shared Reader Height Regression Audit and Responsive Fix
+
+### Goal
+Fix the shared snapshot reader after the Phase 3 responsive toolbar work left the reading frame far too short, especially on narrow screens.
+
+### Root cause
+The visible bug had two layers:
+
+1. The browser was initially serving a stale built `tailwind.css` bundle that did not contain any `share-view` rules, so the shared reader shell was effectively unstyled.
+2. Once the bundle was rebuilt, the remaining mobile regression came from the toolbar layout itself:
+   - `.share-view__toolbar-top` switched to a column layout on narrow screens but the base `justify-content: space-between` behavior still created a large dead gap.
+   - `.share-view__identity` still had a flexible growth value, so in the stacked mobile layout it absorbed vertical space and inflated the header height.
+
+That combination left the shared reader header extremely tall and reduced the iframe reading area to a small strip, even for short notes.
+
+### Implementation
+- Kept the shared reader shell layout-driven instead of forcing JS pixel heights.
+- Confirmed and rebuilt the compiled Tailwind bundle so `share-view` component styles are actually present.
+- Tightened the mobile toolbar layout in [app/assets/tailwind/components/share_view.css]:
+  - `justify-content: flex-start` for `.share-view__toolbar-top` under the mobile breakpoint
+  - `flex: 0 0 auto` for `.share-view__identity` under the mobile breakpoint
+  - preserved the compact two-row structure from earlier phases
+- Removed the stale imperative height forcing from [app/javascript/controllers/share_view_controller.js], keeping the controller focused on responsive display-panel behavior instead of layout math.
+- Left the responsive split intact in [app/views/shares/show.html.erb].
+
+### Verification
+Focused checks:
+- `cmd /c npx vitest run test/javascript/controllers/share_view_controller.test.js`
+- `docker exec lewismd-test-env bash -lc "cd /rails && bundle exec rails tailwindcss:build"`
+- `docker exec lewismd-test-env bash -lc "cd /rails && export CHROME_BIN=/usr/bin/chromium && RAILS_ENV=test bundle exec rails test test/system/share_view_test.rb test/system/export_menu_test.rb"`
+- `docker exec lewismd-test-env bash -lc "cd /rails && bundle exec rubocop"`
+
+Result:
+- Focused JS passed
+- Focused browser/system tests passed
+- RuboCop passed
+
+### Notes
+The important lesson here is that the shared reader depends on the compiled Tailwind bundle just as much as the main app shell. Source CSS alone was not enough; the stale build masked the real responsive issue until the bundle was regenerated. Once the correct CSS was live, the actual layout bug became clear and could be fixed cleanly in CSS.
+
+## 2026-03-24 - Shared Reader Control Sizing and Translation Coverage (Phase 6)
+
+### Goal
+Refine the shared-reader toolbar sizing so the display controls feel visually consistent with the top-row controls, then complete the locale coverage for the new `Display` interaction.
+
+### Implementation
+- Reduced the sizing of the display-panel controls in [app/assets/tailwind/components/share_view.css]:
+  - smaller pill padding and min-height for zoom/width/font groups
+  - slightly smaller +/- buttons
+  - tighter value width and font selector sizing
+  - slightly smaller overall toolbar button sizing so `Display` visually matches Theme/Language/Share more closely
+- Updated [app/views/shares/show.html.erb] so the `Display` label uses the same compact text treatment as the other top-row controls.
+- Added translated server-provided labels for the display toggle in [app/javascript/controllers/share_view_controller.js]:
+  - `show_controls`
+  - `hide_controls`
+  - `display_controls`
+- Added those locale keys across all shipped languages in `config/locales/*.yml`.
+- Extended shared-reader test coverage so locale switching also verifies the translated `Display` button label.
+
+### Verification
+Focused checks:
+- `docker exec lewismd-test-env bash -lc "cd /rails && bundle exec rails tailwindcss:build"`
+- `cmd /c npx vitest run test/javascript/controllers/share_view_controller.test.js`
+- `docker exec lewismd-test-env bash -lc "cd /rails && export CHROME_BIN=/usr/bin/chromium && RAILS_ENV=test bundle exec rails test test/system/share_view_test.rb test/system/export_menu_test.rb"`
+- `docker exec lewismd-test-env bash -lc "cd /rails && bundle exec rubocop"`
+- `cmd /c npx vitest run`
+- `docker exec lewismd-test-env bash -lc "cd /rails && export CHROME_BIN=/usr/bin/chromium && RAILS_ENV=test bundle exec rails test"`
+
+Result:
+- Focused share-reader tests passed
+- RuboCop passed
+- Full JS and Rails suites remain at the same unrelated baseline failures/noise that already existed before this work
+
+### Notes
+The shared reader now has much tighter visual rhythm: Theme, Language, Share, and Display read as one control family, while the zoom/width/font pills no longer dominate the header. The translation coverage also means the display toggle no longer relies on English-only fallback copy when visitors switch locales on the public reader page.
+
+## 2026-03-24 - Shared Reader Toolbar Final Polish and Phase 7 Closeout
+
+### Goal
+Finish the shared-reader responsive toolbar rollout by correcting the visual alignment of the display-panel pills and locking the final behavior down with closing regression coverage.
+
+### Implementation
+- Updated [app/assets/tailwind/components/share_view.css] so the display-panel pills center properly in the row on larger viewports:
+  - added `align-content: center` to the display-panel container
+  - centered direct `.share-view__group` children with `align-self: center`
+  - preserved full-width stretch behavior on mobile with a breakpoint override
+- Added a final browser-level regression in [test/system/share_view_test.rb] proving that desktop viewports keep the display controls visible by default without requiring the `Display` toggle.
+
+### Verification
+Focused checks:
+- `docker exec lewismd-test-env bash -lc "cd /rails && bundle exec rails tailwindcss:build"`
+- `cmd /c npx vitest run test/javascript/controllers/share_view_controller.test.js`
+- `docker exec lewismd-test-env bash -lc "cd /rails && export CHROME_BIN=/usr/bin/chromium && RAILS_ENV=test bundle exec rails test test/system/share_view_test.rb test/system/export_menu_test.rb"`
+
+Result:
+- Focused JS passed
+- Focused browser/system tests passed
+
+### Notes
+The mobile/tablet reader toolbar work is now in a good finished state: compact by default where space is tight, expanded by default on desktop, fully localized, and visually aligned as one control family.
+
+## 2026-03-24 - Backup Export Phase 1 Foundation
+
+### What shipped
+- Added a new filesystem-backed `BackupService` in `app/services/backup_service.rb`.
+- Added a direct `rubyzip` dependency to `Gemfile` so ZIP export is an app feature instead of only a transitive test dependency.
+- Implemented `backup_note(path)` to package a single markdown note into a temporary `.zip` and return an archive handle with a cleanup helper.
+- Implemented `backup_folder(path)` to package a selected folder subtree into a temporary `.zip`, preserving nested structure and empty directories.
+- Added focused service coverage in `test/services/backup_service_test.rb`.
+
+### Architecture choices
+- Kept this phase service-only. No routes, controllers, or UI hooks were added yet.
+- The service validates note and folder paths relative to the notes root and rejects traversal/absolute paths.
+- Note backups intentionally include only the selected `.md` file in Phase 1.
+- Folder backups include the full subtree exactly as stored on disk, including empty directories.
+- The service returns a small archive object with `path`, `filename`, and `cleanup!` so later controller work can stream and then remove the temp file cleanly.
+
+### Problems solved
+- Establishes the ZIP packaging foundation without introducing a new persistence layer.
+- Keeps backup generation aligned with the app's filesystem-first architecture.
+- Avoids mixing download/UI concerns into the core archive logic too early.
+
+### Verification
+- `docker exec lewismd-test-env bash -lc "cd /rails && bundle exec rails test test/services/backup_service_test.rb"`
+- `docker exec lewismd-test-env bash -lc "cd /rails && bundle exec rubocop app/services/backup_service.rb test/services/backup_service_test.rb"`
+
+## 2026-03-24 - Backup Export Phase 2 Download Endpoints
+
+### What shipped
+- Added `BackupsController` in `app/controllers/backups_controller.rb`.
+- Added `GET /backup/note/*path` and `GET /backup/folder/*path` routes in `config/routes.rb`.
+- Added integration coverage in `test/controllers/backups_controller_test.rb`.
+
+### Architecture choices
+- Kept the controller thin: it only maps route params to `BackupService`, converts service errors to HTTP status codes, and streams the resulting archive.
+- ZIP downloads are streamed in chunks instead of reading the whole archive into memory.
+- Temporary ZIP cleanup is tied to response-body close via `Rack::BodyProxy`, so the app does not leave backup files behind after download.
+- Missing note backups return `errors.note_not_found`; missing folder backups return `errors.folder_not_found`.
+
+### Problems solved
+- Establishes real download endpoints without yet coupling them to the context menus.
+- Avoids the common temp-file leak problem in ad hoc archive downloads.
+- Keeps memory usage lower than a `send_data(File.binread(...))` approach for larger folder backups.
+
+### Verification
+- `docker exec lewismd-test-env bash -lc "cd /rails && bundle exec rails test test/services/backup_service_test.rb test/controllers/backups_controller_test.rb"`
+- `docker exec lewismd-test-env bash -lc "cd /rails && bundle exec rubocop app/controllers/backups_controller.rb app/services/backup_service.rb test/controllers/backups_controller_test.rb test/services/backup_service_test.rb config/routes.rb"`
+
+### Follow-up
+- The first controller pass used a chunked response with `Rack::BodyProxy`, but the integration/full-suite environment did not close the body early enough to remove the temporary ZIP deterministically.
+- The endpoint now uses `send_data archive.path.binread` with `ensure archive.cleanup!`, which keeps cleanup reliable for this phase.
+- This is a good tradeoff for note and folder backups at the current app scope; if very large archive exports become common later, a more advanced streaming/cleanup path can be revisited.
+
+## 2026-03-24 - Backup Export Phase 3 Context Menu Integration
+
+### What shipped
+- Added a dynamic backup action to the existing file/folder context menu in `app/views/notes/dialogs/_file_operations.html.erb`.
+- Wired the action in `app/javascript/controllers/file_operations_controller.js`.
+- Added browser coverage in `test/system/backup_menu_test.rb`.
+- Extended controller-level JS coverage in `test/javascript/controllers/file_operations_controller.test.js`.
+
+### Architecture choices
+- Reused the existing file-operations context menu instead of adding a new toolbar or dialog.
+- Used a single menu item whose label switches between note and folder backup based on the selected context item.
+- Kept the browser action simple: create a temporary anchor pointing at `/backup/note/*path` or `/backup/folder/*path` and let the browser handle the ZIP download.
+- Used server-rendered backup-label values on the Stimulus root with translation defaults, so the UI can render sensible copy now without waiting for the full translation phase.
+
+### Problems solved
+- Users can now back up an individual note or folder directly from the same right-click menu they already use for rename/delete/template actions.
+- The UI stays lightweight because there is no extra confirmation or export modal for this first interaction pass.
+- Browser-level tests now prove the context menu points to the correct backup endpoints for both notes and folders.
+
+### Verification
+- `cmd /c npx vitest run test/javascript/controllers/file_operations_controller.test.js`
+- `docker exec lewismd-test-env bash -lc "cd /rails && export CHROME_BIN=/usr/bin/chromium && RAILS_ENV=test bundle exec rails test test/system/backup_menu_test.rb test/controllers/backups_controller_test.rb test/services/backup_service_test.rb"`
+- `docker exec lewismd-test-env bash -lc "cd /rails && bundle exec rubocop"`
+
+
+## 2026-03-24 Backup Phase 4
+- Reworked note and folder backup downloads to fetch the ZIP first, then trigger a blob-backed browser download. This fixes the silent-failure UX from the raw anchor approach and lets the UI surface backup preparation, success, and failure feedback without adding a separate notification system.
+- Reused the existing temporary message pattern through `app_controller#onFileOperationsStatusMessage`, and extended `showTemporaryMessage` with optional error styling so backup failures can stand out without introducing a second toast/status subsystem.
+- Added `downloadBlobFile` to the shared browser export utilities so backup downloads and export downloads use the same object-URL lifecycle instead of duplicating link-click logic.
+- Hardened the backend backup path by mapping permission errors to `403` in `BackupsController` and normalizing mid-archive `ENOENT` failures in `BackupService`.
+- Updated browser/system coverage to assert the real backup fetch endpoint and final ZIP filename now that the download flow is blob-based instead of direct navigation.
+
+
+## 2026-03-24 Backup Phase 5
+- Added shipped-locale coverage for the new backup context-menu labels and feedback messages across `en`, `pt-BR`, `pt-PT`, `es`, `he`, `ja`, and `ko`.
+- Extended the translation endpoint regression suite so backup UI copy is now audited alongside recent template/share/help additions.
+- Added a browser-level localization regression for the backup menu itself, verifying both the translated right-click label and the translated "backup download started" feedback message under the Spanish locale.
+
+
+## 2026-03-24 Backup Phase 6
+- Treated Phase 6 as a coverage-hardening pass rather than adding more runtime behavior.
+- Added a dedicated JavaScript unit suite for `browser_export_utils` so the shared blob-download path is now directly tested instead of only being covered indirectly through export and backup controllers.
+- Added backup regression coverage for fallback ZIP filenames when `Content-Disposition` is missing.
+- Added backend regression coverage for `BackupService` normalizing disappearing files during archive creation and for `BackupsController` returning `403` on both note and folder permission failures.
+- Added a browser-level failure-path regression so the note backup menu now proves a visible error message appears when the ZIP request fails.
+
+
+## 2026-03-24 Backup Phase 7
+- Updated [README.md](/C:/Users/Admin/Documents/GitHub/LewisMD/README.md) so the public docs now mention ZIP backups for notes and folders.
+- Documented the intended scope clearly: note backups package the selected markdown file, while folder backups preserve the selected subtree for redundancy.
+- Kept the docs lightweight and user-facing instead of introducing restore/import promises the app does not implement yet.

@@ -48,9 +48,11 @@
 - **Content loss protection**: If you accidentally delete a large portion of your note (more than 20% and 50+ characters), a warning banner appears with "Undo" and "Save Anyway" buttons, giving you a chance to recover before the deletion is saved.
 - **Offline backup**: While you're editing, LewisMD periodically saves your work to the browser's local storage as a safety net.
 - **Recovery dialog**: If the app detects that a local backup differs from the saved version (e.g., after a crash or lost connection), it shows a side-by-side diff so you can choose to keep the server version or restore the backup.
+- **ZIP backups**: Right-click any note or folder to download a `.zip` backup to your computer. Single-note backups contain the selected markdown file; folder backups preserve the selected subtree.
 
 ### Organization
 - Nested folder structure with context menu (right-click to create new notes or folders)
+- Context-menu backup actions for individual notes and folders
 - Drag and drop files and folders
 - Quick file finder (`Ctrl+P`) sorted by recency
 - Full-text search with regex support (`Ctrl+Shift+F`)
