@@ -2482,3 +2482,49 @@ Broader baseline after Phase C/D:
   - Passed: 77 files inspected, 0 offenses.
 - Full `npx vitest run` still has the same unrelated baseline failures in `keyboard_shortcuts.test.js` and `offline_backup_controller.test.js`.
 - Full `bundle exec rails test` still has the same unrelated baseline failures/errors in `note_test.rb`, `folder_test.rb`, `images_controller_test.rb`, and `logs_controller_test.rb`.
+
+## 2026-03-23 - Template rename flow and Unicode display follow-up
+
+### Follow-up audit
+- Verified that the accented-template-name bug was already fixed in the client display layer. `humanizeTemplateName()` now uses a Unicode-aware formatter, so names such as `Reunião Wise Up` no longer become `ReuniãO Wise Up`.
+- Found a second UX gap in template management: existing templates could not be renamed because the path field was locked read-only and the backend update route only overwrote content.
+- While adding rename support, found an async manager race where clicking a template and immediately editing could allow the delayed load response to overwrite the user's input or surface a false "file no longer exists" alert.
+
+### Fixes applied
+- Existing template paths are now editable in the manager. Saving an edited path renames the template file in place instead of forcing users to recreate it.
+- Added rename support to `TemplatesService` and `TemplatesController`, including collision handling when the destination template already exists.
+- Renaming a linked template now rewrites `.frankmd/template_links.json` so note-to-template associations stay valid.
+- Guarded the template form while a template is loading, which prevents the load response from clobbering user edits.
+- Tightened stale-refresh handling so out-of-date load responses are ignored instead of showing a misleading alert.
+
+### Verification
+- `cmd /c npx vitest run test/javascript/controllers/file_operations_controller.test.js`
+  - Passed: 65 tests, 0 failures.
+- `docker exec lewismd-test-env bash -lc "cd /rails && export CHROME_BIN=/usr/bin/chromium && RAILS_ENV=test bundle exec rails test test/services/templates_service_test.rb test/controllers/templates_controller_test.rb test/system/template_management_test.rb"`
+  - Passed: 32 runs, 113 assertions, 0 failures.
+- `docker exec lewismd-test-env bash -lc "cd /rails && bundle exec rubocop"`
+  - Passed: 77 files inspected, 0 offenses.
+
+## 2026-03-23 - Shared Snapshot Toolbar Alignment
+
+Issue audited:
+- The shared snapshot reader mixed two visual systems in the top toolbar.
+- Theme, language, and share used the compact toolbar button surface.
+- Zoom, width, and font controls used larger nested controls with a different background/text treatment.
+- The shared reader still showed an `Export` label even though the main app had already standardized on `Share`.
+
+Changes applied:
+- Updated `app/views/shares/show.html.erb` so the shared reader uses the `Share` label and the shared menu title copy.
+- Updated `app/assets/tailwind/components/share_view.css` so the zoom, width, and font controls align with the same rounded pill language as theme/language/share.
+- Reduced the group padding and synchronized minimum heights so the larger controls no longer visually dominate the first three buttons.
+- Switched the inner zoom/width buttons and font select to the same theme-driven background/text palette as the other toolbar controls.
+- Added a custom chevron and `appearance: none` for the font selector so it participates in theming more consistently.
+- Updated `test/system/share_view_test.rb` for the shared-menu title and the `Share` button wording.
+
+Verification:
+- `bundle exec rails test test/system/share_view_test.rb` -> 5 runs, 37 assertions, 0 failures.
+- `bundle exec rails test test/system/share_view_test.rb test/system/export_menu_test.rb` -> 11 runs, 109 assertions, 0 failures.
+- `bundle exec rubocop test/system/share_view_test.rb` -> 0 offenses.
+
+Notes:
+- An initial combined system run hit a transient 404 in the stable-link export/share test at the disposable Puma host (`127.0.0.1`). The focused rerun and the final combined rerun both passed cleanly, so the toolbar change did not introduce a persistent regression there.
