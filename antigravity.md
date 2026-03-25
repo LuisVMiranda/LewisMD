@@ -3051,3 +3051,400 @@ The mobile/tablet reader toolbar work is now in a good finished state: compact b
 - Updated [README.md](/C:/Users/Admin/Documents/GitHub/LewisMD/README.md) so the public docs now mention ZIP backups for notes and folders.
 - Documented the intended scope clearly: note backups package the selected markdown file, while folder backups preserve the selected subtree for redundancy.
 - Kept the docs lightweight and user-facing instead of introducing restore/import promises the app does not implement yet.
+
+
+## 2026-03-24 Windows Launcher Phase 1
+- Created a dedicated Windows launcher workspace under `script/windows` instead of cluttering the repo root.
+- Added `script/windows/launcher.defaults.psd1` as a small PowerShell data file that locks down the runtime contract for later phases:
+  - portable Ruby directory
+  - expected Ruby version
+  - development Rails environment
+  - default port and notes path
+  - runtime state/log/PID paths
+  - supported environment overrides
+  - preferred browser command order
+- Added `script/windows/README.md` to document the optional-launcher scope, runtime model, and planned file layout before any actual launcher logic is introduced.
+- Intentionally kept Phase 1 data-only so later scripts can import a single source of truth instead of hardcoding paths in multiple `.bat`, `.ps1`, and `.vbs` files.
+
+
+## 2026-03-24 Windows Launcher Phase 2
+- Added `script/windows/bootstrap_lewismd.bat` as the one-time Windows launcher bootstrap entrypoint.
+- Kept bootstrap separate from the future daily launcher so Bundler and gem installation do not happen during normal app launches.
+- The bootstrap script now:
+  - reads the Phase 1 defaults from `launcher.defaults.psd1`
+  - validates the portable Ruby location
+  - validates that the launcher defaults still match `.ruby-version`
+  - installs Bundler into the portable Ruby when needed
+  - configures a repo-local bundle path at `vendor/bundle/windows`
+  - installs launcher gems with the test group excluded by default
+- Added `--check-only` so the script can validate the runtime contract without performing installs, and `--all-groups` for users who want a fuller local Windows bundle.
+- Updated `script/windows/README.md` so the Windows launcher folder now documents how bootstrap is meant to be used before later launcher phases arrive.
+
+
+## 2026-03-24 Windows Launcher Phase 3
+- Added `script/windows/start_lewismd.bat` as the visible Windows launcher entrypoint.
+- Kept the script intentionally narrow so Phase 3 stays about the debug-friendly wrapper, not the full launch pipeline.
+- The visible launcher now:
+  - prints a readable startup banner and repo root
+  - validates the runtime via `bootstrap_lewismd.bat --check-only`
+  - fails with an actionable message if bootstrap is incomplete
+  - preserves unknown arguments so later PowerShell phases can introduce their own options without rewriting the batch wrapper
+  - checks for `launch_lewismd.ps1` and reports clearly that Phase 4 is still required before real app startup can happen
+- Updated `script/windows/README.md` so the Windows launcher folder now documents both bootstrap and the visible launcher wrapper.
+
+
+## 2026-03-24 Windows Launcher Phase 4
+- Added `script/windows/launch_lewismd.ps1` as the main Windows launcher orchestrator.
+- The PowerShell orchestrator now owns the real lifecycle that the earlier phases deliberately deferred:
+  - runtime validation for portable Ruby and Bundler
+  - `bundle check` enforcement so bootstrap must have been completed
+  - notes/state directory creation
+  - launcher-managed PID/state tracking through a JSON state file
+  - health polling against `/up` instead of a blind sleep
+  - port conflict detection before booting Rails
+  - browser detection for Edge/Chrome
+  - browser app-mode launch with a dedicated user-data-dir
+  - cleanup that stops only the launcher-managed Rails process
+- Added `-ValidateOnly` so the script can validate the launcher runtime without actually opening the browser.
+- Updated `script/windows/README.md` to document the new orchestrator behavior and the validation-only command.
+
+
+## 2026-03-24 Windows Launcher Phase 5
+- Added `script/windows/Launch_LewisMD.vbs` as the hidden Windows launcher wrapper.
+- The VBS wrapper now:
+  - resolves the repo root relative to its own location
+  - runs `start_lewismd.bat` with window style `0` so the terminal stays hidden during normal use
+  - waits for the underlying launcher session to finish
+  - shows a simple message box if startup fails, pointing the user to the visible launcher and launcher log path
+- Added a `--dry-run` path for non-interactive validation so the wrapper can be checked without opening the browser or blocking on a hidden message box.
+- Updated `script/windows/README.md` so the Windows launcher folder now documents the hidden wrapper and its dry-run validation command.
+
+## 2026-03-24 Windows Launcher Phase 6
+- Added `script/windows/stop_lewismd.bat` as the manual Windows recovery helper.
+- Reused the existing `launch_lewismd.ps1` logic instead of inventing a second shutdown implementation:
+  - added `-StopOnly` mode to the PowerShell orchestrator
+  - stop mode now reads the launcher-managed state file first and falls back to the Rails PID file if needed
+  - stale launcher state is cleaned up even when the Rails process is already dead
+- Kept stop mode intentionally independent from portable Ruby / Bundler validation so users can still recover from a stuck launcher state even if the runtime files were moved or damaged afterward.
+- Updated `script/windows/README.md` so the Windows launcher folder now documents the stop helper usage and the recovery path explicitly.
+
+## 2026-03-24 Windows Launcher Phase 7
+- Added a diagnostics pass across the Windows launcher scripts so failures are easier to understand without turning the launcher into a noisy console app.
+- `launch_lewismd.ps1` now writes explicit session boundaries into `launcher.log` and `rails.log`, rotates oversized logs to `*.previous.log`, records the active session id/mode, and logs top-level failures before re-raising them.
+- `start_lewismd.bat` now appends wrapper-level breadcrumbs to `tmp/windows-launcher/launcher.log`, which makes hidden-mode failures more diagnosable even when the PowerShell orchestrator never reaches a full Rails boot.
+- `bootstrap_lewismd.bat` now appends its key setup steps and failures to the same launcher log so runtime/bootstrap issues are easier to audit after the fact.
+- `Launch_LewisMD.vbs` now points users to both `launcher.log` and `rails.log` on hidden-launch failure.
+- Updated `script/windows/README.md` with a dedicated diagnostics section covering the log files, rotation behavior, and recovery expectations.
+
+## 2026-03-25 Windows Launcher Phase 8
+- Updated the root `.gitignore` so the optional Windows launcher keeps its runtime artifacts out of Git while leaving the actual launcher scripts versioned.
+- Added explicit ignore rules for:
+  - `portable_ruby/`
+  - `vendor/bundle/windows/`
+  - `tmp/windows-launcher/`
+- Kept the policy intentionally narrow: launcher source files remain visible to Git, while only the local runtime, bundled gems, and launcher state/log directory are hidden.
+- Updated `script/windows/README.md` to document that repo policy directly inside the launcher workspace.
+
+## 2026-03-25 Windows Launcher Phase 9
+- Added a dedicated Windows launcher guide at `docs/windows_launcher.md` so the optional personal launcher no longer depends on scattered notes across the README and `script/windows/README.md`.
+- Kept the main `README.md` lightweight by adding a short Windows launcher subsection that points readers to the dedicated guide instead of dumping the full Windows flow into the primary Docker-first install docs.
+- The new guide now covers:
+  - where the launcher files live
+  - how to extract the portable Ruby runtime
+  - bootstrap / visible launch / hidden launch / stop helper usage
+  - log files and diagnostics
+  - environment overrides
+  - validation commands
+  - explicit limitations and the recommended usage pattern
+
+## 2026-03-25 Windows Launcher Phase 10
+- Wrapped the launcher work up with a real validation pass instead of treating the scripts as finished just because the individual phases were implemented.
+- Validation uncovered one naming mismatch: the launcher-managed JSON state file was still named like a Rails PID file. Fixed that by renaming the tracked state path to `tmp/windows-launcher/launcher-state.json` while keeping the real Rails PID file as `tmp/windows-launcher/server.pid`.
+- Updated the Windows launcher docs to reflect that distinction and added a validation matrix to `docs/windows_launcher.md` so the currently validated scenarios and still-pending end-to-end checks are explicit.
+- The final validation pass now covers the paths that are realistically testable in the current repo state, including stale-state cleanup and missing-runtime failure behavior.
+
+## 2026-03-25 Windows Launcher Visible Failure UX Fix
+- Audited the visible launcher failure path after reports that `start_lewismd.bat` showed its verification output and then immediately closed the console window.
+- Confirmed the real underlying startup blocker from the logs: the launcher is currently failing because `portable_ruby\bin\ruby.exe` is missing, so bootstrap validation correctly fails before Rails even starts.
+- Fixed the UX bug in `script/windows/start_lewismd.bat` by making the visible launcher pause on failure by default, which keeps the window open for direct double-click use.
+- Added `--no-pause-on-error` so the hidden `Launch_LewisMD.vbs` wrapper can still fail fast and surface its own message box without leaving an invisible paused batch process behind.
+- Updated the Windows launcher docs to explain the new visible-launcher behavior and the hidden wrapper's explicit opt-out flag.
+## 2026-03-25 Remote Share API Phase 3
+- Implemented the local remote-share bridge layer while keeping the browser/frontend contract unchanged.
+- Added `app/services/remote_share_registry_service.rb` to persist remote share metadata locally under `.frankmd/remote_shares`, including:
+  - public URL
+  - content hash
+  - locale/theme metadata
+  - stale-sync state
+  - last remote error
+  - last successful sync timestamp
+- Added `app/services/remote_share_client.rb` as the authenticated remote API client:
+  - capabilities preflight via `/api/v1/capabilities`
+  - signed write requests with bearer auth + HMAC headers
+  - normalized create/update/revoke responses
+  - public URL derivation fallback when the remote API omits it
+- Replaced the remote provider scaffolding in `app/services/share_publishers/remote_share_provider.rb` with a real provider that:
+  - reuses existing remote registry entries
+  - publishes and refreshes through the new client
+  - preserves the last known share URL locally
+  - marks the share stale instead of deleting it when a refresh fails
+  - revokes the remote share and removes local registry metadata on success
+- Kept `SharesController` thin and local-only by continuing to route everything through the existing `/shares` endpoints while returning remote `url`, `stale`, and `last_error` fields when relevant.
+- Added focused coverage for:
+  - the remote registry service
+  - the remote HTTP client
+  - the remote share provider
+  - controller behavior for remote create / stale refresh / revoke flows
+- During verification, the full JS suite and full Rails suite still showed only the same pre-existing baseline failures outside this feature area.
+## 2026-03-25 Remote Share API Phase 4
+- Added a standalone Rack-based share relay under `services/share_api` instead of folding the VPS service into the main Rails app.
+- Added the minimal remote API surface in `services/share_api/app.rb`:
+  - `GET /up`
+  - `GET /api/v1/capabilities`
+  - `POST /api/v1/shares`
+  - `PUT /api/v1/shares/:token`
+  - `DELETE /api/v1/shares/:token`
+  - `GET /s/:token`
+  - `GET /assets/:token/:asset_name`
+- Added filesystem-backed storage in `services/share_api/lib/share_api/storage.rb` with atomic writes for:
+  - share metadata
+  - path identity index entries
+  - snapshot fragments
+  - replay-protection nonce files
+- Added signed-request authentication in `services/share_api/lib/share_api/authenticator.rb` using the same bearer token + HMAC header contract already implemented in the local client.
+- Added a second-pass fragment sanitizer in `services/share_api/lib/share_api/fragment_sanitizer.rb` so the remote service re-sanitizes incoming HTML before storage and public serving.
+- Added `services/share_api/config.ru` plus service configuration defaults in `services/share_api/lib/share_api/configuration.rb` so the share API can run as a small standalone Rack service later during the VPS deployment phases.
+- Added focused API coverage in `test/services/share_api/app_test.rb` for:
+  - health and capabilities endpoints
+  - authenticated create / update / revoke flows
+  - idempotent create behavior by identity key
+  - replay rejection
+  - public share rendering with script stripping
+- During debugging, fixed a real routing bug where token routes used `match?` but then read `Regexp.last_match`, which caused read/update/delete follow-up requests to 404 even after a successful create.
+- Also fixed the standalone service boot path by requiring the sanitizer dependencies explicitly so the Rack app no longer depends on Rails having already booted first.
+## 2026-03-25 Remote Share API Phase 5
+- Hardened the public share relay responses instead of expanding the feature surface.
+- Updated `services/share_api/app.rb` so public share pages now render through a fixed read-only shell with:
+  - a stable LewisMD Share header
+  - explicit read-only footer copy
+  - `noindex,nofollow,noarchive` robots metadata
+- Added strict public response headers for shared note pages:
+  - `Content-Security-Policy`
+  - `Referrer-Policy: no-referrer`
+  - `X-Content-Type-Options: nosniff`
+  - `X-Frame-Options: DENY`
+  - `Permissions-Policy` with browser features disabled
+  - `Cross-Origin-Resource-Policy: same-origin`
+  - `X-Robots-Tag: noindex, nofollow, noarchive`
+- Added hardened asset response headers and kept the public asset not-found path intentionally small and non-descriptive.
+- Normalized public share 404 handling so invalid, missing, and revoked share tokens all return the same generic public not-found page instead of leaking token-state differences.
+- Added focused coverage in `test/services/share_api/app_test.rb` for:
+  - public shell rendering
+  - CSP and related security headers
+  - uniform public not-found behavior
+  - hardened missing-asset responses
+- Kept the JSON API surface unchanged so the local LewisMD remote client from Phase 3 still speaks the same contract.
+## 2026-03-25 Remote Share API Phase 6
+- Added v1 remote asset upload support for shared notes while keeping the scope intentionally narrow to safe image types.
+- Extended `app/services/share_payload_builder.rb` so remote-share payloads now collect uploadable assets from:
+  - embedded `data:` images
+  - local LewisMD preview images served from `/images/preview/*`
+- The payload builder now returns both:
+  - `asset_manifest` metadata for every discovered image
+  - `assets` upload entries with validated filenames, hashes, sizes, and base64 content for uploadable images
+- Updated `app/services/share_publishers/remote_share_provider.rb` so remote publishing:
+  - keeps external image URLs untouched
+  - rewrites uploadable image references in the fragment to temporary `asset://...` placeholders
+  - sends the corresponding uploadable asset payloads only when `share_remote_upload_assets` is enabled
+- Updated the standalone share relay in:
+  - `services/share_api/app.rb`
+  - `services/share_api/lib/share_api/storage.rb`
+  - `services/share_api/lib/share_api/configuration.rb`
+  - `services/share_api/lib/share_api/fragment_sanitizer.rb`
+- The remote API now:
+  - advertises `asset_uploads: true` in capabilities
+  - accepts uploaded share assets on create/update
+  - validates a strict safe-image allowlist (`png`, `jpg/jpeg`, `gif`, `webp`, `avif`)
+  - rejects blocked types like SVG
+  - stores uploaded assets under the share token with atomic writes
+  - rewrites placeholder image URLs to public `/assets/:token/...` URLs before persistence
+  - cleans up orphaned assets when a share is updated or revoked
+- Fixed a real sanitizer/storage interaction bug where `asset://...` placeholders were being stripped before storage could rewrite them. The sanitizer now preserves those placeholders through a safe internal path prefix until storage resolves them.
+- Added focused coverage in:
+  - `test/services/share_payload_builder_test.rb`
+  - `test/services/remote_share_provider_test.rb`
+  - `test/services/share_api/app_test.rb`
+- The new tests cover:
+  - inline data URI asset extraction
+  - local preview image extraction
+  - remote fragment rewriting before publish
+  - public serving of uploaded assets
+  - orphan asset cleanup on update
+  - blocked MIME-type rejection
+## 2026-03-25 Remote Share API Phase 7
+- Added the first Dockerized VPS deployment layer for the remote share relay.
+- Created a dedicated standalone runtime for the share API in `services/share_api/`:
+  - `Gemfile`
+  - `Gemfile.lock`
+  - `Dockerfile`
+  - `.dockerignore`
+  - `config/puma.rb`
+- The new container runtime is intentionally narrow and independent from the main Rails app image:
+  - Rack-based share API only
+  - Puma entrypoint on port `9292`
+  - dedicated gem bundle limited to the share relay dependencies
+- Added Docker Compose deployment assets in `deploy/share_api/`:
+  - `compose.yml`
+  - `Caddyfile`
+  - `.env.example`
+- The compose stack now provides:
+  - an internal-only `share-api` service
+  - a public `caddy` reverse proxy service
+  - bind-mounted persistent share storage
+  - bind-mounted Caddy data/config paths
+  - container health checks against `/up`
+  - env-driven public ports and public base configuration
+- Kept the deployment files aligned with the existing LewisMD operator style:
+  - `.env`-driven runtime settings
+  - Caddy as the only public edge service
+  - no public port exposure for the share API container itself
+- Fixed a real standalone-runtime issue in `services/share_api/lib/share_api/storage.rb` by removing an accidental `blank?` dependency so the share API can boot outside the main Rails/ActiveSupport environment.
+- Validation completed for:
+  - targeted share API / remote-share Ruby tests
+  - targeted RuboCop on the new deployment-touched files
+  - `docker compose -f deploy/share_api/compose.yml config` with a temporary `.env`
+  - standalone service boot against its own minimal Gemfile/bundle
+- Live container build/start validation is still pending on this machine because the Docker Desktop Linux daemon was unavailable during this phase.
+## 2026-03-25 Remote Share API Phase 8
+- Added the interactive VPS installer at `deploy/share_api/install_share_api.sh`.
+- The installer now guides the operator through the values that actually depend on the target VPS setup:
+  - domain mode with automatic HTTPS or raw IP / HTTP mode
+  - public host
+  - optional ACME email for domain mode
+  - storage and Caddy state paths
+  - automatic firewall configuration
+  - generated or custom remote API token and signing secret
+  - Puma thread and worker tuning
+- The installer now handles distro-aware host setup for:
+  - Ubuntu
+  - Fedora
+  - AlmaLinux
+- Host dependency setup includes:
+  - `curl`
+  - `openssl`
+  - Docker Engine
+  - Docker Compose plugin
+  - firewall tooling (`ufw` or `firewalld`) when the operator opts into automatic firewall configuration
+- The installer generates runtime-specific deployment files under `deploy/share_api/runtime/` instead of asking the operator to hand-edit compose or Caddy files.
+- Generated runtime outputs now include:
+  - `.env`
+  - `compose.yml`
+  - `Caddyfile`
+  - `lewismd_remote_share_config.fed.txt`
+- The generated `.fed` summary file prints the exact local LewisMD values needed to connect the desktop app to the VPS share relay.
+- Added runtime backup behavior so re-running the installer preserves prior generated config files under `deploy/share_api/runtime/backups/`.
+- Added post-install smoke checks for:
+  - share API health inside the container
+  - host listening ports
+  - firewall rule presence when automatic firewall setup is enabled
+  - public edge reachability through Caddy
+- Updated `.gitignore` to ignore the generated installer runtime directory: `deploy/share_api/runtime/`.
+- Updated `remote_api_plan.md` to document the current installer boundary: domain mode stays on standard ports `80/443` for reliable automatic TLS, while nonstandard public ports are only offered in raw-IP HTTP mode for now.
+- Validation completed for the deployment assets around the installer:
+  - targeted share API / remote-share Ruby tests
+  - targeted RuboCop
+  - `docker compose -f deploy/share_api/compose.yml config`
+- A direct shell syntax check for `install_share_api.sh` could not be run on this Windows machine because no usable Bash runtime was available locally.
+## 2026-03-25 Remote Share API Phase 9
+- Added host-level monitoring and outbound alert scripts for the remote share relay:
+  - `deploy/share_api/monitor_share_api.sh`
+  - `deploy/share_api/send_share_api_alert.sh`
+- The monitoring flow now lives outside Docker so it can still detect:
+  - public `/up` failures through Caddy
+  - local reverse-proxy failures on the VPS host
+  - compose-managed service outages
+- The monitor now enforces transition-only alerting for:
+  - `service_up`
+  - `service_down`
+  - `service_recovered`
+  - `disk_usage_high`
+- Added optional outbound notification support for:
+  - generic JSON webhooks
+  - Slack incoming webhooks
+  - Discord webhooks
+  - Healthchecks.io heartbeat/fail pings
+- Extended `deploy/share_api/install_share_api.sh` so the operator can now choose:
+  - whether to install the monitoring timer
+  - monitor interval in minutes
+  - disk-usage warning threshold
+  - instance label
+  - optional Healthchecks URL
+  - optional alert webhook kind, URL, and generic-webhook secret
+- The installer now generates monitoring unit files under `deploy/share_api/runtime/` and installs/enables the systemd timer when requested.
+- Updated `deploy/share_api/.env.example` and `remote_api_plan.md` so the monitoring/runtime contract is documented alongside the deployment stack.
+- Validation completed for:
+  - targeted remote-share Ruby tests
+  - targeted RuboCop
+  - `docker compose -f deploy/share_api/compose.yml config`
+- A direct shell syntax check for the new host-side monitoring scripts could not be run on this Windows machine because no usable Bash runtime was available locally.
+## 2026-03-25 Remote Share API Phase 10
+- Added the Phase 10 operator tooling for the VPS-side remote share relay:
+  - `deploy/share_api/upgrade_share_api.sh`
+  - `deploy/share_api/backup_share_api.sh`
+  - `deploy/share_api/uninstall_share_api.sh`
+- Added a dedicated operator guide at `docs/remote_share_api.md` covering:
+  - install flow
+  - local `.fed` handoff
+  - monitoring model
+  - upgrade workflow
+  - backup/restore notes
+  - uninstall behavior
+  - troubleshooting commands
+- The upgrade script now:
+  - rebuilds the `share-api` image from the current repo checkout
+  - refreshes the Caddy image
+  - creates a pre-upgrade backup by default unless the operator skips it
+  - sends `deploy_started`, `deploy_succeeded`, and `deploy_failed` alerts through the existing webhook bridge when configured
+  - waits for `/up` and reruns the host-level monitor before reporting success
+- The backup script now creates timestamped `.tar.gz` archives plus `.sha256` checksums containing:
+  - persisted share storage
+  - generated runtime config
+  - Caddy state/config directories
+  - backup metadata
+- The uninstall script now keeps the default behavior conservative:
+  - stop/remove the compose stack
+  - remove the monitoring timer/service
+  - preserve share storage, Caddy state, and generated runtime files unless the operator explicitly opts into deleting them
+- Extended `deploy/share_api/install_share_api.sh` so the installer now validates that the Phase 10 operator scripts exist and prints the upgrade/backup/uninstall commands in its completion summary.
+- Updated `remote_api_plan.md` so the Phase 10 boundary now explicitly documents:
+  - pre-upgrade backup by default
+  - what the backup archive must contain
+  - uninstall preserving data by default
+  - operator docs covering manual recovery from backup archives
+- Validation completed for:
+  - targeted share API / remote-share Ruby tests
+  - targeted RuboCop
+  - `docker compose -f deploy/share_api/compose.yml config`
+- A direct Bash syntax check and a true end-to-end Linux VPS/systemd run are still pending because this workstation does not have a usable local Linux/Bash runtime.
+## 2026-03-25 Remote Share API Phase 11
+- Added a final discoverability and regression-check pass for the optional VPS relay tooling.
+- Updated `README.md` so the main project docs now point directly to the optional remote share API workflow and its operator entrypoints.
+- Added `test/services/share_api/deployment_artifacts_test.rb` to lock in high-signal deployment invariants without requiring a live Linux VPS during local development.
+- The new deployment artifact test suite now verifies:
+  - monitoring keys remain documented in `deploy/share_api/.env.example`
+  - `deploy/share_api/compose.yml` keeps `share-api` internal and `caddy` public
+  - `deploy/share_api/install_share_api.sh` still exposes the intended operator workflow
+  - `upgrade_share_api.sh` keeps the backup-first/alert-aware behavior
+  - `backup_share_api.sh` still builds a `.tar.gz` archive with a checksum
+  - `uninstall_share_api.sh` still preserves persisted data by default
+  - `docs/remote_share_api.md` covers install/upgrade/backup/uninstall/restore
+  - `README.md` links the optional remote share API guide
+- Updated `remote_api_plan.md` to formalize Phase 11 as:
+  - README discoverability
+  - deployment artifact regression checks
+  - operator workflow coverage for install/upgrade/backup/uninstall
+- Validation completed for:
+  - targeted remote-share Ruby tests (including the new deployment artifact suite)
+  - targeted RuboCop
+  - `docker compose -f deploy/share_api/compose.yml config`
+- A true Bash syntax run and a live Linux VPS/systemd execution path are still pending because this workstation does not provide a usable local Linux/Bash runtime.

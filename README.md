@@ -215,6 +215,76 @@ fed               # open current directory (same as above)
 - `fed-update` - Check for and download updates
 - `fed-stop` - Stop the container
 
+### Optional: Windows Personal Launcher
+
+LewisMD now includes an optional Windows-only launcher workspace under
+[script/windows](/C:/Users/Admin/Documents/GitHub/LewisMD/script/windows). This is a
+personal convenience path for users who want a lightweight app-style window on
+Windows without turning LewisMD into a separate packaged desktop product.
+
+It is intentionally:
+- optional
+- Windows-only
+- local/personal, not the primary install path
+- still versioned with the main repository
+
+For the full setup and recovery guide, see:
+- [docs/windows_launcher.md](/C:/Users/Admin/Documents/GitHub/LewisMD/docs/windows_launcher.md)
+
+Quick summary:
+
+```bat
+script\windows\bootstrap_lewismd.bat
+script\windows\start_lewismd.bat
+```
+
+The visible launcher now repairs or installs the repo-local Windows runtime
+automatically on first run if `portable_ruby\bin\ruby.exe` is still missing.
+
+For a hidden double-click launcher, use:
+
+```text
+script\windows\Launch_LewisMD.vbs
+```
+
+To create a desktop shortcut with the LewisMD icon, run:
+
+```bat
+cscript //NoLogo script\windows\Launch_LewisMD.vbs --install-shortcut
+```
+
+And if a previous launcher session gets stuck, use:
+
+```bat
+script\windows\stop_lewismd.bat
+```
+
+### Optional: Remote Share API On A VPS
+
+LewisMD also includes an optional VPS-side remote publishing flow for operators
+who want to keep the main app local and private while exposing selected shared
+notes through a small public relay.
+
+That remote service is intentionally narrow:
+
+- the local LewisMD app stays the source of truth
+- only sanitized read-only share snapshots are published outward
+- the VPS runs the dedicated share relay, not a second full LewisMD instance
+
+For the full install, monitoring, upgrade, backup, uninstall, and recovery
+guide, see:
+
+- [docs/remote_share_api.md](/C:/Users/Admin/Documents/GitHub/LewisMD/docs/remote_share_api.md)
+
+Main operator entrypoints:
+
+```bash
+bash deploy/share_api/install_share_api.sh
+bash deploy/share_api/upgrade_share_api.sh
+bash deploy/share_api/backup_share_api.sh
+bash deploy/share_api/uninstall_share_api.sh
+```
+
 ### 3. Configure API Keys (Optional)
 
 For AI features, image hosting, etc., create an env file:
