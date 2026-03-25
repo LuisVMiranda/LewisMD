@@ -32,6 +32,8 @@ RUNTIME_SUMMARY_FILE="$RUNTIME_DIR/lewismd_remote_share_config.fed.txt"
 RUNTIME_MONITOR_SERVICE_FILE="$RUNTIME_DIR/lewismd-share-monitor.service"
 RUNTIME_MONITOR_TIMER_FILE="$RUNTIME_DIR/lewismd-share-monitor.timer"
 COMPOSE_PROJECT_NAME="lewismd-share-api"
+SHARE_API_UID="10001"
+SHARE_API_GID="10001"
 
 SUDO=""
 DISTRO_ID=""
@@ -585,6 +587,7 @@ verify_systemd_if_monitoring_enabled() {
 prepare_runtime_layout() {
   run_root mkdir -p "$RUNTIME_DIR"
   run_root mkdir -p "$STORAGE_HOST_PATH" "$CADDY_DATA_PATH" "$CADDY_CONFIG_PATH"
+  run_root chown -R "${SHARE_API_UID}:${SHARE_API_GID}" "$STORAGE_HOST_PATH"
 }
 
 backup_existing_runtime_if_needed() {
@@ -847,7 +850,11 @@ configure_firewall_if_requested() {
 
 start_stack() {
   log "Starting the remote share stack..."
-  run_root docker compose -f "$RUNTIME_COMPOSE_FILE" --env-file "$RUNTIME_ENV_FILE" up -d --build
+  if ! run_root docker compose -f "$RUNTIME_COMPOSE_FILE" --env-file "$RUNTIME_ENV_FILE" up -d --build; then
+    warn "The stack did not start cleanly. Recent share-api logs:"
+    run_root docker compose -f "$RUNTIME_COMPOSE_FILE" --env-file "$RUNTIME_ENV_FILE" logs --no-color --tail=200 share-api || true
+    die "The remote share stack failed to start."
+  fi
 }
 
 install_monitoring_timer_if_requested() {
@@ -935,7 +942,11 @@ check_public_edge() {
 run_smoke_checks() {
   log "Running post-install smoke checks..."
 
-  wait_for_api_health || die "The share-api container never became healthy. Inspect docker compose logs for details."
+  unless wait_for_api_health
+    warn "The share-api container never became healthy. Recent share-api logs:"
+    run_root docker compose -f "$RUNTIME_COMPOSE_FILE" --env-file "$RUNTIME_ENV_FILE" logs --no-color --tail=200 share-api || true
+    die "The share-api container never became healthy."
+  end
 
   assert_port_listening "$HTTP_PORT"
   if [[ -n "$HTTPS_PORT" ]]; then

@@ -38,6 +38,8 @@ class ShareApiDeploymentArtifactsTest < ActiveSupport::TestCase
     assert_includes installer, "backup_share_api.sh"
     assert_includes installer, "uninstall_share_api.sh"
     assert_includes installer, "Operator guide: $REPO_ROOT/docs/remote_share_api.md"
+    assert_includes installer, 'chown -R "${SHARE_API_UID}:${SHARE_API_GID}" "$STORAGE_HOST_PATH"'
+    assert_includes installer, "logs --no-color --tail=200 share-api"
   end
 
   test "upgrade script creates a backup by default and emits deployment alerts" do
