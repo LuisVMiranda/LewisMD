@@ -15,10 +15,16 @@ class SharesController < ApplicationController
 
   def create
     note = find_existing_markdown_note(params[:path])
-    share = share_service.create_or_find(
+    share_payload = share_payload_builder.build(
       path: note.path,
       title: share_title(params[:title], note.path),
-      snapshot_html: params[:html]
+      document_html: params[:html]
+    )
+    share = share_service.create_or_find(
+      path: note.path,
+      title: share_payload[:title],
+      snapshot_html: params[:html],
+      share_payload: share_payload
     )
 
     render json: share_response(share), status: share[:created] ? :created : :ok
@@ -30,10 +36,16 @@ class SharesController < ApplicationController
 
   def update
     path = normalize_share_path(params[:path])
-    share = share_service.refresh(
+    share_payload = share_payload_builder.build(
       path: path,
       title: share_title(params[:title], path),
-      snapshot_html: params[:html]
+      document_html: params[:html]
+    )
+    share = share_service.refresh(
+      path: path,
+      title: share_payload[:title],
+      snapshot_html: params[:html],
+      share_payload: share_payload
     )
 
     render json: share_response(share)
@@ -76,13 +88,17 @@ class SharesController < ApplicationController
   private
 
   def share_service
-    @share_service ||= ShareService.new
+    @share_service ||= ShareProviderSelector.new.provider
   end
 
   def normalize_share_path(path)
     Note.normalize_path(path).tap do |normalized_path|
       raise ShareService::InvalidShareError unless normalized_path.end_with?(".md")
     end
+  end
+
+  def share_payload_builder
+    @share_payload_builder ||= SharePayloadBuilder.new
   end
 
   def find_existing_markdown_note(path)
@@ -102,11 +118,13 @@ class SharesController < ApplicationController
       token: share[:token],
       path: share[:path],
       title: share[:title],
-      url: share_snapshot_url(token: share[:token]),
+      url: share[:url].presence || share_snapshot_url(token: share[:token]),
       updated_at: share[:updated_at]
     }
 
     response[:created] = share[:created] if share.key?(:created)
+    response[:stale] = share[:stale] if share.key?(:stale)
+    response[:last_error] = share[:last_error] if share.key?(:last_error) && share[:last_error].present?
     response
   end
 

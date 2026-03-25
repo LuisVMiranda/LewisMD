@@ -4,7 +4,7 @@
 # Provides defaults from ENV variables that can be overridden per-folder.
 class Config
   CONFIG_FILE = ".fed"
-  CONFIG_VERSION = 4  # Increment when adding new settings
+  CONFIG_VERSION = 5  # Increment when adding new settings
 
   # All configurable options with their defaults and types
   SCHEMA = {
@@ -26,6 +26,22 @@ class Config
     # Paths (ENV defaults)
     "images_path" => { default: nil, type: :string, env: "IMAGES_PATH" },
     "templates_path" => { default: nil, type: :string, env: nil },
+
+    # Remote share publishing
+    "share_backend" => { default: "local", type: :string, env: nil },
+    "share_remote_api_scheme" => { default: "https", type: :string, env: nil },
+    "share_remote_api_host" => { default: nil, type: :string, env: nil },
+    "share_remote_api_port" => { default: 443, type: :integer, env: nil },
+    "share_remote_public_base" => { default: nil, type: :string, env: nil },
+    "share_remote_timeout_seconds" => { default: 10, type: :integer, env: nil },
+    "share_remote_verify_tls" => { default: true, type: :boolean, env: nil },
+    "share_remote_upload_assets" => { default: true, type: :boolean, env: nil },
+    "share_remote_instance_name" => { default: nil, type: :string, env: nil },
+    "share_remote_healthchecks_ping_url" => { default: nil, type: :string, env: nil },
+    "share_remote_alert_webhook_url" => { default: nil, type: :string, env: nil },
+    "share_remote_api_token" => { default: nil, type: :string, env: nil },
+    "share_remote_signing_secret" => { default: nil, type: :string, env: nil },
+    "share_remote_alert_webhook_secret" => { default: nil, type: :string, env: nil },
 
     # AWS S3 Settings (ENV defaults)
     "aws_access_key_id" => { default: nil, type: :string, env: "AWS_ACCESS_KEY_ID" },
@@ -71,6 +87,9 @@ class Config
     openrouter_api_key
     anthropic_api_key
     gemini_api_key
+    share_remote_api_token
+    share_remote_signing_secret
+    share_remote_alert_webhook_secret
   ].freeze
 
   # Keys that are UI settings (saved from frontend)
@@ -166,6 +185,30 @@ class Config
         "",
         "# Markdown templates directory (defaults to .frankmd/templates inside notes path)",
         "# templates_path = /path/to/templates"
+      ]
+    },
+    {
+      marker: "# Remote Share API",
+      lines: [
+        "",
+        "# Remote Share API",
+        "",
+        "# Optional: publish shared notes to a hardened VPS-hosted share relay.",
+        "# Keep share_backend = local to stay fully local-only.",
+        "# share_backend = local",
+        "# share_remote_api_scheme = https",
+        "# share_remote_api_host = shares.example.com",
+        "# share_remote_api_port = 443",
+        "# share_remote_public_base = https://shares.example.com",
+        "# share_remote_timeout_seconds = 10",
+        "# share_remote_verify_tls = true",
+        "# share_remote_upload_assets = true",
+        "# share_remote_instance_name = my-vps",
+        "# share_remote_healthchecks_ping_url = https://hc-ping.com/your-uuid",
+        "# share_remote_alert_webhook_url = https://hooks.example.com/lewismd",
+        "# share_remote_api_token = your-remote-api-token",
+        "# share_remote_signing_secret = your-remote-signing-secret",
+        "# share_remote_alert_webhook_secret = your-alert-webhook-secret"
       ]
     },
     {
@@ -590,12 +633,34 @@ class Config
     ai_keys = %w[ai_provider ai_model ollama_api_base ollama_model
                  openrouter_api_key openrouter_model anthropic_api_key anthropic_model
                  gemini_api_key gemini_model openai_api_key openai_model]
+    remote_share_keys = %w[
+      share_backend
+      share_remote_api_scheme
+      share_remote_api_host
+      share_remote_api_port
+      share_remote_public_base
+      share_remote_timeout_seconds
+      share_remote_verify_tls
+      share_remote_upload_assets
+      share_remote_instance_name
+      share_remote_healthchecks_ping_url
+      share_remote_alert_webhook_url
+      share_remote_api_token
+      share_remote_signing_secret
+      share_remote_alert_webhook_secret
+    ]
     new_lines = existing_lines.dup
     changed = false
 
     unless section_present?(existing_lines, "# Templates", %w[templates_path])
       new_lines << "" if new_lines.last&.strip&.present?
       new_lines.concat(section_lines("# Templates"))
+      changed = true
+    end
+
+    unless section_present?(existing_lines, "# Remote Share API", remote_share_keys)
+      new_lines << "" if new_lines.last&.strip&.present?
+      new_lines.concat(section_lines("# Remote Share API"))
       changed = true
     end
 

@@ -209,13 +209,16 @@ class ShareService
 
   def atomic_write(pathname, content)
     FileUtils.mkdir_p(pathname.dirname)
+    tempfile = Tempfile.new([ pathname.basename.to_s, ".tmp" ], pathname.dirname.to_s)
+    tempfile.binmode
+    tempfile.write(content)
+    tempfile.flush
+    tempfile.fsync
 
-    Tempfile.create([ pathname.basename.to_s, ".tmp" ], pathname.dirname.to_s) do |tempfile|
-      tempfile.binmode
-      tempfile.write(content)
-      tempfile.flush
-      tempfile.fsync
-      FileUtils.mv(tempfile.path, pathname, force: true)
-    end
+    temp_path = tempfile.path
+    tempfile.close
+    FileUtils.mv(temp_path, pathname.to_s, force: true)
+  ensure
+    tempfile&.close!
   end
 end

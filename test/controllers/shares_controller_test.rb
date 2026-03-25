@@ -9,6 +9,8 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
   end
 
   def teardown
+    WebMock.reset!
+    WebMock.allow_net_connect!
     teardown_test_notes_dir
   end
 
@@ -84,6 +86,39 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
   end
 
+  test "create rejects share payloads that sanitize down to nothing" do
+    post shares_url,
+      params: {
+        path: "shared-note.md",
+        title: "Shared Note",
+        html: '<html><body><article class="export-article"><script>alert("xss")</script></article></body></html>'
+      },
+      as: :json
+
+    assert_response :unprocessable_entity
+  end
+
+  test "create returns the remote public url when remote publishing is configured" do
+    configure_remote_share_backend
+    stub_remote_capabilities
+    stub_remote_create
+
+    post shares_url,
+      params: {
+        path: "shared-note.md",
+        title: "Shared Note",
+        html: '<html lang="en" data-theme="dark"><body><article class="export-article"><h1>Shared Snapshot</h1></article></body></html>'
+      },
+      as: :json
+
+    assert_response :created
+
+    data = JSON.parse(response.body)
+    assert_equal "remote-share-1234", data["token"]
+    assert_equal "https://shares.example.com/s/remote-share-1234", data["url"]
+    assert_equal true, data["created"]
+  end
+
   test "lookup returns active share metadata for a note path" do
     post shares_url,
       params: {
@@ -135,6 +170,44 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
     assert_includes File.read(@test_notes_dir.join(".frankmd/share_snapshots/#{original["token"]}.html")), "Version Two"
   end
 
+  test "remote update preserves the existing share url and marks the share stale on API failure" do
+    configure_remote_share_backend
+    stub_remote_capabilities
+    stub_remote_create
+
+    post shares_url,
+      params: {
+        path: "shared-note.md",
+        title: "Shared Note",
+        html: '<html lang="en" data-theme="dark"><body><article class="export-article"><p>Version One</p></article></body></html>'
+      },
+      as: :json
+    created_share = JSON.parse(response.body)
+
+    stub_remote_capabilities
+    stub_request(:put, "https://shares.example.com/api/v1/shares/remote-share-1234")
+      .to_return(status: 503, body: { error: "Remote share API timed out" }.to_json)
+
+    patch update_share_url(path: "shared-note.md"),
+      params: {
+        title: "Shared Note",
+        html: '<html lang="en" data-theme="dark"><body><article class="export-article"><p>Version Two</p></article></body></html>'
+      },
+      as: :json
+
+    assert_response :unprocessable_entity
+
+    get share_status_url(path: "shared-note.md"), as: :json
+
+    assert_response :success
+
+    data = JSON.parse(response.body)
+    assert_equal created_share["token"], data["token"]
+    assert_equal "https://shares.example.com/s/remote-share-1234", data["url"]
+    assert_equal true, data["stale"]
+    assert_equal "Remote share API timed out", data["last_error"]
+  end
+
   test "destroy revokes active share" do
     post shares_url,
       params: {
@@ -152,6 +225,29 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
     data = JSON.parse(response.body)
     assert_equal true, data["revoked"]
     refute @test_notes_dir.join(".frankmd/share_snapshots/#{created_share["token"]}.html").exist?
+  end
+
+  test "destroy revokes the remote share when remote publishing is configured" do
+    configure_remote_share_backend
+    stub_remote_capabilities
+    stub_remote_create
+
+    post shares_url,
+      params: {
+        path: "shared-note.md",
+        title: "Shared Note",
+        html: '<html lang="en" data-theme="dark"><body><article class="export-article"><p>Version One</p></article></body></html>'
+      },
+      as: :json
+
+    stub_remote_capabilities
+    stub_request(:delete, "https://shares.example.com/api/v1/shares/remote-share-1234")
+      .to_return(status: 204, body: "")
+
+    delete destroy_share_url(path: "shared-note.md"), as: :json
+
+    assert_response :success
+    assert_nil SharePublishers::RemoteShareProvider.new(base_path: @test_notes_dir).active_share_for("shared-note.md")
   end
 
   test "show renders the share shell even after note is deleted" do
@@ -222,5 +318,38 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
     get share_snapshot_content_url(token: created_share["token"])
 
     assert_response :not_found
+  end
+
+  private
+
+  def configure_remote_share_backend
+    Config.new(base_path: @test_notes_dir).update(
+      share_backend: "remote",
+      share_remote_api_host: "shares.example.com",
+      share_remote_api_port: 443,
+      share_remote_public_base: "https://shares.example.com",
+      share_remote_api_token: "token-123",
+      share_remote_signing_secret: "signing-secret"
+    )
+    WebMock.disable_net_connect!(allow_localhost: true)
+  end
+
+  def stub_remote_capabilities
+    stub_request(:get, "https://shares.example.com/api/v1/capabilities")
+      .to_return(status: 200, body: { api_version: "1" }.to_json)
+  end
+
+  def stub_remote_create
+    stub_request(:post, "https://shares.example.com/api/v1/shares")
+      .to_return(
+        status: 201,
+        body: {
+          token: "remote-share-1234",
+          public_url: "https://shares.example.com/s/remote-share-1234",
+          title: "Shared Note",
+          created_at: "2026-03-25T12:00:00Z",
+          updated_at: "2026-03-25T12:00:00Z"
+        }.to_json
+      )
   end
 end

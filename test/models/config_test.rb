@@ -94,6 +94,10 @@ class ConfigTest < ActiveSupport::TestCase
     assert_includes content, "# App-managed local images default to .frankmd/images inside notes path."
     assert_includes content, "# Templates"
     assert_includes content, "# templates_path = /path/to/templates"
+    assert_includes content, "# Remote Share API"
+    assert_includes content, "# share_backend = local"
+    assert_includes content, "# share_remote_api_host = shares.example.com"
+    assert_includes content, "# share_remote_api_token = your-remote-api-token"
     assert_includes content, "# AWS S3"
     assert_includes content, "# YouTube API"
     assert_includes content, "# Google Custom Search"
@@ -117,6 +121,12 @@ class ConfigTest < ActiveSupport::TestCase
     assert_nil config.get(:active_mode)
     assert_equal false, config.get(:typewriter_mode)
     assert_nil config.get(:templates_path)
+    assert_equal "local", config.get(:share_backend)
+    assert_equal "https", config.get(:share_remote_api_scheme)
+    assert_equal 443, config.get(:share_remote_api_port)
+    assert_equal 10, config.get(:share_remote_timeout_seconds)
+    assert_equal true, config.get(:share_remote_verify_tls)
+    assert_equal true, config.get(:share_remote_upload_assets)
     assert_nil config.get(:theme)
   end
 
@@ -131,6 +141,12 @@ class ConfigTest < ActiveSupport::TestCase
       preview_font_family = serif
       active_mode = preview
       templates_path = /tmp/templates
+      share_backend = remote
+      share_remote_api_host = shares.example.com
+      share_remote_api_port = 8443
+      share_remote_timeout_seconds = 30
+      share_remote_verify_tls = false
+      share_remote_upload_assets = false
     CONFIG
 
     config = Config.new(base_path: @test_dir)
@@ -142,6 +158,12 @@ class ConfigTest < ActiveSupport::TestCase
     assert_equal "serif", config.get(:preview_font_family)
     assert_equal "preview", config.get(:active_mode)
     assert_equal "/tmp/templates", config.get(:templates_path)
+    assert_equal "remote", config.get(:share_backend)
+    assert_equal "shares.example.com", config.get(:share_remote_api_host)
+    assert_equal 8443, config.get(:share_remote_api_port)
+    assert_equal 30, config.get(:share_remote_timeout_seconds)
+    assert_equal false, config.get(:share_remote_verify_tls)
+    assert_equal false, config.get(:share_remote_upload_assets)
   end
 
   test "reads boolean values correctly" do
@@ -274,6 +296,7 @@ class ConfigTest < ActiveSupport::TestCase
       theme = dark
       editor_font_size = 16
       # templates_path = placeholder
+      # share_backend = placeholder
       # ai_model = placeholder
     CONFIG
 
@@ -284,12 +307,13 @@ class ConfigTest < ActiveSupport::TestCase
     lines = content.lines.map(&:strip).reject(&:empty?)
 
     # Should preserve user's ordering (placeholders are preserved as comments)
-    assert_equal 5, lines.length
+    assert_equal 6, lines.length
     assert_equal "editor_font = hack", lines[0]
     assert_equal "theme = gruvbox", lines[1]
     assert_equal "editor_font_size = 16", lines[2]
     assert_equal "# templates_path = placeholder", lines[3]
-    assert_equal "# ai_model = placeholder", lines[4]
+    assert_equal "# share_backend = placeholder", lines[4]
+    assert_equal "# ai_model = placeholder", lines[5]
   end
 
   test "does not re-add values user manually removed" do
@@ -299,6 +323,7 @@ class ConfigTest < ActiveSupport::TestCase
       editor_font = hack
       editor_font_size = 18
       # templates_path = placeholder
+      # share_backend = placeholder
       # ai_model = placeholder
     CONFIG
 
@@ -313,6 +338,7 @@ class ConfigTest < ActiveSupport::TestCase
       theme = dark
       editor_font_size = 18
       # templates_path = placeholder
+      # share_backend = placeholder
       # ai_model = placeholder
     CONFIG
 
@@ -360,6 +386,7 @@ class ConfigTest < ActiveSupport::TestCase
     @test_dir.join(".fed").write(<<~CONFIG)
       theme = dark
       # templates_path = placeholder
+      # share_backend = placeholder
       # ai_model = placeholder
     CONFIG
 
@@ -371,8 +398,9 @@ class ConfigTest < ActiveSupport::TestCase
 
     assert_equal "theme = dark", lines[0]
     assert_equal "# templates_path = placeholder", lines[1]
-    assert_equal "# ai_model = placeholder", lines[2]
-    assert_equal "editor_font = hack", lines[3]
+    assert_equal "# share_backend = placeholder", lines[2]
+    assert_equal "# ai_model = placeholder", lines[3]
+    assert_equal "editor_font = hack", lines[4]
   end
 
   # === UI Settings ===
@@ -397,6 +425,29 @@ class ConfigTest < ActiveSupport::TestCase
     assert_equal "preview", settings["active_mode"]
     refute settings.key?("youtube_api_key")
     refute settings.key?("templates_path")
+  end
+
+  test "all_settings masks remote share secrets unless explicitly requested" do
+    @test_dir.join(".fed").write(<<~CONFIG)
+      share_remote_api_token = token-123
+      share_remote_signing_secret = signing-secret
+      share_remote_alert_webhook_secret = alert-secret
+    CONFIG
+
+    config = Config.new(base_path: @test_dir)
+    masked_settings = config.all_settings
+    sensitive_settings = config.all_settings(include_sensitive: true)
+
+    assert_equal true, masked_settings["share_remote_api_token_configured"]
+    assert_equal true, masked_settings["share_remote_signing_secret_configured"]
+    assert_equal true, masked_settings["share_remote_alert_webhook_secret_configured"]
+    refute masked_settings.key?("share_remote_api_token")
+    refute masked_settings.key?("share_remote_signing_secret")
+    refute masked_settings.key?("share_remote_alert_webhook_secret")
+
+    assert_equal "token-123", sensitive_settings["share_remote_api_token"]
+    assert_equal "signing-secret", sensitive_settings["share_remote_signing_secret"]
+    assert_equal "alert-secret", sensitive_settings["share_remote_alert_webhook_secret"]
   end
 
   # === Feature Detection ===
@@ -660,8 +711,8 @@ class ConfigTest < ActiveSupport::TestCase
 
   # === Config File Upgrade Tests ===
 
-  test "upgrade adds missing templates and AI sections to existing config" do
-    # Create old-style config without Templates or AI sections
+  test "upgrade adds missing templates, remote share, and AI sections to existing config" do
+    # Create old-style config without Templates, Remote Share API, or AI sections
     old_config = <<~CONFIG
       # FrankMD Configuration
       theme = gruvbox
@@ -684,6 +735,9 @@ class ConfigTest < ActiveSupport::TestCase
     content = @test_dir.join(".fed").read
     assert_includes content, "# Templates"
     assert_includes content, "templates_path"
+    assert_includes content, "# Remote Share API"
+    assert_includes content, "share_backend"
+    assert_includes content, "share_remote_api_host"
     assert_includes content, "# AI/LLM"
     assert_includes content, "ollama_api_base"
     assert_includes content, "anthropic_api_key"
