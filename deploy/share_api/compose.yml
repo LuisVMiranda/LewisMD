@@ -1,0 +1,44 @@
+services:
+  share-api:
+    build:
+      context: ../../services/share_api
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    environment:
+      LEWISMD_SHARE_STORAGE_PATH: /var/lib/lewismd-share
+      PORT: 9292
+    volumes:
+      - ${LEWISMD_SHARE_STORAGE_HOST_PATH:-./data/storage}:/var/lib/lewismd-share
+    expose:
+      - "9292"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:9292/up"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - share-backplane
+
+  caddy:
+    image: caddy:2.9-alpine
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    depends_on:
+      share-api:
+        condition: service_healthy
+    ports:
+      - "${LEWISMD_SHARE_HTTP_PORT:-80}:80"
+      - "${LEWISMD_SHARE_HTTPS_PORT:-443}:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ${LEWISMD_SHARE_CADDY_DATA_PATH:-./data/caddy-data}:/data
+      - ${LEWISMD_SHARE_CADDY_CONFIG_PATH:-./data/caddy-config}:/config
+    networks:
+      - share-backplane
+
+networks:
+  share-backplane:
+    name: lewismd-share-backplane

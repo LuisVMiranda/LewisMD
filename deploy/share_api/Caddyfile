@@ -1,0 +1,14 @@
+{$LEWISMD_SHARE_SITE_ADDRESS} {
+  encode zstd gzip
+
+  header {
+    -Server
+  }
+
+  reverse_proxy share-api:9292
+
+  log {
+    output stdout
+    format console
+  }
+}

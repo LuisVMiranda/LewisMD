@@ -17,6 +17,12 @@
 !/log/.keep
 !/tmp/.keep
 
+# Optional Windows launcher local runtime artifacts.
+/tmp/windows-launcher/
+/portable_ruby/
+/vendor/bundle/windows/
+/deploy/share_api/runtime/
+
 # Ignore pidfiles, but keep the directory.
 /tmp/pids/*
 !/tmp/pids/
