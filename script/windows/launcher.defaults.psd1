@@ -26,6 +26,7 @@
   RailsLogFile = "tmp/windows-launcher/rails.log"
   LauncherLogFile = "tmp/windows-launcher/launcher.log"
   StateFile = "tmp/windows-launcher/launcher-state.json"
+  ProgressFile = "tmp/windows-launcher/launcher-progress.json"
   BrowserProfileDir = "tmp/windows-launcher/browser-profile"
 
   # The Rails health endpoint is preferred over blind startup sleeps.

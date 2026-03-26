@@ -233,6 +233,8 @@ Important files:
   - stdout/stderr captured from the Rails server process
 - `launcher-state.json`
   - launcher-managed state used for PID tracking and recovery decisions
+- `launcher-progress.json`
+  - lightweight startup progress state for the future splash/feedback window
 - `server.pid`
   - the PID file written by `rails server`
 
