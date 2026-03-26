@@ -103,6 +103,8 @@ class ConfigTest < ActiveSupport::TestCase
     assert_includes content, "# YouTube API"
     assert_includes content, "# Google Custom Search"
     assert_includes content, "# AI/LLM"
+    assert_includes content, "# ai_grammar_provider = openai"
+    assert_includes content, "# ai_custom_prompt_model = claude-sonnet-4-20250514"
     assert_includes content, "# ollama_api_base"
     assert_includes content, "# anthropic_api_key"
     assert_includes content, "# gemini_api_key"
@@ -692,6 +694,45 @@ class ConfigTest < ActiveSupport::TestCase
     assert_equal "claude-sonnet-4-20250514", options.find { |option| option["provider"] == "anthropic" }["model"]
   end
 
+  test "save_ai_feature_selection persists a valid feature-specific provider choice" do
+    ENV["OPENAI_API_KEY"] = "sk-test"
+    ENV["ANTHROPIC_API_KEY"] = "sk-ant-test"
+
+    config = Config.new(base_path: @test_dir)
+    selection = config.save_ai_feature_selection("grammar", provider: "anthropic", model: "claude-sonnet-4-20250514")
+
+    assert_equal "anthropic", selection["provider"]
+    assert_equal "grammar", selection["feature"]
+    assert_equal "saved_preference", selection["model_source"]
+    assert_equal true, selection["saved"]
+
+    reloaded = Config.new(base_path: @test_dir)
+    assert_equal "anthropic", reloaded.get("ai_grammar_provider")
+    assert_equal "claude-sonnet-4-20250514", reloaded.get("ai_grammar_model")
+    assert_equal "anthropic", reloaded.ai_feature_selection("grammar")["provider"]
+  end
+
+  test "ai_feature_selection returns nil when a saved choice is no longer available" do
+    @test_dir.join(".fed").write(<<~CONFIG)
+      ai_grammar_provider = openai
+      ai_grammar_model = gpt-4o-mini
+    CONFIG
+
+    config = Config.new(base_path: @test_dir)
+
+    assert_nil config.ai_feature_selection("grammar")
+    assert_nil config.ai_saved_selections["grammar"]
+  end
+
+  test "save_ai_feature_selection rejects unsupported features and invalid option pairs" do
+    ENV["OPENAI_API_KEY"] = "sk-test"
+
+    config = Config.new(base_path: @test_dir)
+
+    assert_nil config.save_ai_feature_selection("summaries", provider: "openai", model: "gpt-4o-mini")
+    assert_nil config.save_ai_feature_selection("grammar", provider: "openai", model: "gpt-4-turbo")
+  end
+
   test "feature_available? returns true for ai when any provider configured" do
     ENV["GEMINI_API_KEY"] = "gemini-test"
 
@@ -864,5 +905,28 @@ class ConfigTest < ActiveSupport::TestCase
 
     # Existing value preserved
     assert_equal "sk-existing", config.get("openai_api_key")
+  end
+
+  test "upgrade adds ai feature selection lines to an existing ai section" do
+    config_with_ai_section = <<~CONFIG
+      # FrankMD Configuration
+      theme = dark
+
+      # AI/LLM (for grammar checking)
+      ai_provider = auto
+      ai_model = gpt-4o-mini
+      openai_api_key = sk-existing
+    CONFIG
+
+    @test_dir.join(".fed").write(config_with_ai_section)
+
+    Config.new(base_path: @test_dir)
+    content = @test_dir.join(".fed").read
+
+    assert_includes content, "# ai_grammar_provider = openai"
+    assert_includes content, "# ai_grammar_model = gpt-4o-mini"
+    assert_includes content, "# ai_custom_prompt_provider = anthropic"
+    assert_includes content, "# ai_custom_prompt_model = claude-sonnet-4-20250514"
+    assert_equal 1, content.scan(/ai_grammar_provider/).length
   end
 end

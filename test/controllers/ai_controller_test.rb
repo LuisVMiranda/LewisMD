@@ -157,6 +157,25 @@ class AiControllerTest < ActionDispatch::IntegrationTest
     assert_equal "openai", data["current_selection"]["provider"]
     assert_equal "gpt-4-turbo", data["current_selection"]["model"]
     assert_equal "global_override", data["current_selection"]["model_source"]
+    assert_equal({ "grammar" => nil, "custom_prompt" => nil }, data["saved_selections"])
+  end
+
+  test "config returns saved ai selections when present" do
+    ENV["OPENAI_API_KEY"] = "sk-test"
+    ENV["ANTHROPIC_API_KEY"] = "sk-ant-test"
+
+    config = Config.new
+    config.save_ai_feature_selection("grammar", provider: "anthropic", model: "claude-sonnet-4-20250514")
+    config.save_ai_feature_selection("custom_prompt", provider: "openai", model: "gpt-4o-mini")
+
+    get "/ai/config", as: :json
+    assert_response :success
+
+    data = JSON.parse(response.body)
+    assert_equal "anthropic", data["saved_selections"]["grammar"]["provider"]
+    assert_equal "claude-sonnet-4-20250514", data["saved_selections"]["grammar"]["model"]
+    assert_equal "openai", data["saved_selections"]["custom_prompt"]["provider"]
+    assert_equal "gpt-4o-mini", data["saved_selections"]["custom_prompt"]["model"]
   end
 
   # Fix grammar endpoint tests
@@ -240,6 +259,81 @@ class AiControllerTest < ActionDispatch::IntegrationTest
     assert_equal "# Clean Heading\n\nBody paragraph.", data["corrected"]
     assert_equal "openai", data["provider"]
     assert_equal "gpt-4o-mini", data["model"]
+  end
+
+  test "update_preference saves a valid feature-specific ai selection" do
+    ENV["OPENAI_API_KEY"] = "sk-test"
+    ENV["ANTHROPIC_API_KEY"] = "sk-ant-test"
+
+    patch "/ai/preferences", params: {
+      feature: "grammar",
+      provider: "anthropic",
+      model: "claude-sonnet-4-20250514"
+    }, as: :json
+    assert_response :success
+
+    data = JSON.parse(response.body)
+    assert_equal "grammar", data["feature"]
+    assert_equal "anthropic", data["selection"]["provider"]
+    assert_equal "saved_preference", data["selection"]["model_source"]
+    assert_equal "anthropic", data["saved_selections"]["grammar"]["provider"]
+    assert data["message"].present?
+
+    reloaded = Config.new
+    assert_equal "anthropic", reloaded.get("ai_grammar_provider")
+    assert_equal "claude-sonnet-4-20250514", reloaded.get("ai_grammar_model")
+  end
+
+  test "update_preference returns bad request when feature is missing" do
+    patch "/ai/preferences", params: {
+      feature: "",
+      provider: "openai",
+      model: "gpt-4o-mini"
+    }, as: :json
+    assert_response :bad_request
+
+    data = JSON.parse(response.body)
+    assert_equal "AI preference feature is required.", data["error"]
+  end
+
+  test "update_preference returns bad request when provider or model is missing" do
+    patch "/ai/preferences", params: {
+      feature: "grammar",
+      provider: "openai",
+      model: ""
+    }, as: :json
+    assert_response :bad_request
+
+    data = JSON.parse(response.body)
+    assert_equal "Provider and model are required.", data["error"]
+  end
+
+  test "update_preference returns unprocessable entity for unsupported features" do
+    ENV["OPENAI_API_KEY"] = "sk-test"
+
+    patch "/ai/preferences", params: {
+      feature: "summaries",
+      provider: "openai",
+      model: "gpt-4o-mini"
+    }, as: :json
+    assert_response :unprocessable_entity
+
+    data = JSON.parse(response.body)
+    assert_equal "Unsupported AI feature.", data["error"]
+  end
+
+  test "update_preference returns unprocessable entity for invalid provider model pairs" do
+    ENV["OPENAI_API_KEY"] = "sk-test"
+
+    patch "/ai/preferences", params: {
+      feature: "grammar",
+      provider: "openai",
+      model: "gpt-4-turbo"
+    }, as: :json
+    assert_response :unprocessable_entity
+
+    data = JSON.parse(response.body)
+    assert_equal "That AI option is no longer available.", data["error"]
   end
 
   # Image config endpoint tests

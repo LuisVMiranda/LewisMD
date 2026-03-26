@@ -65,6 +65,34 @@ class AiController < ApplicationController
     end
   end
 
+  # PATCH /ai/preferences
+  def update_preference
+    feature = params[:feature].to_s
+    provider = params[:provider].to_s
+    model = params[:model].to_s
+
+    if feature.blank?
+      return render json: { error: "AI preference feature is required." }, status: :bad_request
+    end
+
+    if provider.blank? || model.blank?
+      return render json: { error: "Provider and model are required." }, status: :bad_request
+    end
+
+    result = AiService.save_selection(feature:, provider:, model:)
+
+    if result[:error]
+      render json: { error: result[:error] }, status: :unprocessable_entity
+    else
+      render json: {
+        feature: feature,
+        selection: result[:selection],
+        saved_selections: result[:saved_selections],
+        message: t("success.settings_saved")
+      }
+    end
+  end
+
   # GET /ai/image_config
   def image_config
     render json: AiService.image_generation_info

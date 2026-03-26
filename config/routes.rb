@@ -50,6 +50,7 @@ Rails.application.routes.draw do
   get "ai/config", to: "ai#status"
   post "ai/fix_grammar", to: "ai#fix_grammar"
   post "ai/generate_custom", to: "ai#generate_custom"
+  patch "ai/preferences", to: "ai#update_preference"
   get "ai/image_config", to: "ai#image_config"
   post "ai/generate_image", to: "ai#generate_image"
 

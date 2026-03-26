@@ -4,7 +4,7 @@
 # Provides defaults from ENV variables that can be overridden per-folder.
 class Config
   CONFIG_FILE = ".fed"
-  CONFIG_VERSION = 6  # Increment when adding new settings
+  CONFIG_VERSION = 7  # Increment when adding new settings
 
   # All configurable options with their defaults and types
   SCHEMA = {
@@ -70,6 +70,10 @@ class Config
     "gemini_model" => { default: "gemini-2.0-flash", type: :string, env: "GEMINI_MODEL" },
     "openai_api_key" => { default: nil, type: :string, env: "OPENAI_API_KEY" },
     "openai_model" => { default: "gpt-4o-mini", type: :string, env: "OPENAI_MODEL" },
+    "ai_grammar_provider" => { default: nil, type: :string, env: nil },
+    "ai_grammar_model" => { default: nil, type: :string, env: nil },
+    "ai_custom_prompt_provider" => { default: nil, type: :string, env: nil },
+    "ai_custom_prompt_model" => { default: nil, type: :string, env: nil },
 
     # Hugo blog post settings
     "hugo_path_style" => { default: "dated", type: :string, env: "HUGO_PATH_STYLE" },
@@ -140,6 +144,16 @@ class Config
       credential_key: "gemini_api_key",
       model_key: "gemini_model",
       label: "Google Gemini"
+    }
+  }.freeze
+  AI_FEATURE_SELECTIONS = {
+    "grammar" => {
+      provider_key: "ai_grammar_provider",
+      model_key: "ai_grammar_model"
+    },
+    "custom_prompt" => {
+      provider_key: "ai_custom_prompt_provider",
+      model_key: "ai_custom_prompt_model"
     }
   }.freeze
 
@@ -293,6 +307,11 @@ class Config
         "",
         "# ai_provider = auto",
         "# ai_model = (uses provider-specific default if not set)",
+        "# Saved per-feature AI selections (optional)",
+        "# ai_grammar_provider = openai",
+        "# ai_grammar_model = gpt-4o-mini",
+        "# ai_custom_prompt_provider = anthropic",
+        "# ai_custom_prompt_model = claude-sonnet-4-20250514",
         "",
         "# OpenAI (recommended)",
         "# openai_api_key = sk-...",
@@ -491,6 +510,56 @@ class Config
     )
   end
 
+  def ai_feature_selection_supported?(feature)
+    AI_FEATURE_SELECTIONS.key?(feature.to_s)
+  end
+
+  def ai_feature_selection(feature)
+    feature = feature.to_s
+    metadata = AI_FEATURE_SELECTIONS[feature]
+    return nil unless metadata
+
+    provider = get(metadata[:provider_key])
+    model = get(metadata[:model_key])
+    return nil if provider.blank? || model.blank?
+
+    matching_option = ai_provider_options.find do |option|
+      option["provider"] == provider && option["model"] == model
+    end
+    return nil unless matching_option
+
+    matching_option.merge(
+      "feature" => feature,
+      "model_source" => "saved_preference",
+      "saved" => true,
+      "selected" => true
+    )
+  end
+
+  def ai_saved_selections
+    AI_FEATURE_SELECTIONS.keys.each_with_object({}) do |feature, selections|
+      selections[feature] = ai_feature_selection(feature)
+    end
+  end
+
+  def save_ai_feature_selection(feature, provider:, model:)
+    feature = feature.to_s
+    metadata = AI_FEATURE_SELECTIONS[feature]
+    return nil unless metadata
+
+    matching_option = ai_provider_options.find do |option|
+      option["provider"] == provider.to_s && option["model"] == model.to_s
+    end
+    return nil unless matching_option
+
+    update(
+      metadata[:provider_key] => matching_option["provider"],
+      metadata[:model_key] => matching_option["model"]
+    )
+
+    ai_feature_selection(feature)
+  end
+
   # Get the effective value for a setting (used by services)
   def effective_value(key)
     get(key)
@@ -675,7 +744,7 @@ class Config
     content = config_file_path.read
     existing_lines = content.lines.map(&:chomp)
 
-    ai_keys = %w[ai_provider ai_model ollama_api_base ollama_model
+    ai_keys = %w[ai_provider ai_model ai_grammar_provider ai_grammar_model ai_custom_prompt_provider ai_custom_prompt_model ollama_api_base ollama_model
                  openrouter_api_key openrouter_model anthropic_api_key anthropic_model
                  gemini_api_key gemini_model openai_api_key openai_model]
     remote_share_keys = %w[
@@ -726,6 +795,21 @@ class Config
       new_lines << "" if new_lines.last&.strip&.present?
       new_lines.concat(section_lines("# AI/LLM"))
       changed = true
+    else
+      changed = ensure_setting_lines_present!(
+        existing_lines: existing_lines,
+        new_lines: new_lines,
+        marker: "# AI/LLM",
+        key: "ai_grammar_provider",
+        lines_to_insert: [
+          "# Saved per-feature AI selections (optional)",
+          "# ai_grammar_provider = openai",
+          "# ai_grammar_model = gpt-4o-mini",
+          "# ai_custom_prompt_provider = anthropic",
+          "# ai_custom_prompt_model = claude-sonnet-4-20250514"
+        ],
+        after_key: "ai_model"
+      ) || changed
     end
 
     return unless changed

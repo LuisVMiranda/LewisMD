@@ -238,6 +238,7 @@ class AiServiceTest < ActiveSupport::TestCase
     assert_equal %w[openai anthropic], info[:available_options].map { |option| option["provider"] }
     assert_equal "openai", info[:current_selection]["provider"]
     assert_equal "gpt-4o-mini", info[:current_selection]["model"]
+    assert_equal({ "grammar" => nil, "custom_prompt" => nil }, info[:saved_selections])
   end
 
   test "available_providers returns all configured providers" do
@@ -268,6 +269,47 @@ class AiServiceTest < ActiveSupport::TestCase
     assert_equal "openai", selection["provider"]
     assert_equal "gpt-4-turbo", selection["model"]
     assert_equal "global_override", selection["model_source"]
+  end
+
+  test "save_selection persists a feature-specific choice and returns all saved selections" do
+    ENV["OPENAI_API_KEY"] = "sk-test"
+    ENV["ANTHROPIC_API_KEY"] = "sk-ant-test"
+
+    result = AiService.save_selection(
+      feature: "grammar",
+      provider: "anthropic",
+      model: "claude-sonnet-4-20250514"
+    )
+
+    assert_nil result[:error]
+    assert_equal "anthropic", result[:selection]["provider"]
+    assert_equal "saved_preference", result[:selection]["model_source"]
+    assert_equal "anthropic", result[:saved_selections]["grammar"]["provider"]
+    assert_nil result[:saved_selections]["custom_prompt"]
+  end
+
+  test "save_selection rejects unsupported features" do
+    ENV["OPENAI_API_KEY"] = "sk-test"
+
+    result = AiService.save_selection(
+      feature: "summaries",
+      provider: "openai",
+      model: "gpt-4o-mini"
+    )
+
+    assert_equal "Unsupported AI feature.", result[:error]
+  end
+
+  test "save_selection rejects stale provider model pairs" do
+    ENV["OPENAI_API_KEY"] = "sk-test"
+
+    result = AiService.save_selection(
+      feature: "grammar",
+      provider: "openai",
+      model: "gpt-4-turbo"
+    )
+
+    assert_equal "That AI option is no longer available.", result[:error]
   end
 
   # Image generation tests
