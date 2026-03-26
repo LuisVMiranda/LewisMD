@@ -100,6 +100,7 @@ ko:
     copied_to_clipboard: 클립보드에 복사되었습니다
     copy_failed: 복사에 실패했습니다
     export_failed: 내용을 내보내지 못했습니다
+    print_failed: 인쇄 대화상자를 열 수 없었습니다.
     saved: 저장됨
     unsaved: 저장되지 않은 변경사항
     error_saving: 저장 오류
@@ -165,6 +166,8 @@ ko:
     display_controls: 읽기 컨트롤
     show_controls: 읽기 컨트롤 표시
     hide_controls: 읽기 컨트롤 숨기기
+    collapse_outline: 개요 접기
+    expand_outline: 개요 펼치기
     zoom: 확대
     zoom_in: 확대
     zoom_out: 축소

@@ -35,11 +35,14 @@ remote reader ships standalone copies of the assets it depends on:
 
 - `share_view.css`
 - the remote reader helper modules
+- `remote_reader_translations.json`
 - the theme CSS files
 - the favicon/icon files
 
 That keeps the public reader self-contained instead of reaching back into the
-main Rails app tree at runtime.
+main Rails app tree at runtime. The standalone translation bundle is generated
+from the shipped locale keys used by the reader shell, and the test suite locks
+that bundle against drift from the main locale files.
 
 The VPS still owns the outer page. LewisMD does not blindly upload an arbitrary
 outer HTML document and publish it as-is.

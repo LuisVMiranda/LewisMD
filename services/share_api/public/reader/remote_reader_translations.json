@@ -1,0 +1,359 @@
+{
+  "en": {
+    "header": {
+      "change_theme": "Change Theme",
+      "change_language": "Change Language",
+      "share": "Share",
+      "open_share_menu": "Open share, export, and copy actions"
+    },
+    "sidebar": {
+      "outline": "Outline",
+      "no_headings_yet": "No headings yet"
+    },
+    "share_view": {
+      "label": "Shared note",
+      "display": "Display",
+      "display_controls": "Reading controls",
+      "show_controls": "Show reading controls",
+      "hide_controls": "Hide reading controls",
+      "collapse_outline": "Collapse outline",
+      "expand_outline": "Expand outline",
+      "zoom": "Zoom",
+      "zoom_in": "Zoom in",
+      "zoom_out": "Zoom out",
+      "width": "Width",
+      "width_narrower": "Make text column narrower",
+      "width_wider": "Make text column wider",
+      "font_family": "Font",
+      "font_default": "Default",
+      "font_sans": "Sans",
+      "font_serif": "Serif",
+      "font_mono": "Mono",
+      "iframe_title": "Shared note preview"
+    },
+    "export_menu": {
+      "copy_note": "Copy Note (Ctrl+C)",
+      "copy_markdown": "Copy Markdown",
+      "export_files": "Export files",
+      "export_html": "Export HTML",
+      "export_txt": "Export TXT",
+      "export_pdf": "Export PDF",
+      "create_share_link": "Create shared link",
+      "copy_share_link": "Copy shared link",
+      "refresh_share_link": "Refresh shared snapshot",
+      "disable_share_link": "Disable shared link"
+    },
+    "status": {
+      "copied_to_clipboard": "Content copied to clipboard",
+      "copy_failed": "Failed to copy content",
+      "export_failed": "Failed to export content",
+      "print_failed": "Could not open the print dialog."
+    }
+  },
+  "pt-BR": {
+    "header": {
+      "change_theme": "Alterar Tema",
+      "change_language": "Alterar Idioma",
+      "share": "Compartilhar",
+      "open_share_menu": "Abrir ações de compartilhamento, exportação e cópia"
+    },
+    "sidebar": {
+      "outline": "Estrutura",
+      "no_headings_yet": "Nenhum título ainda"
+    },
+    "share_view": {
+      "label": "Nota compartilhada",
+      "display": "Exibição",
+      "display_controls": "Controles de leitura",
+      "show_controls": "Mostrar controles de leitura",
+      "hide_controls": "Ocultar controles de leitura",
+      "collapse_outline": "Recolher estrutura",
+      "expand_outline": "Expandir estrutura",
+      "zoom": "Zoom",
+      "zoom_in": "Aumentar zoom",
+      "zoom_out": "Diminuir zoom",
+      "width": "Largura",
+      "width_narrower": "Deixar a coluna de texto mais estreita",
+      "width_wider": "Deixar a coluna de texto mais larga",
+      "font_family": "Fonte",
+      "font_default": "Padrão",
+      "font_sans": "Sans",
+      "font_serif": "Serif",
+      "font_mono": "Mono",
+      "iframe_title": "Visualização da nota compartilhada"
+    },
+    "export_menu": {
+      "copy_note": "Copiar Nota (Ctrl+C)",
+      "copy_markdown": "Copiar Markdown",
+      "export_files": "Exportar arquivos",
+      "export_html": "Exportar HTML",
+      "export_txt": "Exportar TXT",
+      "export_pdf": "Exportar PDF",
+      "create_share_link": "Criar link compartilhado",
+      "copy_share_link": "Copiar link compartilhado",
+      "refresh_share_link": "Atualizar snapshot compartilhado",
+      "disable_share_link": "Desativar link compartilhado"
+    },
+    "status": {
+      "copied_to_clipboard": "Conteúdo copiado para a área de transferência",
+      "copy_failed": "Falha ao copiar conteúdo",
+      "export_failed": "Falha ao exportar conteúdo",
+      "print_failed": "Não foi possível abrir a caixa de impressão."
+    }
+  },
+  "pt-PT": {
+    "header": {
+      "change_theme": "Alterar Tema",
+      "change_language": "Alterar Idioma",
+      "share": "Partilhar",
+      "open_share_menu": "Abrir ações de partilha, exportação e cópia"
+    },
+    "sidebar": {
+      "outline": "Estrutura",
+      "no_headings_yet": "Ainda não há títulos"
+    },
+    "share_view": {
+      "label": "Nota partilhada",
+      "display": "Visualização",
+      "display_controls": "Controlos de leitura",
+      "show_controls": "Mostrar controlos de leitura",
+      "hide_controls": "Ocultar controlos de leitura",
+      "collapse_outline": "Recolher estrutura",
+      "expand_outline": "Expandir estrutura",
+      "zoom": "Zoom",
+      "zoom_in": "Aumentar zoom",
+      "zoom_out": "Diminuir zoom",
+      "width": "Largura",
+      "width_narrower": "Tornar a coluna de texto mais estreita",
+      "width_wider": "Tornar a coluna de texto mais larga",
+      "font_family": "Tipo de letra",
+      "font_default": "Predefinido",
+      "font_sans": "Sans",
+      "font_serif": "Serif",
+      "font_mono": "Mono",
+      "iframe_title": "Pré-visualização da nota partilhada"
+    },
+    "export_menu": {
+      "copy_note": "Copiar Nota (Ctrl+C)",
+      "copy_markdown": "Copiar Markdown",
+      "export_files": "Exportar ficheiros",
+      "export_html": "Exportar HTML",
+      "export_txt": "Exportar TXT",
+      "export_pdf": "Exportar PDF",
+      "create_share_link": "Criar ligação partilhada",
+      "copy_share_link": "Copiar ligação partilhada",
+      "refresh_share_link": "Atualizar instantâneo partilhado",
+      "disable_share_link": "Desativar ligação partilhada"
+    },
+    "status": {
+      "copied_to_clipboard": "Conteúdo copiado para a área de transferência",
+      "copy_failed": "Falha ao copiar conteúdo",
+      "export_failed": "Falha ao exportar conteúdo",
+      "print_failed": "Não foi possível abrir a caixa de impressão."
+    }
+  },
+  "es": {
+    "header": {
+      "change_theme": "Cambiar Tema",
+      "change_language": "Cambiar Idioma",
+      "share": "Compartir",
+      "open_share_menu": "Abrir acciones de compartir, exportar y copiar"
+    },
+    "sidebar": {
+      "outline": "Esquema",
+      "no_headings_yet": "Aún no hay encabezados"
+    },
+    "share_view": {
+      "label": "Nota compartida",
+      "display": "Visualización",
+      "display_controls": "Controles de lectura",
+      "show_controls": "Mostrar controles de lectura",
+      "hide_controls": "Ocultar controles de lectura",
+      "collapse_outline": "Contraer esquema",
+      "expand_outline": "Expandir esquema",
+      "zoom": "Zoom",
+      "zoom_in": "Acercar",
+      "zoom_out": "Alejar",
+      "width": "Anchura",
+      "width_narrower": "Hacer la columna de texto más estrecha",
+      "width_wider": "Hacer la columna de texto más ancha",
+      "font_family": "Fuente",
+      "font_default": "Predeterminada",
+      "font_sans": "Sans",
+      "font_serif": "Serif",
+      "font_mono": "Mono",
+      "iframe_title": "Vista de la nota compartida"
+    },
+    "export_menu": {
+      "copy_note": "Copiar nota (Ctrl+C)",
+      "copy_markdown": "Copiar Markdown",
+      "export_files": "Exportar archivos",
+      "export_html": "Exportar HTML",
+      "export_txt": "Exportar TXT",
+      "export_pdf": "Exportar PDF",
+      "create_share_link": "Crear enlace compartido",
+      "copy_share_link": "Copiar enlace compartido",
+      "refresh_share_link": "Actualizar instantánea compartida",
+      "disable_share_link": "Desactivar enlace compartido"
+    },
+    "status": {
+      "copied_to_clipboard": "Contenido copiado al portapapeles",
+      "copy_failed": "Error al copiar el contenido",
+      "export_failed": "Error al exportar el contenido",
+      "print_failed": "No se pudo abrir el diálogo de impresión."
+    }
+  },
+  "he": {
+    "header": {
+      "change_theme": "שנה ערכת נושא",
+      "change_language": "שנה שפה",
+      "share": "שיתוף",
+      "open_share_menu": "פתח פעולות שיתוף, ייצוא והעתקה"
+    },
+    "sidebar": {
+      "outline": "מתאר",
+      "no_headings_yet": "עדיין אין כותרות"
+    },
+    "share_view": {
+      "label": "הערה משותפת",
+      "display": "תצוגה",
+      "display_controls": "בקרי קריאה",
+      "show_controls": "הצג בקרי קריאה",
+      "hide_controls": "הסתר בקרי קריאה",
+      "collapse_outline": "כווץ מתאר",
+      "expand_outline": "הרחב מתאר",
+      "zoom": "זום",
+      "zoom_in": "התקרב",
+      "zoom_out": "התרחק",
+      "width": "רוחב",
+      "width_narrower": "הפוך את עמודת הטקסט לצרה יותר",
+      "width_wider": "הפוך את עמודת הטקסט לרחבה יותר",
+      "font_family": "גופן",
+      "font_default": "ברירת מחדל",
+      "font_sans": "Sans",
+      "font_serif": "Serif",
+      "font_mono": "Mono",
+      "iframe_title": "תצוגה מקדימה של ההערה המשותפת"
+    },
+    "export_menu": {
+      "copy_note": "העתק הערה (Ctrl+C)",
+      "copy_markdown": "העתק Markdown",
+      "export_files": "ייצוא קבצים",
+      "export_html": "ייצוא HTML",
+      "export_txt": "ייצוא TXT",
+      "export_pdf": "ייצוא PDF",
+      "create_share_link": "צור קישור שיתוף",
+      "copy_share_link": "העתק קישור שיתוף",
+      "refresh_share_link": "רענן תמונת מצב משותפת",
+      "disable_share_link": "השבת קישור שיתוף"
+    },
+    "status": {
+      "copied_to_clipboard": "התוכן הועתק ללוח",
+      "copy_failed": "ההעתקה נכשלה",
+      "export_failed": "ייצוא התוכן נכשל",
+      "print_failed": "לא ניתן לפתוח את חלון ההדפסה."
+    }
+  },
+  "ja": {
+    "header": {
+      "change_theme": "テーマ変更",
+      "change_language": "言語変更",
+      "share": "共有",
+      "open_share_menu": "共有、書き出し、コピーの操作を開く"
+    },
+    "sidebar": {
+      "outline": "アウトライン",
+      "no_headings_yet": "見出しはまだありません"
+    },
+    "share_view": {
+      "label": "共有ノート",
+      "display": "表示",
+      "display_controls": "閲覧コントロール",
+      "show_controls": "閲覧コントロールを表示",
+      "hide_controls": "閲覧コントロールを隠す",
+      "collapse_outline": "アウトラインを折りたたむ",
+      "expand_outline": "アウトラインを展開",
+      "zoom": "ズーム",
+      "zoom_in": "拡大",
+      "zoom_out": "縮小",
+      "width": "幅",
+      "width_narrower": "テキスト列を狭くする",
+      "width_wider": "テキスト列を広くする",
+      "font_family": "フォント",
+      "font_default": "既定",
+      "font_sans": "Sans",
+      "font_serif": "Serif",
+      "font_mono": "Mono",
+      "iframe_title": "共有ノートのプレビュー"
+    },
+    "export_menu": {
+      "copy_note": "ノートをコピー (Ctrl+C)",
+      "copy_markdown": "Markdownをコピー",
+      "export_files": "ファイルを書き出す",
+      "export_html": "HTMLを書き出す",
+      "export_txt": "TXTを書き出す",
+      "export_pdf": "PDFを書き出す",
+      "create_share_link": "共有リンクを作成",
+      "copy_share_link": "共有リンクをコピー",
+      "refresh_share_link": "共有スナップショットを更新",
+      "disable_share_link": "共有リンクを無効化"
+    },
+    "status": {
+      "copied_to_clipboard": "クリップボードにコピーしました",
+      "copy_failed": "コピーに失敗しました",
+      "export_failed": "エクスポートに失敗しました",
+      "print_failed": "印刷ダイアログを開けませんでした。"
+    }
+  },
+  "ko": {
+    "header": {
+      "change_theme": "테마 변경",
+      "change_language": "언어 변경",
+      "share": "공유",
+      "open_share_menu": "공유, 내보내기 및 복사 작업 열기"
+    },
+    "sidebar": {
+      "outline": "개요",
+      "no_headings_yet": "제목이 아직 없습니다"
+    },
+    "share_view": {
+      "label": "공유 노트",
+      "display": "표시",
+      "display_controls": "읽기 컨트롤",
+      "show_controls": "읽기 컨트롤 표시",
+      "hide_controls": "읽기 컨트롤 숨기기",
+      "collapse_outline": "개요 접기",
+      "expand_outline": "개요 펼치기",
+      "zoom": "확대",
+      "zoom_in": "확대",
+      "zoom_out": "축소",
+      "width": "너비",
+      "width_narrower": "텍스트 열을 더 좁게",
+      "width_wider": "텍스트 열을 더 넓게",
+      "font_family": "글꼴",
+      "font_default": "기본값",
+      "font_sans": "Sans",
+      "font_serif": "Serif",
+      "font_mono": "Mono",
+      "iframe_title": "공유 노트 미리보기"
+    },
+    "export_menu": {
+      "copy_note": "노트 복사 (Ctrl+C)",
+      "copy_markdown": "Markdown 복사",
+      "export_files": "파일 내보내기",
+      "export_html": "HTML 내보내기",
+      "export_txt": "TXT 내보내기",
+      "export_pdf": "PDF 내보내기",
+      "create_share_link": "공유 링크 만들기",
+      "copy_share_link": "공유 링크 복사",
+      "refresh_share_link": "공유 스냅샷 새로고침",
+      "disable_share_link": "공유 링크 비활성화"
+    },
+    "status": {
+      "copied_to_clipboard": "클립보드에 복사되었습니다",
+      "copy_failed": "복사에 실패했습니다",
+      "export_failed": "내용을 내보내지 못했습니다",
+      "print_failed": "인쇄 대화상자를 열 수 없었습니다."
+    }
+  }
+}

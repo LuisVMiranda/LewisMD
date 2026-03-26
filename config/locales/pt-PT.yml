@@ -100,6 +100,7 @@ pt-PT:
     copied_to_clipboard: Conteúdo copiado para a área de transferência
     copy_failed: Falha ao copiar conteúdo
     export_failed: Falha ao exportar conteúdo
+    print_failed: Não foi possível abrir a caixa de impressão.
     saved: Guardado
     unsaved: Alterações por guardar
     error_saving: Erro ao guardar
@@ -165,6 +166,8 @@ pt-PT:
     display_controls: Controlos de leitura
     show_controls: Mostrar controlos de leitura
     hide_controls: Ocultar controlos de leitura
+    collapse_outline: Recolher estrutura
+    expand_outline: Expandir estrutura
     zoom: Zoom
     zoom_in: Aumentar zoom
     zoom_out: Diminuir zoom

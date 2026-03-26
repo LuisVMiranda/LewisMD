@@ -100,6 +100,7 @@ es:
     copied_to_clipboard: Contenido copiado al portapapeles
     copy_failed: Error al copiar el contenido
     export_failed: Error al exportar el contenido
+    print_failed: No se pudo abrir el diálogo de impresión.
     saved: Guardado
     unsaved: Cambios sin guardar
     error_saving: Error al guardar
@@ -165,6 +166,8 @@ es:
     display_controls: Controles de lectura
     show_controls: Mostrar controles de lectura
     hide_controls: Ocultar controles de lectura
+    collapse_outline: Contraer esquema
+    expand_outline: Expandir esquema
     zoom: Zoom
     zoom_in: Acercar
     zoom_out: Alejar

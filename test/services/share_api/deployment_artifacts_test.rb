@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "json"
 require "yaml"
 
 class ShareApiDeploymentArtifactsTest < ActiveSupport::TestCase
@@ -185,6 +186,67 @@ class ShareApiDeploymentArtifactsTest < ActiveSupport::TestCase
         Rails.root.join("public", filename).binread,
         Rails.root.join("services", "share_api", "public", "reader", filename).binread,
         "#{filename} drifted from the standalone reader icon copy"
+      )
+    end
+  end
+
+  test "standalone reader translation bundle stays in sync with the main locale keys" do
+    translation_bundle = JSON.parse(
+      Rails.root.join("services", "share_api", "public", "reader", "remote_reader_translations.json").read
+    )
+
+    translation_keys = {
+      "header" => %w[change_theme change_language share open_share_menu],
+      "sidebar" => %w[outline no_headings_yet],
+      "share_view" => %w[
+        label
+        display
+        display_controls
+        show_controls
+        hide_controls
+        collapse_outline
+        expand_outline
+        zoom
+        zoom_in
+        zoom_out
+        width
+        width_narrower
+        width_wider
+        font_family
+        font_default
+        font_sans
+        font_serif
+        font_mono
+        iframe_title
+      ],
+      "export_menu" => %w[
+        copy_note
+        copy_markdown
+        export_files
+        export_html
+        export_txt
+        export_pdf
+        create_share_link
+        copy_share_link
+        refresh_share_link
+        disable_share_link
+      ],
+      "status" => %w[copied_to_clipboard copy_failed export_failed print_failed]
+    }
+
+    %w[en pt-BR pt-PT es he ja ko].each do |locale|
+      locale_source = YAML.load_file(Rails.root.join("config", "locales", "#{locale}.yml")).fetch(locale)
+      expected_locale_payload = translation_keys.each_with_object({}) do |(namespace, keys), memo|
+        source_namespace = locale_source.fetch(namespace)
+        memo[namespace] = keys.each_with_object({}) do |key, namespace_memo|
+          namespace_memo[key] = source_namespace.fetch(key)
+        end
+      end
+
+      assert_equal(
+        expected_locale_payload,
+        translation_bundle.fetch(locale),
+        "#{locale} drifted from the standalone remote reader translation bundle"
       )
     end
   end

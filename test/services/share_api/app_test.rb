@@ -183,6 +183,19 @@ class ShareApiAppTest < ActiveSupport::TestCase
 
     assert_equal 200, last_response.status
     assert_includes last_response.body, '<html lang="pt-BR" data-theme="light">'
+    assert_includes last_response.body, '<p class="share-view__eyebrow">Nota compartilhada</p>'
+    assert_includes last_response.body, 'data-translations="{&quot;header&quot;:{&quot;change_theme&quot;:&quot;Alterar Tema&quot;'
+    assert_includes last_response.body, 'data-show-controls-label="Mostrar controles de leitura"'
+    assert_includes last_response.body, 'data-hide-controls-label="Ocultar controles de leitura"'
+    assert_includes last_response.body, '<h2 class="share-view__outline-title">Estrutura</h2>'
+    assert_includes last_response.body, 'title="Recolher estrutura"'
+    assert_includes last_response.body, ">Nenhum título ainda</p>"
+    assert_includes last_response.body, 'title="Alterar Tema"'
+    assert_includes last_response.body, 'title="Alterar Idioma"'
+    assert_includes last_response.body, 'title="Abrir ações de compartilhamento, exportação e cópia"'
+    assert_includes last_response.body, '<span class="share-view__toolbar-label">Compartilhar</span>'
+    assert_includes last_response.body, '<span class="share-view__toolbar-label">Exibição</span>'
+    assert_includes last_response.body, 'title="Visualização da nota compartilhada"'
     assert_includes last_response.body, '<span class="share-view__toolbar-label" data-role="theme-current-label">Light</span>'
     assert_includes last_response.body, '<span class="share-view__toolbar-label" data-role="locale-current-label">Português (Brasil)</span>'
     assert_includes last_response.body, 'data-default-zoom="100"'

@@ -97,6 +97,7 @@ he:
     copied_to_clipboard: התוכן הועתק ללוח
     copy_failed: ההעתקה נכשלה
     export_failed: ייצוא התוכן נכשל
+    print_failed: לא ניתן לפתוח את חלון ההדפסה.
     saved: נשמר
     unsaved: שינויים לא שמורים
     error_saving: שגיאה בשמירה
@@ -162,6 +163,8 @@ he:
     display_controls: בקרי קריאה
     show_controls: הצג בקרי קריאה
     hide_controls: הסתר בקרי קריאה
+    collapse_outline: כווץ מתאר
+    expand_outline: הרחב מתאר
     zoom: זום
     zoom_in: התקרב
     zoom_out: התרחק

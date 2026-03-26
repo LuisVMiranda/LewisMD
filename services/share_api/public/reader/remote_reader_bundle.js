@@ -58,6 +58,8 @@ const DEFAULT_TRANSLATIONS = {
     display_controls: "Reading controls",
     show_controls: "Show reading controls",
     hide_controls: "Hide reading controls",
+    collapse_outline: "Collapse outline",
+    expand_outline: "Expand outline",
     iframe_title: "Shared note preview",
     zoom: "Zoom",
     zoom_in: "Zoom in",
@@ -136,6 +138,17 @@ function buildFilename(title, extension) {
   return `${safeBase}.${extension}`
 }
 
+function parseTranslations(value) {
+  if (!value) return DEFAULT_TRANSLATIONS
+
+  try {
+    const parsed = JSON.parse(value)
+    return parsed && typeof parsed === "object" ? parsed : DEFAULT_TRANSLATIONS
+  } catch {
+    return DEFAULT_TRANSLATIONS
+  }
+}
+
 function downloadFile(filename, content, contentType) {
   const blob = new Blob([content], { type: contentType })
   const url = URL.createObjectURL(blob)
@@ -181,6 +194,7 @@ export class RemoteShareReader {
     this.currentZoom = Number.parseInt(element.dataset.defaultZoom || "100", 10) || 100
     this.currentWidth = Number.parseInt(element.dataset.defaultWidth || "72", 10) || 72
     this.currentFontFamily = element.dataset.defaultFontFamily || DEFAULT_FONT_FAMILY
+    this.translations = parseTranslations(element.dataset.translations)
     this.showControlsLabel = element.dataset.showControlsLabel || window.t("share_view.show_controls")
     this.hideControlsLabel = element.dataset.hideControlsLabel || window.t("share_view.hide_controls")
     this.displayPanelExpanded = !this.displayPanel?.classList.contains("hidden")
@@ -194,7 +208,10 @@ export class RemoteShareReader {
   }
 
   connect() {
-    installTranslations({ locale: this.currentLocale })
+    installTranslations({
+      locale: this.currentLocale,
+      translations: this.translations
+    })
     applyThemeToRoot(this.currentTheme)
     document.documentElement.lang = this.currentLocale
     this.updateColorSchemeMeta()
@@ -376,11 +393,7 @@ export class RemoteShareReader {
     if (!AVAILABLE_LOCALES.some((locale) => locale.id === localeId)) return
 
     this.currentLocale = localeId
-    document.documentElement.lang = localeId
-    installTranslations({ locale: localeId })
-    this.renderMenus()
-    this.replaceUrl(buildLocaleUrl(localeId))
-    this.closeMenus()
+    window.location.assign(buildLocaleUrl(localeId))
   }
 
   onExportMenuClick(event) {
@@ -744,7 +757,9 @@ export class RemoteShareReader {
     this.outlineBody?.classList.toggle("hidden", this.outlineCollapsed)
 
     if (this.outlineToggle) {
-      const toggleLabel = this.outlineCollapsed ? "Expand outline" : "Collapse outline"
+      const toggleLabel = this.outlineCollapsed
+        ? window.t("share_view.expand_outline")
+        : window.t("share_view.collapse_outline")
       this.outlineToggle.setAttribute("aria-expanded", String(!this.outlineCollapsed))
       this.outlineToggle.setAttribute("title", toggleLabel)
       this.outlineToggle.setAttribute("aria-label", toggleLabel)

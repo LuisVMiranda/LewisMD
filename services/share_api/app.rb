@@ -43,6 +43,7 @@ module ShareAPI
     }.freeze
     LIGHT_THEME_IDS = %w[light solarized-light catppuccin-latte rose-pine flexoki-light].freeze
     TOKEN_PATTERN = /\A[a-zA-Z0-9\-_]{8,}\z/
+    REMOTE_READER_TRANSLATIONS_PATH = Pathname.new(__dir__).join("public", "reader", "remote_reader_translations.json")
     READER_ASSETS = {
       "/reader/assets/remote_reader_bundle.js" => {
         content_type: "text/javascript; charset=utf-8",
@@ -327,11 +328,19 @@ module ShareAPI
       title = non_blank(share["title"]) || "LewisMD Share"
       current_theme = current_theme_for(request, share: share, shell_payload: shell_payload)
       current_locale = current_locale_for(request, share: share, shell_payload: shell_payload)
+      translations_json = CGI.escapeHTML(JSON.generate(reader_translations_for(current_locale)))
       snapshot_url = "#{public_base_for(request)}/snapshots/#{CGI.escapeHTML(share.fetch("token"))}"
       default_zoom = integer_or_default(display_payload["default_zoom"], 100)
       default_width = integer_or_default(display_payload["default_width"], 72)
       default_font_family = non_blank(display_payload["font_family"]) || "default"
       current_color_scheme = inferred_light_theme?(current_theme) ? "light" : "dark"
+      show_controls_label = reader_translate(current_locale, "share_view.show_controls", default: "Show reading controls")
+      hide_controls_label = reader_translate(current_locale, "share_view.hide_controls", default: "Hide reading controls")
+      shared_note_label = reader_translate(current_locale, "share_view.label", default: "Shared note")
+      outline_label = reader_translate(current_locale, "sidebar.outline", default: "Outline")
+      no_headings_label = reader_translate(current_locale, "sidebar.no_headings_yet", default: "No headings yet")
+      collapse_outline_label = reader_translate(current_locale, "share_view.collapse_outline", default: "Collapse outline")
+      iframe_title = reader_translate(current_locale, "share_view.iframe_title", default: "Shared note preview")
 
       <<~HTML
         <!doctype html>
@@ -359,20 +368,21 @@ module ShareAPI
               data-default-zoom="#{default_zoom}"
               data-default-width="#{default_width}"
               data-default-font-family="#{CGI.escapeHTML(default_font_family)}"
-              data-show-controls-label="Show reading controls"
-              data-hide-controls-label="Hide reading controls"
+              data-translations="#{translations_json}"
+              data-show-controls-label="#{CGI.escapeHTML(show_controls_label)}"
+              data-hide-controls-label="#{CGI.escapeHTML(hide_controls_label)}"
             >
               <header class="share-view__toolbar">
                 <div class="share-view__toolbar-top">
                   <div class="share-view__identity">
-                    <p class="share-view__eyebrow">Shared note</p>
+                    <p class="share-view__eyebrow">#{CGI.escapeHTML(shared_note_label)}</p>
                     <h1 class="share-view__title">#{CGI.escapeHTML(title)}</h1>
                   </div>
 
-                  #{reader_toolbar_actions_html(current_theme:, current_locale:)}
+                  #{reader_toolbar_actions_html(current_theme:, current_locale:, ui_locale: current_locale)}
                 </div>
 
-                #{reader_display_panel_html(default_font_family:)}
+                #{reader_display_panel_html(default_font_family:, ui_locale: current_locale)}
               </header>
 
               <main class="share-view__content">
@@ -380,19 +390,19 @@ module ShareAPI
                   class="share-view__outline-shell hidden"
                   data-role="outline-section"
                   data-collapsed="false"
-                  aria-label="Note outline"
+                  aria-label="#{CGI.escapeHTML(outline_label)}"
                 >
                   <div class="share-view__outline-card outline-panel">
                     <div class="share-view__outline-header">
-                      <h2 class="share-view__outline-title">Outline</h2>
+                      <h2 class="share-view__outline-title">#{CGI.escapeHTML(outline_label)}</h2>
                       <button
                         type="button"
                         class="share-view__outline-toggle share-view__button"
                         data-role="outline-toggle"
                         aria-expanded="true"
                         aria-controls="share-view-outline-body"
-                        title="Collapse outline"
-                        aria-label="Collapse outline"
+                        title="#{CGI.escapeHTML(collapse_outline_label)}"
+                        aria-label="#{CGI.escapeHTML(collapse_outline_label)}"
                       >
                         #{caret_icon_markup}
                       </button>
@@ -404,7 +414,7 @@ module ShareAPI
                     >
                       <div class="outline-panel__scroll">
                         <div class="outline-list" data-role="outline-list"></div>
-                        <p class="outline-empty hidden" data-role="outline-empty">This shared note does not include headings yet.</p>
+                        <p class="outline-empty hidden" data-role="outline-empty">#{CGI.escapeHTML(no_headings_label)}</p>
                       </div>
                     </div>
                   </div>
@@ -413,7 +423,7 @@ module ShareAPI
                 <iframe
                   src="#{snapshot_url}"
                   class="share-view__frame"
-                  title="Shared note preview"
+                  title="#{CGI.escapeHTML(iframe_title)}"
                   loading="eager"
                   data-role="frame"
                 ></iframe>
@@ -424,14 +434,21 @@ module ShareAPI
       HTML
     end
 
-    def reader_toolbar_actions_html(current_theme:, current_locale:)
+    def reader_toolbar_actions_html(current_theme:, current_locale:, ui_locale:)
+      change_theme_label = reader_translate(ui_locale, "header.change_theme", default: "Change theme")
+      change_language_label = reader_translate(ui_locale, "header.change_language", default: "Change language")
+      open_share_menu_label = reader_translate(ui_locale, "header.open_share_menu", default: "Open share menu")
+      share_label = reader_translate(ui_locale, "header.share", default: "Share")
+      display_label = reader_translate(ui_locale, "share_view.display", default: "Display")
+      show_controls_label = reader_translate(ui_locale, "share_view.show_controls", default: "Show reading controls")
+
       <<~HTML
         <div class="share-view__toolbar-actions">
           <div class="share-view__menu-anchor">
             <button
               type="button"
               class="share-view__toolbar-button"
-              title="Change theme"
+              title="#{CGI.escapeHTML(change_theme_label)}"
               aria-haspopup="menu"
               aria-expanded="false"
               data-role="theme-toggle"
@@ -447,7 +464,7 @@ module ShareAPI
             <button
               type="button"
               class="share-view__toolbar-button"
-              title="Change language"
+              title="#{CGI.escapeHTML(change_language_label)}"
               aria-haspopup="menu"
               aria-expanded="false"
               data-role="locale-toggle"
@@ -463,13 +480,13 @@ module ShareAPI
             <button
               type="button"
               class="share-view__toolbar-button"
-              title="Open share menu"
+              title="#{CGI.escapeHTML(open_share_menu_label)}"
               aria-haspopup="menu"
               aria-expanded="false"
               data-role="export-toggle"
             >
               #{share_icon_markup}
-              <span class="share-view__toolbar-label">Share</span>
+              <span class="share-view__toolbar-label">#{CGI.escapeHTML(share_label)}</span>
               #{caret_icon_markup}
             </button>
             <div class="share-view__export-menu hidden" data-role="export-menu"></div>
@@ -481,50 +498,62 @@ module ShareAPI
             data-role="display-toggle"
             aria-expanded="false"
             aria-controls="share-view-display-panel"
-            title="Show reading controls"
-            aria-label="Show reading controls"
+            title="#{CGI.escapeHTML(show_controls_label)}"
+            aria-label="#{CGI.escapeHTML(show_controls_label)}"
           >
             #{display_icon_markup}
-            <span class="share-view__toolbar-label">Display</span>
+            <span class="share-view__toolbar-label">#{CGI.escapeHTML(display_label)}</span>
           </button>
         </div>
       HTML
     end
 
-    def reader_display_panel_html(default_font_family:)
+    def reader_display_panel_html(default_font_family:, ui_locale:)
       default_selected = default_font_family == "default" ? ' selected="selected"' : ""
       sans_selected = default_font_family == "sans" ? ' selected="selected"' : ""
       serif_selected = default_font_family == "serif" ? ' selected="selected"' : ""
       mono_selected = default_font_family == "mono" ? ' selected="selected"' : ""
+      display_controls_label = reader_translate(ui_locale, "share_view.display_controls", default: "Reading controls")
+      zoom_label = reader_translate(ui_locale, "share_view.zoom", default: "Zoom")
+      zoom_in_label = reader_translate(ui_locale, "share_view.zoom_in", default: "Zoom in")
+      zoom_out_label = reader_translate(ui_locale, "share_view.zoom_out", default: "Zoom out")
+      width_label = reader_translate(ui_locale, "share_view.width", default: "Width")
+      width_narrower_label = reader_translate(ui_locale, "share_view.width_narrower", default: "Make text column narrower")
+      width_wider_label = reader_translate(ui_locale, "share_view.width_wider", default: "Make text column wider")
+      font_family_label = reader_translate(ui_locale, "share_view.font_family", default: "Font")
+      font_default_label = reader_translate(ui_locale, "share_view.font_default", default: "Default")
+      font_sans_label = reader_translate(ui_locale, "share_view.font_sans", default: "Sans")
+      font_serif_label = reader_translate(ui_locale, "share_view.font_serif", default: "Serif")
+      font_mono_label = reader_translate(ui_locale, "share_view.font_mono", default: "Mono")
 
       <<~HTML
         <div
           id="share-view-display-panel"
           class="share-view__display-panel hidden"
           data-role="display-panel"
-          aria-label="Reading controls"
+          aria-label="#{CGI.escapeHTML(display_controls_label)}"
         >
           <div class="share-view__group">
-            <span class="share-view__group-label">Zoom</span>
-            <button type="button" class="share-view__button" title="Zoom out" data-role="zoom-out">-</button>
+            <span class="share-view__group-label">#{CGI.escapeHTML(zoom_label)}</span>
+            <button type="button" class="share-view__button" title="#{CGI.escapeHTML(zoom_out_label)}" data-role="zoom-out">-</button>
             <output class="share-view__value" data-role="zoom-value">100%</output>
-            <button type="button" class="share-view__button" title="Zoom in" data-role="zoom-in">+</button>
+            <button type="button" class="share-view__button" title="#{CGI.escapeHTML(zoom_in_label)}" data-role="zoom-in">+</button>
           </div>
 
           <div class="share-view__group">
-            <span class="share-view__group-label">Width</span>
-            <button type="button" class="share-view__button" title="Make text column narrower" data-role="width-decrease">-</button>
+            <span class="share-view__group-label">#{CGI.escapeHTML(width_label)}</span>
+            <button type="button" class="share-view__button" title="#{CGI.escapeHTML(width_narrower_label)}" data-role="width-decrease">-</button>
             <output class="share-view__value" data-role="width-value">72ch</output>
-            <button type="button" class="share-view__button" title="Make text column wider" data-role="width-increase">+</button>
+            <button type="button" class="share-view__button" title="#{CGI.escapeHTML(width_wider_label)}" data-role="width-increase">+</button>
           </div>
 
           <label class="share-view__group share-view__font-group">
-            <span class="share-view__group-label">Font</span>
+            <span class="share-view__group-label">#{CGI.escapeHTML(font_family_label)}</span>
             <select class="share-view__select" data-role="font-select">
-              <option value="default"#{default_selected}>Default</option>
-              <option value="sans"#{sans_selected}>Sans</option>
-              <option value="serif"#{serif_selected}>Serif</option>
-              <option value="mono"#{mono_selected}>Mono</option>
+              <option value="default"#{default_selected}>#{CGI.escapeHTML(font_default_label)}</option>
+              <option value="sans"#{sans_selected}>#{CGI.escapeHTML(font_sans_label)}</option>
+              <option value="serif"#{serif_selected}>#{CGI.escapeHTML(font_serif_label)}</option>
+              <option value="mono"#{mono_selected}>#{CGI.escapeHTML(font_mono_label)}</option>
             </select>
           </label>
         </div>
@@ -567,6 +596,22 @@ module ShareAPI
 
     def locale_name_for(locale)
       REMOTE_READER_LOCALE_NAMES.fetch(locale.to_s, "English")
+    end
+
+    def reader_translations_for(locale)
+      reader_translations_bundle.fetch(locale.to_s, reader_translations_bundle.fetch("en", {}))
+    end
+
+    def reader_translate(locale, key, default:)
+      value = key.to_s.split(".").reduce(reader_translations_for(locale)) do |memo, segment|
+        memo.is_a?(Hash) ? memo[segment] : nil
+      end
+
+      value.is_a?(String) && !value.empty? ? value : default
+    end
+
+    def reader_translations_bundle
+      @reader_translations_bundle ||= JSON.parse(REMOTE_READER_TRANSLATIONS_PATH.read)
     end
 
     def integer_or_default(value, default)
