@@ -14,6 +14,7 @@ Phase 10 now includes the validation and closeout pass for the launcher workspac
 - [start_lewismd.bat](/C:/Users/Admin/Documents/GitHub/LewisMD/script/windows/start_lewismd.bat)
 - [launch_lewismd.ps1](/C:/Users/Admin/Documents/GitHub/LewisMD/script/windows/launch_lewismd.ps1)
 - [Launch_LewisMD.vbs](/C:/Users/Admin/Documents/GitHub/LewisMD/script/windows/Launch_LewisMD.vbs)
+- [show_lewismd_splash.ps1](/C:/Users/Admin/Documents/GitHub/LewisMD/script/windows/show_lewismd_splash.ps1)
 - [stop_lewismd.bat](/C:/Users/Admin/Documents/GitHub/LewisMD/script/windows/stop_lewismd.bat)
 
 Bootstrap prepares the runtime, the visible launcher verifies that runtime, and
@@ -46,6 +47,8 @@ so future scripts can import one small source of truth.
   - main orchestrator for PID tracking, readiness polling, and cleanup
 - `Launch_LewisMD.vbs`
   - hidden wrapper for a polished double-click launch
+- `show_lewismd_splash.ps1`
+  - native Windows splash helper that reads launcher progress state
 - `stop_lewismd.bat`
   - manual cleanup helper if a prior launch leaves stale state behind
 
@@ -186,6 +189,28 @@ That shortcut points to the current VBS file through `wscript.exe` and uses
 [`public/icon.ico`](/C:/Users/Admin/Documents/GitHub/LewisMD/public/icon.ico) as its
 icon. Windows does not support setting a custom icon on one individual `.vbs`
 file directly, so the shortcut is the correct shell-level workaround.
+
+## Splash helper behavior
+
+The native Windows splash helper now lives in:
+
+```powershell
+script\windows\show_lewismd_splash.ps1
+```
+
+What it does:
+
+- loads a small WPF window using the checked-in LewisMD icon
+- polls `tmp/windows-launcher/launcher-progress.json`
+- shows the current launcher message and percent complete
+- fades away automatically once the launcher reports `ready` / `running`
+- stays open with a readable message when launcher state becomes `error`
+
+For a non-interactive validation pass, run:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File script\windows\show_lewismd_splash.ps1 -ValidateOnly
+```
 
 ## Stop helper behavior
 
