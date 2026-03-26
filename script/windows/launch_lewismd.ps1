@@ -188,46 +188,6 @@ function Write-LaunchState {
   Write-JsonPayloadFile -Path $script:ResolvedConfig.StateFile -Payload $payload
 }
 
-function Write-LaunchProgress {
-  param(
-    [ValidateSet("starting", "ready", "running", "stopping", "stopped", "error", "validation")]
-    [string]$State,
-    [int]$Percent,
-    [string]$Message,
-    [string]$Step = $null
-  )
-
-  $clampedPercent = [Math]::Max(0, [Math]::Min(100, $Percent))
-  $payload = [ordered]@{
-    sessionId = $script:LauncherSessionId
-    mode = $script:LauncherMode
-    state = $State
-    percent = $clampedPercent
-    message = $Message
-    updatedAt = (Get-Date).ToString("o")
-  }
-
-  if (-not [string]::IsNullOrWhiteSpace($Step)) {
-    $payload.step = $Step
-  }
-
-  Write-JsonPayloadFile -Path $script:ResolvedConfig.ProgressFile -Payload $payload
-}
-
-function Remove-LaunchProgress {
-  if ([string]::IsNullOrWhiteSpace($script:ResolvedConfig.ProgressFile)) {
-    return
-  }
-
-  try {
-    Remove-Item -LiteralPath $script:ResolvedConfig.ProgressFile -Force -ErrorAction Stop
-  } catch [System.Management.Automation.ItemNotFoundException] {
-    return
-  } catch [System.Management.Automation.PSArgumentException] {
-    return
-  }
-}
-
 function Remove-LaunchState {
   foreach ($path in @($script:ResolvedConfig.StateFile, $script:ResolvedConfig.RailsServerPidFile)) {
     if ([string]::IsNullOrWhiteSpace($path)) {
@@ -805,7 +765,6 @@ function Resolve-Config {
     RailsLogFile = Resolve-LauncherPath -PathValue $defaults.RailsLogFile -RepoRoot $repoRoot
     LauncherLogFile = Resolve-LauncherPath -PathValue $defaults.LauncherLogFile -RepoRoot $repoRoot
     StateFile = Resolve-LauncherPath -PathValue $defaults.StateFile -RepoRoot $repoRoot
-    ProgressFile = Resolve-LauncherPath -PathValue $defaults.ProgressFile -RepoRoot $repoRoot
     BrowserProfileDir = Resolve-LauncherPath -PathValue $defaults.BrowserProfileDir -RepoRoot $repoRoot
     HealthUri = "http://127.0.0.1:$resolvedPort$($defaults.HealthEndpointPath)"
     BrowserCommands = @($defaults.BrowserCommands)
@@ -825,7 +784,6 @@ $script:LauncherSessionId = "{0}-{1}" -f (Get-Date -Format "yyyyMMdd-HHmmss"), (
 Ensure-Directory -Path $script:ResolvedConfig.StateDirectory
 Ensure-Directory -Path $script:ResolvedConfig.BundleAppConfig
 Initialize-LogFile -Path $script:ResolvedConfig.LauncherLogFile -Label "LAUNCHER"
-Write-LaunchProgress -State "starting" -Percent 5 -Message "Preparing LewisMD launcher..." -Step "prepare"
 
 Write-LauncherMessage "Repo root: $($script:ResolvedConfig.RepoRoot)"
 Write-LauncherMessage "Port: $($script:ResolvedConfig.Port)"
@@ -840,31 +798,26 @@ try {
   }
 
   if ($StopOnly) {
-    Write-LaunchProgress -State "stopping" -Percent 90 -Message "Stopping LewisMD..." -Step "stop"
     $managedProcessId = Resolve-ManagedProcessIdForStop
 
     if ($null -eq $managedProcessId) {
       Write-LauncherMessage "No launcher-managed Rails process was found. Cleanup is already complete."
       Remove-LaunchState
-      Remove-LaunchProgress
       return
     }
 
     if (-not (Test-ProcessAlive -ProcessId $managedProcessId)) {
       Write-LauncherMessage "Removing stale launcher state for dead process $managedProcessId." "WARN"
       Remove-LaunchState
-      Remove-LaunchProgress
       return
     }
 
     Stop-ManagedRailsServer -ProcessId $managedProcessId -Reason "manual stop helper"
-    Remove-LaunchProgress
     return
   }
 
   Ensure-Directory -Path $script:ResolvedConfig.NotesPath
   Write-LauncherMessage "Notes path: $($script:ResolvedConfig.NotesPath)"
-  Write-LaunchProgress -State "starting" -Percent 20 -Message "Checking local runtime..." -Step "runtime"
 
   if ($SkipRuntimeValidation) {
     Write-LauncherMessage "Skipping duplicate runtime validation because bootstrap already succeeded."
@@ -882,12 +835,10 @@ try {
   }
 
   if ($ValidateOnly) {
-    Write-LaunchProgress -State "validation" -Percent 100 -Message "Launcher validation completed." -Step "validation"
     Write-LauncherMessage "Validation-only mode completed successfully."
     return
   }
 
-  Write-LaunchProgress -State "starting" -Percent 35 -Message "Checking local server state..." -Step "server"
   $managedState = Read-LaunchState -Path $script:ResolvedConfig.StateFile
   $managedProcessId = $null
   $managedProcess = $null
@@ -925,29 +876,21 @@ try {
         throw "Port $($script:ResolvedConfig.Port) is already in use by PID $listeningProcess. Stop that process or choose another LEWISMD_PORT."
       }
 
-      Write-LaunchProgress -State "starting" -Percent 45 -Message "Starting local LewisMD server..." -Step "server"
       $managedProcess = Start-RailsServerProcess
       $managedProcessId = $managedProcess.Id
       Wait-ForHealthEndpoint -Uri $script:ResolvedConfig.HealthUri -TimeoutSeconds 30 -ServerProcess $managedProcess
       Write-LauncherMessage "LewisMD is healthy at $($script:ResolvedConfig.HealthUri)."
     }
 
-    Write-LaunchProgress -State "starting" -Percent 70 -Message "LewisMD is ready. Opening the app window..." -Step "browser"
     $browserPath = Resolve-BrowserExecutable -RequestedBrowser $script:ResolvedConfig.RequestedBrowser -Candidates $script:ResolvedConfig.BrowserCommands
     Write-LauncherMessage "Using browser executable: $browserPath"
 
     $browserSession = Start-BrowserSession -BrowserPath $browserPath
-    Write-LaunchProgress -State "ready" -Percent 100 -Message "LewisMD is ready." -Step "ready"
     Write-LauncherMessage "Waiting for the LewisMD browser session to close..."
-    Write-LaunchProgress -State "running" -Percent 100 -Message "LewisMD is open." -Step "running"
     Wait-ForBrowserSessionToClose -BrowserPath $browserSession.BrowserPath
     Write-LauncherMessage "Browser app window closed."
     $script:LaunchCompletedSuccessfully = $true
   } finally {
-    if ($null -ne $managedProcessId) {
-      Write-LaunchProgress -State "stopping" -Percent 95 -Message "Closing LewisMD..." -Step "shutdown"
-    }
-
     if ($null -ne $managedProcessId) {
       Stop-ManagedRailsServer -ProcessId $managedProcessId -Reason "browser session ended"
     }
@@ -964,7 +907,6 @@ try {
     $errorMessage = $_.ToString()
   }
 
-  Write-LaunchProgress -State "error" -Percent 100 -Message $errorMessage -Step "error"
   Write-LauncherMessage $errorMessage "ERROR"
 
   if ($null -ne $_.InvocationInfo -and $null -ne $_.InvocationInfo.ScriptLineNumber -and $_.InvocationInfo.ScriptLineNumber -gt 0) {
@@ -973,9 +915,5 @@ try {
 
   throw
 } finally {
-  if ($script:LauncherMode -ne "launch" -or $script:LaunchCompletedSuccessfully) {
-    Remove-LaunchProgress
-  }
-
   Write-LauncherMessage "Launcher session finished."
 }

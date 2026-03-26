@@ -14,7 +14,6 @@ Phase 10 now includes the validation and closeout pass for the launcher workspac
 - [start_lewismd.bat](/C:/Users/Admin/Documents/GitHub/LewisMD/script/windows/start_lewismd.bat)
 - [launch_lewismd.ps1](/C:/Users/Admin/Documents/GitHub/LewisMD/script/windows/launch_lewismd.ps1)
 - [Launch_LewisMD.vbs](/C:/Users/Admin/Documents/GitHub/LewisMD/script/windows/Launch_LewisMD.vbs)
-- [show_lewismd_splash.cs](/C:/Users/Admin/Documents/GitHub/LewisMD/script/windows/show_lewismd_splash.cs)
 - [stop_lewismd.bat](/C:/Users/Admin/Documents/GitHub/LewisMD/script/windows/stop_lewismd.bat)
 
 Bootstrap prepares the runtime, the visible launcher verifies that runtime, and
@@ -47,8 +46,6 @@ so future scripts can import one small source of truth.
   - main orchestrator for PID tracking, readiness polling, and cleanup
 - `Launch_LewisMD.vbs`
   - hidden wrapper for a polished double-click launch
-- `show_lewismd_splash.cs`
-  - native Windows splash helper source used to build a borderless splash executable
 - `stop_lewismd.bat`
   - manual cleanup helper if a prior launch leaves stale state behind
 
@@ -162,15 +159,11 @@ script\windows\Launch_LewisMD.vbs
 
 What it does:
 
-- starts the native splash helper first so hidden launches still show progress
-- compiles `show_lewismd_splash.cs` into `tmp/windows-launcher/LewisMDSplash.exe` when needed using `csc.exe`
-- launches the compiled splash executable without a browser tab or PowerShell console host
 - runs `start_lewismd.bat` with the console hidden
 - skips the visible launcher's extra bootstrap validation because the
   PowerShell orchestrator still validates the runtime itself
 - passes `--no-pause-on-error` so hidden failures do not leave an invisible paused window behind
 - waits for the launcher/app session to end
-- writes a friendly splash error payload if hidden startup fails before the app opens
 - shows a simple message box if startup fails
 - points the user back to the visible launcher and the launcher log path
 - can create a desktop shortcut with the LewisMD icon via `--install-shortcut`
@@ -193,27 +186,6 @@ That shortcut points to the current VBS file through `wscript.exe` and uses
 [`public/icon.ico`](/C:/Users/Admin/Documents/GitHub/LewisMD/public/icon.ico) as its
 icon. Windows does not support setting a custom icon on one individual `.vbs`
 file directly, so the shortcut is the correct shell-level workaround.
-
-## Splash helper behavior
-
-The native Windows splash helper now lives in:
-
-```text
-script\windows\show_lewismd_splash.cs
-```
-
-What it does:
-
-- builds a native borderless Windows form with the checked-in LewisMD icon
-- polls `tmp/windows-launcher/launcher-progress.json`
-- ignores stale progress left behind by an older launcher session
-- reads the progress file with .NET JSON parsing and shared file access
-- shows the current launcher message and percent complete
-- explicitly promotes the splash window while LewisMD starts so it stays easy to spot above other windows
-- fades away automatically once the launcher reports `ready` / `running`
-- stays open with a readable message when launcher state becomes `error`
-- surfaces a close button and visible-launcher/log guidance on failures and timeouts
-- reuses `tmp/windows-launcher/LewisMDSplash.exe` between launches until the source changes
 
 ## Stop helper behavior
 
@@ -261,8 +233,6 @@ Important files:
   - stdout/stderr captured from the Rails server process
 - `launcher-state.json`
   - launcher-managed state used for PID tracking and recovery decisions
-- `launcher-progress.json`
-  - lightweight startup progress state consumed by the splash helper
 - `server.pid`
   - the PID file written by `rails server`
 
