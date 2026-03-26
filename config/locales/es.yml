@@ -514,11 +514,19 @@ es:
     custom_ai:
       title: Varita Mágica
       prompt_label: 'Instrucciones para IA:'
+      provider_label: 'Proveedor / modelo de IA'
       placeholder: ej. Traducir al español, Hacerlo más profesional...
       generate: Generar
       processing_provider: IA (Prompt Personalizado)
       hint_document: No hay texto seleccionado. Analizando documento completo...
       hint_selection: Analizando selección resaltada...
+      loading_options: Cargando opciones de IA disponibles...
+      saved_choice: 'Guardado para futuros prompts personalizados: %{label}'
+      default_choice: 'Usando tu opción predeterminada de IA: %{label}'
+      selected_choice: 'Seleccionado para este prompt: %{label}'
+      using_default_setup: No se pudieron cargar las opciones de IA. Este prompt usará tu configuración predeterminada de IA.
+      no_available_options: No hay opciones de IA configuradas disponibles en este momento.
+      preference_save_failed: No se pudo guardar esta elección de IA. Se usará solo para este prompt.
   errors:
     note_not_found: Nota no encontrada
     note_already_exists: La nota ya existe

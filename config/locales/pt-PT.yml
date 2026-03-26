@@ -514,11 +514,19 @@ pt-PT:
     custom_ai:
       title: Varinha Mágica
       prompt_label: 'Instruções para IA:'
+      provider_label: 'Fornecedor / modelo de IA'
       placeholder: ex. Traduzir para Espanhol, Tornar mais profissional...
       generate: Gerar
       processing_provider: IA (Prompt Personalizado)
       hint_document: Nenhum texto selecionado. A analisar todo o documento...
       hint_selection: A analisar a seleção destacada...
+      loading_options: A carregar opções de IA disponíveis...
+      saved_choice: 'Guardado para futuros prompts personalizados: %{label}'
+      default_choice: 'A usar a sua opção predefinida de IA: %{label}'
+      selected_choice: 'Selecionado para este prompt: %{label}'
+      using_default_setup: Não foi possível carregar as opções de IA. Este prompt vai usar a sua configuração predefinida de IA.
+      no_available_options: Não existem opções de IA configuradas disponíveis neste momento.
+      preference_save_failed: Não foi possível guardar esta escolha de IA. Será usada apenas neste prompt.
   errors:
     note_not_found: Nota não encontrada
     note_already_exists: A nota já existe

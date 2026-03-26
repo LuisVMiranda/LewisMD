@@ -27,6 +27,22 @@
           placeholder="<%= t('dialogs.custom_ai.placeholder', default: 'e.g., Translate to Spanish, Make it more professional...') %>"
         ></textarea>
       </div>
+      <div class="mb-4">
+        <label for="custom_ai_provider_option" class="block text-sm font-medium text-[var(--theme-text-secondary)] mb-2">
+          <%= t('dialogs.custom_ai.provider_label', default: 'AI provider / model') %>
+        </label>
+        <select
+          id="custom_ai_provider_option"
+          data-custom-ai-prompt-target="optionSelect"
+          data-action="change->custom-ai-prompt#onOptionChanged"
+          class="w-full text-sm bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] rounded border border-[var(--theme-border)] p-3 focus:outline-none focus:ring-1 focus:ring-[var(--theme-accent)]"
+        >
+          <option value=""><%= t('dialogs.custom_ai.loading_options', default: 'Loading available AI options...') %></option>
+        </select>
+        <p class="mt-2 text-xs text-[var(--theme-text-muted)]" data-custom-ai-prompt-target="optionStatus">
+          <%= t('dialogs.custom_ai.loading_options', default: 'Loading available AI options...') %>
+        </p>
+      </div>
       <p class="text-xs text-[var(--theme-text-muted)] italic mb-2" data-custom-ai-prompt-target="selectionHint">
         <!-- Replaced via JS based on selection -->
       </p>

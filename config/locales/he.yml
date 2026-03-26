@@ -488,11 +488,19 @@ he:
     custom_ai:
       title: שרביט קסמים
       prompt_label: 'הוראות ל-AI:'
+      provider_label: 'ספק / מודל AI'
       placeholder: 'לדוגמה: תרגם לספרדית, הפוך למקצועי יותר...'
       generate: צור
       processing_provider: AI (הנחיה מותאמת אישית)
       hint_document: לא נבחר טקסט. מנתח את המסמך כולו...
       hint_selection: מנתח את הבחירה המודגשת...
+      loading_options: טוען אפשרויות AI זמינות...
+      saved_choice: 'נשמר עבור פרומפטים מותאמים אישית בעתיד: %{label}'
+      default_choice: 'משתמש באפשרות ברירת המחדל שלך ל-AI: %{label}'
+      selected_choice: 'נבחר עבור הפרומפט הזה: %{label}'
+      using_default_setup: לא ניתן היה לטעון את אפשרויות ה-AI. הפרומפט הזה ישתמש בהגדרת ברירת המחדל שלך ל-AI.
+      no_available_options: אין כרגע אפשרויות AI מוגדרות זמינות.
+      preference_save_failed: לא ניתן היה לשמור את בחירת ה-AI הזו. היא תשמש רק עבור הפרומפט הזה.
   errors:
     note_not_found: ההערה לא נמצאה
     note_already_exists: ההערה כבר קיימת

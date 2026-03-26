@@ -514,11 +514,19 @@ ja:
     custom_ai:
       title: 魔法の杖
       prompt_label: 'AIへの指示:'
+      provider_label: 'AIプロバイダー / モデル'
       placeholder: 例：スペイン語に翻訳、もっと専門的にする...
       generate: 生成
       processing_provider: AI（カスタムプロンプト）
       hint_document: テキストが選択されていません。ドキュメント全体を分析中...
       hint_selection: ハイライトされた選択範囲を分析中...
+      loading_options: 利用可能なAIオプションを読み込み中...
+      saved_choice: '今後のカスタムプロンプト用に保存済み: %{label}'
+      default_choice: '既定のAIオプションを使用中: %{label}'
+      selected_choice: 'このプロンプトで選択中: %{label}'
+      using_default_setup: AIオプションを読み込めませんでした。このプロンプトでは既定のAI設定を使用します。
+      no_available_options: 現在利用できる設定済みのAIオプションはありません。
+      preference_save_failed: このAI選択は保存できませんでした。このプロンプトでのみ使用されます。
   errors:
     note_not_found: ノートが見つかりません
     note_already_exists: ノートは既に存在します

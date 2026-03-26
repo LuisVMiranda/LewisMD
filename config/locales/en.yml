@@ -498,11 +498,19 @@ en:
     custom_ai:
       title: "Magic Wand"
       prompt_label: "Instructions for AI:"
+      provider_label: "AI provider / model"
       placeholder: "e.g., Translate to Spanish, Make it more professional..."
       generate: "Generate"
       processing_provider: "AI (Custom Prompt)"
       hint_document: "No text selected. Analyzing entire document..."
       hint_selection: "Analyzing highlighted selection..."
+      loading_options: "Loading available AI options..."
+      saved_choice: "Saved for future custom prompts: %{label}"
+      default_choice: "Using your default AI option: %{label}"
+      selected_choice: "Selected for this prompt: %{label}"
+      using_default_setup: "Couldn't load AI choices. This prompt will use your default AI setup."
+      no_available_options: "No configured AI options are available right now."
+      preference_save_failed: "Couldn't save this AI choice. It will be used for this prompt only."
 
     # AI diff dialog
     ai_diff:
