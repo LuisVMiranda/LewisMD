@@ -296,7 +296,7 @@ module ShareAPI
     def build_reader_shell_html(request:, share:)
       shell_payload = share["shell_payload"].is_a?(Hash) ? share["shell_payload"] : {}
       display_payload = shell_payload["display"].is_a?(Hash) ? shell_payload["display"] : {}
-      title = share["title"].to_s.strip.presence || "LewisMD Share"
+      title = non_blank(share["title"]) || "LewisMD Share"
       current_theme = current_theme_for(request, share: share, shell_payload: shell_payload)
       current_locale = current_locale_for(request, share: share, shell_payload: shell_payload)
       snapshot_url = "#{public_base_for(request)}/snapshots/#{CGI.escapeHTML(share.fetch("token"))}"
@@ -680,9 +680,9 @@ module ShareAPI
 
       document = parse_snapshot_document(snapshot_document_html)
       style_blocks = document.css("head style").map { |node| node.text.to_s }.reject { |css| css.to_s.strip.empty? }
-      title = payload["title"].to_s.strip.presence || "LewisMD Share"
-      locale = non_blank(payload["locale"]) || document.at_css("html")&.[]("lang").to_s.strip.presence || "en"
-      theme_id = non_blank(payload["theme_id"]) || document.at_css("html")&.[]("data-theme").to_s.strip.presence
+      title = non_blank(payload["title"]) || "LewisMD Share"
+      locale = non_blank(payload["locale"]) || non_blank(document.at_css("html")&.[]("lang")) || "en"
+      theme_id = non_blank(payload["theme_id"]) || non_blank(document.at_css("html")&.[]("data-theme"))
       color_scheme = extract_snapshot_color_scheme(document, theme_id)
 
       snapshot_document_markup(
@@ -724,7 +724,7 @@ module ShareAPI
 
     def legacy_snapshot_document(payload:, fragment_html:)
       snapshot_document_markup(
-        title: payload["title"].to_s.strip.presence || "LewisMD Share",
+        title: non_blank(payload["title"]) || "LewisMD Share",
         locale: non_blank(payload["locale"]) || "en",
         theme_id: non_blank(payload["theme_id"]),
         color_scheme: inferred_light_theme?(payload["theme_id"]) ? "light" : "dark",

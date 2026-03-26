@@ -54,6 +54,7 @@ class ShareApiDeploymentArtifactsTest < ActiveSupport::TestCase
     assert_includes installer, "upgrade_share_api.sh"
     assert_includes installer, "backup_share_api.sh"
     assert_includes installer, "uninstall_share_api.sh"
+    assert_includes installer, "bin/verify_storage_write.rb"
     assert_includes installer, "Operator guide: $REPO_ROOT/docs/remote_share_api.md"
     assert_includes installer, 'chown -R "${SHARE_API_UID}:${SHARE_API_GID}" "$STORAGE_HOST_PATH"'
     assert_includes installer, "logs --no-color --tail=200 share-api"
@@ -68,6 +69,8 @@ class ShareApiDeploymentArtifactsTest < ActiveSupport::TestCase
     assert_includes script, 'notify_event "deploy_failed"'
     assert_includes script, 'bash "$SCRIPT_DIR/backup_share_api.sh"'
     assert_includes script, 'if [[ "$EDGE_MODE" == "managed_caddy" ]]; then'
+    assert_includes script, 'chown -R "${SHARE_API_UID}:${SHARE_API_GID}" "$STORAGE_HOST_PATH"'
+    assert_includes script, "bundle exec ruby bin/verify_storage_write.rb"
   end
 
   test "backup script writes a tar archive and checksum with optional edge assets" do
@@ -110,6 +113,10 @@ class ShareApiDeploymentArtifactsTest < ActiveSupport::TestCase
     assert_includes guide, "refreshing an existing legacy share republishes it as the newer snapshot"
     assert_includes guide, "cleanup_failed"
     assert_includes guide, "storage-growth anomalies"
+    assert_includes guide, "Invalid share request"
+    assert_includes guide, "bin/verify_storage_write.rb"
+    assert_includes guide, "sudo chown -R 10001:10001 /var/lib/lewismd-share/storage"
+    assert_includes guide, "undefined method `presence'"
   end
 
   test "monitor script covers cleanup health and storage growth alerts" do
@@ -122,6 +129,14 @@ class ShareApiDeploymentArtifactsTest < ActiveSupport::TestCase
     assert_includes script, "cleanup_recovered"
     assert_includes script, "storage_growth_high"
     assert_includes script, "sweeper-state.json"
+  end
+
+  test "standalone share api files avoid active support blank helpers" do
+    standalone_source = Rails.root.join("services", "share_api", "app.rb").read
+
+    refute_includes standalone_source, ".presence"
+    refute_includes standalone_source, ".blank?"
+    refute_includes standalone_source, ".present?"
   end
 
   test "readme links the optional remote share api workflow" do

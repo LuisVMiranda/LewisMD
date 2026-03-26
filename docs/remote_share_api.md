@@ -245,6 +245,11 @@ bash deploy/share_api/upgrade_share_api.sh --skip-backup
 bash deploy/share_api/upgrade_share_api.sh --skip-monitor-check
 ```
 
+The upgrade helper now also reapplies ownership to the persisted share-storage
+path and runs a container-side write probe before it reports success. That
+prevents the common "read endpoints work, but publishing returns a server 500"
+failure mode caused by storage paths drifting back to `root` ownership.
+
 ## Backup
 
 To create a restorable backup archive:
@@ -334,6 +339,44 @@ If the local edge works but the public URL does not, look at:
 - public firewall rules
 - TLS/certificate state in Caddy
 - or the generated reverse-proxy config if you are using an external reverse proxy
+
+### LewisMD says `Invalid share request` when creating a remote share link
+
+This usually means the local app reached the VPS, but the VPS rejected or failed
+the write request. Start with:
+
+```bash
+docker compose -f deploy/share_api/runtime/compose.yml --env-file deploy/share_api/runtime/.env logs --tail=200 share-api
+docker compose -f deploy/share_api/runtime/compose.yml --env-file deploy/share_api/runtime/.env exec -T share-api bundle exec ruby bin/verify_storage_write.rb
+```
+
+If the write probe fails, the most common cause is storage ownership drifting
+away from the container user (`10001:10001`). Fix it with:
+
+```bash
+sudo chown -R 10001:10001 /var/lib/lewismd-share/storage
+bash deploy/share_api/upgrade_share_api.sh --yes
+```
+
+If the VPS already runs Nginx or another shared reverse proxy, make sure the
+runtime is still in `external_reverse_proxy` mode. Re-running the installer in
+the managed Caddy mode on a shared VPS can leave the runtime pointing at the
+wrong public-edge topology.
+
+If the share-api logs show:
+
+```text
+NoMethodError: undefined method `presence'
+```
+
+then the VPS is still running an older standalone share-api build that used a
+Rails-only helper inside the Rack app. Pull the latest repo version and rebuild
+the share-api container:
+
+```bash
+git pull
+bash deploy/share_api/upgrade_share_api.sh --yes
+```
 
 ### Monitoring timer is not running
 

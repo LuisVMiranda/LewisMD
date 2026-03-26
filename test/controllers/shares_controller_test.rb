@@ -136,6 +136,27 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
     assert data["expires_at"].present?
   end
 
+  test "create surfaces the upstream remote share error message" do
+    configure_remote_share_backend
+    stub_remote_capabilities
+    stub_request(:post, "https://shares.example.com/api/v1/shares")
+      .to_return(status: 500, body: "")
+
+    post shares_url,
+      params: {
+        path: "shared-note.md",
+        title: "Shared Note",
+        html: '<html lang="en" data-theme="dark"><body><article class="export-article"><h1>Shared Snapshot</h1></article></body></html>'
+      },
+      as: :json
+
+    assert_response :unprocessable_entity
+
+    data = JSON.parse(response.body)
+    assert_includes data["error"], "Remote share API request failed with status 500"
+    assert_includes data["error"], "share-api container logs"
+  end
+
   test "lookup returns active share metadata for a note path" do
     post shares_url,
       params: {

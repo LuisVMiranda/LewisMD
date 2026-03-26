@@ -113,6 +113,11 @@ class ShareApiStorageTest < ActiveSupport::TestCase
     assert_equal [ "token-1", "token-2" ], report.fetch("removed_tokens")
   end
 
+  test "verify_write_access creates and removes a temporary marker under maintenance" do
+    assert_equal true, @storage.verify_write_access!
+    assert_equal [], Dir.glob(@storage_path.join("maintenance", ".write-check-*")).sort
+  end
+
   private
 
   def identity_key

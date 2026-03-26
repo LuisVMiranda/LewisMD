@@ -9,8 +9,8 @@ class SharesController < ApplicationController
     return render json: { error: I18n.t("errors.share_not_found", default: "Share not found") }, status: :not_found unless share
 
     render json: share_response(share)
-  rescue ShareService::InvalidShareError
-    render json: { error: I18n.t("errors.invalid_share_request", default: "Invalid share request") }, status: :unprocessable_entity
+  rescue ShareService::InvalidShareError => e
+    render_invalid_share_error(e)
   end
 
   def create
@@ -30,8 +30,8 @@ class SharesController < ApplicationController
     render json: share_response(share), status: share[:created] ? :created : :ok
   rescue NotesService::NotFoundError
     render json: { error: I18n.t("errors.note_not_found") }, status: :not_found
-  rescue ShareService::InvalidShareError
-    render json: { error: I18n.t("errors.invalid_share_request", default: "Invalid share request") }, status: :unprocessable_entity
+  rescue ShareService::InvalidShareError => e
+    render_invalid_share_error(e)
   end
 
   def update
@@ -51,8 +51,8 @@ class SharesController < ApplicationController
     render json: share_response(share)
   rescue ShareService::NotFoundError
     render json: { error: I18n.t("errors.share_not_found", default: "Share not found") }, status: :not_found
-  rescue ShareService::InvalidShareError
-    render json: { error: I18n.t("errors.invalid_share_request", default: "Invalid share request") }, status: :unprocessable_entity
+  rescue ShareService::InvalidShareError => e
+    render_invalid_share_error(e)
   end
 
   def destroy
@@ -65,8 +65,8 @@ class SharesController < ApplicationController
     }
   rescue ShareService::NotFoundError
     render json: { error: I18n.t("errors.share_not_found", default: "Share not found") }, status: :not_found
-  rescue ShareService::InvalidShareError
-    render json: { error: I18n.t("errors.invalid_share_request", default: "Invalid share request") }, status: :unprocessable_entity
+  rescue ShareService::InvalidShareError => e
+    render_invalid_share_error(e)
   end
 
   def show
@@ -133,5 +133,12 @@ class SharesController < ApplicationController
     snapshot_file.read[/<html[^>]*data-theme="([^"]+)"/i, 1]
   rescue StandardError
     nil
+  end
+
+  def render_invalid_share_error(error)
+    message = error.message.to_s.strip
+    message = I18n.t("errors.invalid_share_request", default: "Invalid share request") if message.blank?
+
+    render json: { error: message }, status: :unprocessable_entity
   end
 end

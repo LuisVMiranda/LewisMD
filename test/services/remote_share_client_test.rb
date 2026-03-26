@@ -124,4 +124,24 @@ class RemoteShareClientTest < ActiveSupport::TestCase
     assert_equal 403, error.status
     assert_equal "Forbidden", error.message
   end
+
+  test "create_share surfaces actionable guidance when the VPS returns an empty 500" do
+    stub_request(:get, "https://shares.example.com/api/v1/capabilities")
+      .to_return(status: 200, body: { api_version: "1" }.to_json)
+
+    stub_request(:post, "https://shares.example.com/api/v1/shares")
+      .to_return(status: 500, body: "")
+
+    error = assert_raises(RemoteShareClient::RequestError) do
+      @client.create_share(
+        title: "Shared Note",
+        html_fragment: "<p>Hello</p>",
+        snapshot_document_html: "<!DOCTYPE html><html><body><main class=\"export-shell\"><article class=\"export-article\"><p>Hello</p></article></main></body></html>"
+      )
+    end
+
+    assert_equal 500, error.status
+    assert_includes error.message, "Check the share-api container logs on the VPS"
+    assert_includes error.message, "storage write permissions"
+  end
 end

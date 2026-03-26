@@ -218,6 +218,17 @@ module ShareAPI
       write_json(sweeper_report_file, payload)
     end
 
+    def verify_write_access!
+      marker_path = maintenance_dir.join(".write-check-#{SecureRandom.hex(8)}")
+      FileUtils.mkdir_p(marker_path.dirname)
+      atomic_write(marker_path, "ok\n")
+      marker_path.delete if marker_path.file?
+
+      true
+    rescue SystemCallError => e
+      raise ValidationError, "Share storage is not writable at #{storage_root}: #{e.message}"
+    end
+
     private
 
     attr_reader :storage_path, :max_asset_bytes, :max_asset_count

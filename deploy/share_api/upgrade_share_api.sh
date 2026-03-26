@@ -15,10 +15,13 @@ QUIET="false"
 AUTO_CONFIRM="false"
 SKIP_BACKUP="false"
 SKIP_MONITOR_CHECK="false"
+SHARE_API_UID="10001"
+SHARE_API_GID="10001"
 
 SUDO=""
 BACKUP_OUTPUT=""
 EDGE_MODE="managed_caddy"
+STORAGE_HOST_PATH=""
 
 usage() {
   cat <<'EOF'
@@ -124,6 +127,9 @@ load_env_file() {
       LEWISMD_SHARE_EDGE_MODE)
         EDGE_MODE="$value"
         ;;
+      LEWISMD_SHARE_STORAGE_HOST_PATH)
+        STORAGE_HOST_PATH="$value"
+        ;;
     esac
   done <"$ENV_FILE"
 }
@@ -184,6 +190,18 @@ wait_for_api_health() {
   return 1
 }
 
+verify_share_storage_write_access() {
+  run_root docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" exec -T share-api bundle exec ruby bin/verify_storage_write.rb >/dev/null
+}
+
+prepare_storage_permissions() {
+  [[ -n "$STORAGE_HOST_PATH" ]] || return 0
+
+  log "Ensuring the persisted share storage path is writable by the share-api container..."
+  run_root mkdir -p "$STORAGE_HOST_PATH"
+  run_root chown -R "${SHARE_API_UID}:${SHARE_API_GID}" "$STORAGE_HOST_PATH"
+}
+
 run_monitor_check() {
   [[ "$SKIP_MONITOR_CHECK" == "true" ]] && return 0
   bash "$SCRIPT_DIR/monitor_share_api.sh" --runtime-dir "$RUNTIME_DIR" --env-file "$ENV_FILE" --compose-file "$COMPOSE_FILE" --quiet
@@ -227,6 +245,8 @@ main() {
   perform_backup_if_requested
   notify_event "deploy_started" "starting" "The remote share API upgrade has started."
 
+  prepare_storage_permissions
+
   log "Refreshing container images..."
   if [[ "$EDGE_MODE" == "managed_caddy" ]]; then
     run_root docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" pull caddy
@@ -236,6 +256,7 @@ main() {
 
   log "Waiting for the upgraded stack to become healthy..."
   wait_for_api_health || die "The share-api container did not become healthy after the upgrade."
+  verify_share_storage_write_access || die "The share-api became healthy, but it could not write to the persisted share storage path."
   run_monitor_check || die "The host-level monitor reported an unhealthy deployment after the upgrade."
 
   trap - ERR

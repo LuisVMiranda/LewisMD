@@ -159,9 +159,20 @@ class RemoteShareClient
 
   def parse_error_message(response)
     parsed = JSON.parse(response.body.presence || "{}")
-    parsed["error"].presence || "Remote share API request failed with status #{response.code}"
+    parsed["error"].presence || non_json_error_message(response)
   rescue JSON::ParserError
-    "Remote share API request failed with status #{response.code}"
+    non_json_error_message(response)
+  end
+
+  def non_json_error_message(response)
+    body_text = response.body.to_s.gsub(%r{<[^>]+>}, " ").gsub(/\s+/, " ").strip
+    return "Remote share API request failed with status #{response.code}: #{body_text[0, 160]}" if body_text.present?
+
+    if response.code.to_i >= 500
+      "Remote share API request failed with status #{response.code}. Check the share-api container logs on the VPS. A common cause is share storage write permissions."
+    else
+      "Remote share API request failed with status #{response.code}"
+    end
   end
 
   def normalize_share_response(parsed, fallback_token: nil)

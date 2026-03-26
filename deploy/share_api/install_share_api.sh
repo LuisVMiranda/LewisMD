@@ -1154,6 +1154,10 @@ check_direct_app_edge() {
   curl -fsS "http://127.0.0.1:${INTERNAL_PORT}/up" >/dev/null 2>&1
 }
 
+check_share_storage_write_access() {
+  run_root docker compose -f "$RUNTIME_COMPOSE_FILE" --env-file "$RUNTIME_ENV_FILE" exec -T share-api bundle exec ruby bin/verify_storage_write.rb >/dev/null 2>&1
+}
+
 run_smoke_checks() {
   log "Running post-install smoke checks..."
 
@@ -1161,6 +1165,13 @@ run_smoke_checks() {
     warn "The share-api container never became healthy. Recent share-api logs:"
     run_root docker compose -f "$RUNTIME_COMPOSE_FILE" --env-file "$RUNTIME_ENV_FILE" logs --no-color --tail=200 share-api || true
     die "The share-api container never became healthy."
+  fi
+
+  if ! check_share_storage_write_access; then
+    warn "The share-api is healthy, but it could not write to the persisted share storage path."
+    warn "This usually means the storage path ownership or permissions are wrong for uid ${SHARE_API_UID}."
+    run_root docker compose -f "$RUNTIME_COMPOSE_FILE" --env-file "$RUNTIME_ENV_FILE" logs --no-color --tail=200 share-api || true
+    die "The share-api storage write check failed."
   fi
 
   verify_firewall_rules
@@ -1253,6 +1264,7 @@ print_success_summary() {
   echo "  docker compose -f \"$RUNTIME_COMPOSE_FILE\" --env-file \"$RUNTIME_ENV_FILE\" ps"
   echo "  docker compose -f \"$RUNTIME_COMPOSE_FILE\" --env-file \"$RUNTIME_ENV_FILE\" logs -f"
   echo "  docker compose -f \"$RUNTIME_COMPOSE_FILE\" --env-file \"$RUNTIME_ENV_FILE\" up -d --build"
+  echo "  docker compose -f \"$RUNTIME_COMPOSE_FILE\" --env-file \"$RUNTIME_ENV_FILE\" exec -T share-api bundle exec ruby bin/verify_storage_write.rb"
   echo "  bash \"$SCRIPT_DIR/upgrade_share_api.sh\""
   echo "  bash \"$SCRIPT_DIR/backup_share_api.sh\""
   echo "  bash \"$SCRIPT_DIR/uninstall_share_api.sh\""
