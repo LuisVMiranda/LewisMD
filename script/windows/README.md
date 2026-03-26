@@ -163,6 +163,7 @@ script\windows\Launch_LewisMD.vbs
 What it does:
 
 - starts the native splash helper first so hidden launches still show progress
+- launches the splash helper in an STA PowerShell host so the WPF window can render reliably
 - runs `start_lewismd.bat` with the console hidden
 - skips the visible launcher's extra bootstrap validation because the
   PowerShell orchestrator still validates the runtime itself
@@ -207,6 +208,7 @@ What it does:
 - ignores stale progress left behind by an older launcher session
 - keeps only one splash instance open per LewisMD launcher profile
 - shows the current launcher message and percent complete
+- explicitly promotes the splash window above other windows while LewisMD starts
 - fades away automatically once the launcher reports `ready` / `running`
 - stays open with a readable message when launcher state becomes `error`
 - surfaces a close button and visible-launcher/log guidance on failures and timeouts

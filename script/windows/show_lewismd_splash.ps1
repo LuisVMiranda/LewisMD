@@ -190,6 +190,20 @@ function Start-FadeClose {
   $Window.BeginAnimation([System.Windows.Window]::OpacityProperty, $fadeAnimation)
 }
 
+function Promote-SplashWindow {
+  param([System.Windows.Window]$Window)
+
+  try {
+    $Window.ShowActivated = $true
+    $Window.Topmost = $true
+    $Window.Activate() | Out-Null
+    $Window.Focus() | Out-Null
+    $Window.Topmost = $false
+    $Window.Topmost = $true
+  } catch {
+  }
+}
+
 function Get-ErrorHintText {
   param(
     [string]$Step,
@@ -220,6 +234,7 @@ $xaml = @"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
+        ShowActivated="True"
         ShowInTaskbar="False"
         Topmost="True">
   <Border CornerRadius="26"
@@ -464,6 +479,11 @@ $timer.Add_Tick({
 
 $window.Add_SourceInitialized({
   Start-SpinnerAnimation -RotateTransform $spinnerRotate
+  Promote-SplashWindow -Window $window
+})
+
+$window.Add_ContentRendered({
+  Promote-SplashWindow -Window $window
 })
 
 $dismissButton.Add_Click({

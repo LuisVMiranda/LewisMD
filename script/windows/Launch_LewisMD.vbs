@@ -19,7 +19,7 @@ Dim shell, fso
 Dim scriptDir, repoRoot, startScript, splashScript, launcherLog, railsLog, progressFile, iconPath, shortcutPath
 Dim command, splashCommand, powershellExe
 Dim exitCode, argument, dryRun, installShortcut
-Dim hiddenWindowStyle, splashWindowStyle
+Dim hiddenWindowStyle
 
 Set shell = CreateObject("WScript.Shell")
 Set fso = CreateObject("Scripting.FileSystemObject")
@@ -35,7 +35,6 @@ iconPath = fso.GetAbsolutePathName(fso.BuildPath(repoRoot, "public\icon.ico"))
 shortcutPath = fso.BuildPath(shell.SpecialFolders("Desktop"), "LewisMD.lnk")
 powershellExe = shell.ExpandEnvironmentStrings("%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe")
 hiddenWindowStyle = 0
-splashWindowStyle = 1
 
 dryRun = False
 installShortcut = False
@@ -54,7 +53,7 @@ If Not fso.FileExists(startScript) Then
 End If
 
 command = "cmd.exe /c """"" & startScript & """ --skip-bootstrap-check --no-auto-bootstrap --no-pause-on-error"""
-splashCommand = """" & powershellExe & """ -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File """ & splashScript & """ -ProgressFile """ & progressFile & """"
+splashCommand = """" & powershellExe & """ -NoProfile -Sta -ExecutionPolicy Bypass -File """ & splashScript & """ -ProgressFile """ & progressFile & """"
 
 If dryRun Then
   WScript.Echo "startScript=" & startScript
@@ -78,9 +77,9 @@ End If
 ' Start the splash helper first so hidden launches still give the user immediate
 ' feedback while the PowerShell orchestrator boots Rails and opens the browser.
 If fso.FileExists(splashScript) Then
-  ' Let the WPF splash window render normally while PowerShell still keeps its
-  ' own console hidden via -WindowStyle Hidden.
-  shell.Run splashCommand, splashWindowStyle, False
+  ' Hide the PowerShell console host itself, but let the splash script promote
+  ' its own WPF window to the foreground once it starts rendering.
+  shell.Run splashCommand, hiddenWindowStyle, False
   WScript.Sleep 150
 End If
 
