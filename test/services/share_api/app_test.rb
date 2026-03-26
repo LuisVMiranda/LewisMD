@@ -62,6 +62,9 @@ class ShareApiAppTest < ActiveSupport::TestCase
     assert_includes last_response.body, ".share-view__toolbar"
     assert_includes last_response.body, ".share-view__frame"
     assert_includes last_response.body, ".share-view__outline-card"
+    assert_includes last_response.body, "top: 30px;"
+    assert_includes last_response.body, "left: 30px;"
+    assert_includes last_response.body, "justify-content: center;"
     assert_includes last_response.body, "box-sizing: border-box"
 
     get "/reader/assets/theme_helpers.js"

@@ -247,12 +247,12 @@ html.dark .dark\:text-red-400 {
 
 .share-view__outline-shell {
   position: absolute;
-  top: 40px;
-  left: 40px;
+  top: 30px;
+  left: 30px;
   z-index: 30;
-  width: min(35ch, calc(100% - 80px));
+  width: min(35ch, calc(100% - 60px));
   max-width: 35ch;
-  min-width: min(18rem, calc(100% - 80px));
+  min-width: min(18rem, calc(100% - 60px));
 }
 
 .share-view__outline-card {
@@ -283,14 +283,20 @@ html.dark .dark\:text-red-400 {
 }
 
 .share-view__outline-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
   width: 1.85rem;
   height: 1.85rem;
   min-height: 1.85rem;
   padding: 0;
+  line-height: 0;
 }
 
 .share-view__outline-toggle .share-view__toolbar-caret {
+  margin: 0;
+  flex-shrink: 0;
   transition: transform 0.15s ease;
 }
 
@@ -326,10 +332,10 @@ html.dark .dark\:text-red-400 {
 
 @media (min-width: 769px) and (max-width: 1100px) {
   .share-view__outline-shell {
-    top: 24px;
-    left: 24px;
-    width: min(35ch, calc(100% - 48px));
-    min-width: min(16rem, calc(100% - 48px));
+    top: 14px;
+    left: 14px;
+    width: min(35ch, calc(100% - 28px));
+    min-width: min(16rem, calc(100% - 28px));
   }
 
   .share-view__outline-card {
@@ -339,10 +345,10 @@ html.dark .dark\:text-red-400 {
 
 @media (max-width: 768px) {
   .share-view__outline-shell {
-    top: 16px;
-    left: 16px;
-    width: min(35ch, calc(100% - 32px));
-    max-width: calc(100% - 32px);
+    top: 10px;
+    left: 10px;
+    width: min(35ch, calc(100% - 20px));
+    max-width: calc(100% - 20px);
     min-width: 0;
   }
 
