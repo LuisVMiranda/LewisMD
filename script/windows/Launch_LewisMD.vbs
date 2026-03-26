@@ -16,7 +16,8 @@
 Option Explicit
 
 Dim shell, fso
-Dim scriptDir, repoRoot, startScript, launcherLog, railsLog, iconPath, shortcutPath, command
+Dim scriptDir, repoRoot, startScript, splashScript, launcherLog, railsLog, progressFile, iconPath, shortcutPath
+Dim command, splashCommand, powershellExe
 Dim exitCode, argument, dryRun, installShortcut
 
 Set shell = CreateObject("WScript.Shell")
@@ -25,10 +26,13 @@ Set fso = CreateObject("Scripting.FileSystemObject")
 scriptDir = fso.GetParentFolderName(WScript.ScriptFullName)
 repoRoot = fso.GetAbsolutePathName(fso.BuildPath(scriptDir, "..\.."))
 startScript = fso.BuildPath(scriptDir, "start_lewismd.bat")
+splashScript = fso.BuildPath(scriptDir, "show_lewismd_splash.ps1")
 launcherLog = fso.GetAbsolutePathName(fso.BuildPath(repoRoot, "tmp\windows-launcher\launcher.log"))
 railsLog = fso.GetAbsolutePathName(fso.BuildPath(repoRoot, "tmp\windows-launcher\rails.log"))
+progressFile = fso.GetAbsolutePathName(fso.BuildPath(repoRoot, "tmp\windows-launcher\launcher-progress.json"))
 iconPath = fso.GetAbsolutePathName(fso.BuildPath(repoRoot, "public\icon.ico"))
 shortcutPath = fso.BuildPath(shell.SpecialFolders("Desktop"), "LewisMD.lnk")
+powershellExe = shell.ExpandEnvironmentStrings("%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe")
 
 dryRun = False
 installShortcut = False
@@ -47,13 +51,17 @@ If Not fso.FileExists(startScript) Then
 End If
 
 command = "cmd.exe /c """"" & startScript & """ --skip-bootstrap-check --no-auto-bootstrap --no-pause-on-error"""
+splashCommand = """" & powershellExe & """ -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File """ & splashScript & """ -ProgressFile """ & progressFile & """"
 
 If dryRun Then
   WScript.Echo "startScript=" & startScript
+  WScript.Echo "splashScript=" & splashScript
   WScript.Echo "launcherLog=" & launcherLog
   WScript.Echo "railsLog=" & railsLog
+  WScript.Echo "progressFile=" & progressFile
   WScript.Echo "iconPath=" & iconPath
   WScript.Echo "shortcutPath=" & shortcutPath
+  WScript.Echo "splashCommand=" & splashCommand
   WScript.Echo "command=" & command
   WScript.Quit 0
 End If
@@ -62,6 +70,13 @@ If installShortcut Then
   Call CreateDesktopShortcut()
   WScript.Echo "shortcutPath=" & shortcutPath
   WScript.Quit 0
+End If
+
+' Start the splash helper first so hidden launches still give the user immediate
+' feedback while the PowerShell orchestrator boots Rails and opens the browser.
+If fso.FileExists(splashScript) Then
+  shell.Run splashCommand, 0, False
+  WScript.Sleep 150
 End If
 
 ' Window style 0 = hidden. WaitOnReturn=True keeps the wrapper alive until the

@@ -18,6 +18,7 @@ $script:RailsLogWriter = $null
 $script:RailsOutputHandler = $null
 $script:RailsErrorHandler = $null
 $script:ResolvedConfig = $null
+$script:LaunchCompletedSuccessfully = $false
 
 function Resolve-ScriptPath {
   param([string]$RelativePath)
@@ -941,6 +942,7 @@ try {
     Write-LaunchProgress -State "running" -Percent 100 -Message "LewisMD is open." -Step "running"
     Wait-ForBrowserSessionToClose -BrowserPath $browserSession.BrowserPath
     Write-LauncherMessage "Browser app window closed."
+    $script:LaunchCompletedSuccessfully = $true
   } finally {
     if ($null -ne $managedProcessId) {
       Write-LaunchProgress -State "stopping" -Percent 95 -Message "Closing LewisMD..." -Step "shutdown"
@@ -971,7 +973,7 @@ try {
 
   throw
 } finally {
-  if ($script:LauncherMode -ne "launch") {
+  if ($script:LauncherMode -ne "launch" -or $script:LaunchCompletedSuccessfully) {
     Remove-LaunchProgress
   }
 

@@ -162,6 +162,7 @@ script\windows\Launch_LewisMD.vbs
 
 What it does:
 
+- starts the native splash helper first so hidden launches still show progress
 - runs `start_lewismd.bat` with the console hidden
 - skips the visible launcher's extra bootstrap validation because the
   PowerShell orchestrator still validates the runtime itself
@@ -202,6 +203,7 @@ What it does:
 
 - loads a small WPF window using the checked-in LewisMD icon
 - polls `tmp/windows-launcher/launcher-progress.json`
+- ignores stale progress left behind by an older launcher session
 - shows the current launcher message and percent complete
 - fades away automatically once the launcher reports `ready` / `running`
 - stays open with a readable message when launcher state becomes `error`
@@ -259,7 +261,7 @@ Important files:
 - `launcher-state.json`
   - launcher-managed state used for PID tracking and recovery decisions
 - `launcher-progress.json`
-  - lightweight startup progress state for the future splash/feedback window
+  - lightweight startup progress state consumed by the splash helper
 - `server.pid`
   - the PID file written by `rails server`
 

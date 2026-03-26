@@ -70,7 +70,8 @@ function Resolve-Config {
 function Read-ProgressPayload {
   param(
     [string]$Path,
-    [hashtable]$Fallback
+    [hashtable]$Fallback,
+    [datetime]$MinimumUpdatedAt
   )
 
   if (-not (Test-Path -LiteralPath $Path)) {
@@ -85,6 +86,18 @@ function Read-ProgressPayload {
 
     $payload = $raw | ConvertFrom-Json -ErrorAction Stop
     $percent = if ($null -ne $payload.percent) { [int]$payload.percent } else { [int]$Fallback.percent }
+    $updatedAt = $null
+    if ($null -ne $payload.updatedAt) {
+      try {
+        $updatedAt = [datetime]$payload.updatedAt
+      } catch {
+        $updatedAt = $null
+      }
+    }
+
+    if ($null -eq $updatedAt -or $updatedAt -lt $MinimumUpdatedAt) {
+      return [pscustomobject]$Fallback
+    }
 
     return [pscustomobject]@{
       state = if ($null -ne $payload.state) { [string]$payload.state } else { [string]$Fallback.state }
@@ -344,7 +357,7 @@ Update-WindowFromPayload -Payload $lastPayload
 $timer = New-Object System.Windows.Threading.DispatcherTimer
 $timer.Interval = [TimeSpan]::FromMilliseconds($resolvedConfig.PollIntervalMilliseconds)
 $timer.Add_Tick({
-  $payload = Read-ProgressPayload -Path $resolvedConfig.ProgressFile -Fallback $fallbackPayload
+  $payload = Read-ProgressPayload -Path $resolvedConfig.ProgressFile -Fallback $fallbackPayload -MinimumUpdatedAt $launchStartedAt
   $lastPayload = $payload
   Update-WindowFromPayload -Payload $payload
 
