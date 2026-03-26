@@ -3448,3 +3448,196 @@ The mobile/tablet reader toolbar work is now in a good finished state: compact b
   - targeted RuboCop
   - `docker compose -f deploy/share_api/compose.yml config`
 - A true Bash syntax run and a live Linux VPS/systemd execution path are still pending because this workstation does not provide a usable local Linux/Bash runtime.
+## 2026-03-25 Remote Share Full Shell + Expiry Phase 1
+- Rebaselined the remote-share roadmap around LewisMD's existing architecture instead of treating the VPS relay as a separate share system.
+- Rewrote `remote_api_plan.md` to lock the new contract for:
+  - full remote shared-reader UI built from a server-owned shell
+  - one active link per note path with simultaneous sharing across many notes
+  - `.fed`-driven expiration days plus janitor cleanup
+  - immediate expiry enforcement to avoid ghost notes
+  - explicit `managed_caddy` and `external_reverse_proxy` deployment modes
+- The architecture reconciliation now treats these existing code paths as required reuse points:
+  - `app/views/shares/show.html.erb`, `share_view.css`, and `share_view_controller.js`
+  - the current preview/export pipeline
+  - the existing `/shares` browser contract and provider-based backend split
+  - the current filesystem-backed remote registry and relay storage
+- The most important design decision locked in this phase is that we will not upload arbitrary outer HTML from the client. We will instead publish a richer snapshot package and render the full remote reader from server-owned assets.
+- This phase intentionally changed planning/docs only. No runtime code was modified yet.
+## 2026-03-25 Remote Share Full Shell + Expiry Phase 2
+- Added `share_remote_expiration_days` to `Config::SCHEMA` with a default of `30` and bumped `CONFIG_VERSION`.
+- Updated the generated `.fed` Remote Share API template section so new configs now document the expiration setting directly.
+- Tightened the conservative config upgrader so existing repos that already have a Remote Share API section still receive the new commented expiration line instead of silently missing it.
+- Added config test coverage for:
+  - template generation
+  - default value resolution
+  - reading the new key from `.fed`
+  - persisting the key through `update`
+  - upgrading an existing remote-share section to include the missing expiration line
+- The main implementation bug found in this phase was an upgrade short-circuit: once another section had already marked the file as changed, the new remote-share key insertion helper never ran. That was fixed before closeout.
+## 2026-03-25 Remote Share Full Shell + Expiry Phase 3
+- Refactored the local shared-reader shell into cleaner view seams:
+  - `app/views/shares/show.html.erb` now focuses on shell composition
+  - `app/views/shares/_toolbar_actions.html.erb` owns the action row
+  - `app/views/shares/_display_panel.html.erb` owns the reading controls row
+  - `app/views/shares/_reader_export_menu.html.erb` isolates the share reader from directly wiring `notes/_export_menu` inline
+- Extended `app/views/notes/_export_menu.html.erb` with style-hook locals (`container_class`, `icon_class`, `caret_class`) so the share reader can reuse the existing menu behavior without inheriting the notes-header styling assumptions.
+- Moved more presentation responsibility into `share_view.css` by adding dedicated classes for menu anchors, picker/export menus, icons, labels, and carets.
+- Added narrow system-test assertions that lock the new reusable seams (`share-view__picker-menu` and `share-view__export-menu`) so later remote-shell extraction work has coverage around the intended structure.
+- The main issue found during validation was not in the ERB refactor itself, but in the asset pipeline: the new classes existed in source CSS, but the compiled Tailwind asset was stale. Rebuilding `tailwind.css` restored the intended mobile layout and made the system test pass.
+## 2026-03-25 Remote Share Full Shell + Expiry Phase 4
+- Extracted the share-reader menus and translation plumbing into shared browser helpers under `app/javascript/lib/share_reader/` instead of duplicating theme, locale, and export logic for the VPS reader.
+- Updated the existing Stimulus controllers (`theme_controller.js`, `locale_controller.js`, and `export_menu_controller.js`) to reuse those helpers, keeping the Rails app behavior stable while creating a common remote-safe surface for later phases.
+- Added the first standalone reader bundle assets under `services/share_api/public/reader/`:
+  - `remote_reader_bundle.js` exposes a browser-safe LewisMD reader bundle with shared theme, locale, export, and translation helpers
+  - `remote_reader_bundle.css` imports the existing `share_view.css` reader styling so the remote shell can reuse the current UI language instead of creating a second stylesheet
+- Extended the standalone share API to serve those reader assets directly and advertise `full_share_shell: true` in `/api/v1/capabilities`.
+- Added focused test coverage for the new shared JS helpers plus share API static asset serving.
+- One defensive compatibility tweak landed as part of the extraction: the global translation helper is now only installed when `window` exists, so the shared locale code remains safe to import in non-browser contexts.
+## 2026-03-25 Remote Share Full Shell + Expiry Phase 5
+- Expanded `SharePayloadBuilder` from a fragment-only payload into a richer snapshot package builder while preserving the current local `/shares` flow.
+- The local publish payload now includes:
+  - `snapshot_version`
+  - `shell_version`
+  - `snapshot_document_html`
+  - `shell_payload` with title, locale, theme, and display defaults
+  - the existing sanitized `html_fragment`, plain text, asset manifest, and uploadable assets
+- Reconstructed `snapshot_document_html` as a server-friendly standalone export document built from the sanitized fragment plus safe export-shell metadata, instead of blindly forwarding arbitrary outer HTML.
+- Updated the remote provider/client path so remote publish requests now carry the richer snapshot package and a TTL-derived `expires_at` from `.fed` (`share_remote_expiration_days`).
+- The remote provider now rewrites asset URLs in both the fragment and the full snapshot document, so later VPS phases can render the full iframe snapshot without losing uploaded images.
+- Extended the local remote-share registry and controller responses to persist and expose `expires_at` for remote shares.
+- Added focused tests for the richer payload builder, remote provider/client contract, registry persistence, and controller integration.
+## 2026-03-25 Remote Share Full Shell + Expiry Phase 6
+- Extended the standalone share API storage model so remote shares can persist a full snapshot package instead of only a fragment:
+  - `services/share_api/lib/share_api/storage.rb` now stores both the fragment shell (`snapshots/<token>/index.html`) and a dedicated snapshot document (`snapshots/<token>/document.html`)
+  - share deletion now removes the snapshot document alongside the fragment shell and uploaded assets
+- Expanded the remote share metadata written by the relay to include `snapshot_version`, `shell_version`, `shell_payload`, and `expires_at`, keeping the stored package aligned with the richer publish payload from Phase 5.
+- Added a dedicated public snapshot route (`GET /snapshots/:token`) in `services/share_api/app.rb` so the future full reader shell can iframe a stored standalone snapshot document instead of embedding the fragment directly.
+- The snapshot route now serves a reconstructed safe document with:
+  - the sanitized article fragment
+  - safe extracted inline styles from the uploaded snapshot package
+  - same-origin framing protections
+  - a stricter snapshot-specific CSP
+- Preserved backward compatibility for earlier fragment-only remote shares: if a share has no stored snapshot document yet, the relay synthesizes a legacy standalone snapshot document on read so existing published links remain usable until refreshed.
+- Extended the standalone share API tests to cover:
+  - snapshot document persistence and retrieval
+  - snapshot-specific security headers
+  - asset URL rewriting inside snapshot documents
+  - revoke cleanup for snapshot routes
+  - legacy fragment-only fallback behavior
+- The main routing bug caught during this phase was path overlap between `/s/:token` and `/snapshots/:token`; the not-found handling now checks snapshot paths before generic share-shell paths so snapshot misses return the correct response.
+## 2026-03-25 Remote Share Full Shell + Expiry Phase 7
+- Made remote share expiration enforceable instead of informational by moving expiry checks into the standalone share API storage lifecycle.
+- `services/share_api/lib/share_api/storage.rb` now:
+  - normalizes `expires_at` to ISO8601 on write
+  - treats expired shares as missing on read
+  - purges expired metadata, snapshots, assets, and path-index files immediately when an expired share is accessed
+  - exposes `sweep_expired_shares!` so expired share cleanup can run as a janitor task
+- Added `services/share_api/bin/sweep_expired_shares.rb` as the standalone janitor entrypoint that later deployment phases can schedule without introducing a separate cleanup subsystem.
+- Tightened public cache behavior in `services/share_api/app.rb` so share shells, snapshot documents, and their 404 responses use `Cache-Control: no-store`, reducing ghost-note behavior after revoke or expiry.
+- Missing asset responses now also use hardened no-store headers.
+- Extended the local remote-share registry (`app/services/remote_share_registry_service.rb`) so expired remote share metadata is pruned locally and no longer treated as an active link.
+- Added focused coverage for:
+  - storage-level expiry pruning and janitor cleanup
+  - re-publishing with a new token after an old identity has expired
+  - local remote-share registry expiry pruning
+  - public 404 behavior and on-disk cleanup after share expiration
+- The main implementation hazard in this phase was time handling: the first expiry integration test used nested `travel_to` calls, which Rails rejects. That was corrected by switching the second jump to a relative `travel` inside the existing frozen clock.
+## 2026-03-25 Remote Share Full Shell + Expiry Phase 8
+- Replaced the minimal public remote share shell with a server-owned shared-reader UI in `services/share_api/app.rb`.
+- Remote `/s/:token` now renders the same broad interface model as the local shared-note page:
+  - title and shared-note chrome
+  - theme picker
+  - language picker
+  - share/export menu
+  - display panel with zoom, width, and font controls
+  - same-origin iframe pointed at `/snapshots/:token`
+- Kept the public reader page server-rendered while moving browser behavior into the standalone reader bundle instead of trying to boot the full Rails frontend on the VPS.
+- Expanded `services/share_api/public/reader/remote_reader_bundle.js` from helper exports into the actual remote reader controller:
+  - theme and locale menu rendering
+  - live theme switching with URL updates
+  - export menu behavior
+  - copy/export/print actions
+  - iframe theme synchronization
+  - zoom, width, font, and responsive display-panel behavior
+- Expanded `services/share_api/public/reader/remote_reader_bundle.css` so the standalone shell now loads:
+  - the existing share-view component styling
+  - all existing theme CSS definitions from `app/assets/tailwind/themes/`
+  - the small utility-class and remote-only styles the helper-rendered menus need outside Tailwind's compiled app bundle
+- Added dynamic reader asset serving for `/reader/assets/themes/*.css`, reusing the real project theme files instead of duplicating theme palettes inside the share API.
+- Updated the public shell CSP to allow the server-owned bundle and same-origin iframe while keeping the shell non-embeddable and locked down.
+- Extended the share API tests to cover:
+  - remote shell structure and bundle asset references
+  - theme and locale query-param overrides
+  - theme CSS asset serving
+  - updated asset assertions against the snapshot iframe document rather than the outer shell
+- The main issue uncovered during validation was not in the runtime code but in the tests: after the shell moved note content into the iframe snapshot document, earlier assertions looking for asset URLs or updated body text in the outer shell had to be moved to `/snapshots/:token`.
+## 2026-03-25 Remote Share Full Shell + Expiry Phase 9
+- Updated `deploy/share_api/install_share_api.sh` so the VPS installer now supports two first-class edge modes:
+  - `managed_caddy` for self-contained public `80/443`
+  - `external_reverse_proxy` for existing Nginx-style setups that proxy to `127.0.0.1:<internal_port>`
+- The installer now gathers and writes the deployment values needed for both modes, including:
+  - reverse-proxy host/scheme/port information
+  - `LEWISMD_SHARE_MAX_EXPIRATION_DAYS`
+  - `LEWISMD_SHARE_EXPIRY_SWEEP_MINUTES`
+  - a generated local `.fed` block that includes `share_remote_expiration_days`
+- Moved local `.fed` summary generation earlier in the installer so operators still get the remote LewisMD config block even if later stack startup fails.
+- Added generated runtime assets for external reverse-proxy deployments:
+  - `deploy/share_api/runtime/nginx-lewismd-share.conf`
+  - localhost-only Compose output with `share-api` bound to `127.0.0.1:<internal_port>`
+- Added generated expiry janitor systemd units:
+  - `lewismd-share-sweeper.service`
+  - `lewismd-share-sweeper.timer`
+- Updated the host-side scripts so Caddy is optional instead of assumed:
+  - `monitor_share_api.sh` now treats `caddy` as required only in `managed_caddy`
+  - `upgrade_share_api.sh` only refreshes the Caddy image when that edge mode is active
+  - `backup_share_api.sh` now captures the generated Nginx example and treats Caddy state as optional metadata
+  - `uninstall_share_api.sh` now removes the sweeper timer/service alongside the monitor timer/service
+- Expanded `.env.example` and `docs/remote_share_api.md` to document:
+  - external reverse-proxy mode
+  - expiry sweep settings
+  - generated Nginx guidance
+  - the new sweeper timer lifecycle
+- Added/updated deployment regression coverage in `test/services/share_api/deployment_artifacts_test.rb` for the new installer, script, and documentation contract.
+- A useful correction surfaced during this phase: the original installer still contained an invalid bash-style `unless ... end` block from an earlier draft. That was replaced with real shell control flow while landing the edge-mode refactor.
+## 2026-03-25 Remote Share Full Shell + Expiry Phase 10
+- Extended `deploy/share_api/monitor_share_api.sh` so the host-side monitor now observes cleanup operations, not just the public edge:
+  - checks whether `lewismd-share-sweeper.timer` is active
+  - detects failed or stale janitor runs
+  - alerts on abnormal storage growth between monitor passes
+- Added new runtime monitor settings:
+  - `LEWISMD_SHARE_MONITOR_SWEEPER_STALE_MINUTES`
+  - `LEWISMD_SHARE_MONITOR_STORAGE_GROWTH_MB`
+- Updated the interactive installer to prompt for the new cleanup-health thresholds when monitoring is enabled and write them into the generated runtime `.env`.
+- Added sweeper state persistence to the share storage layer:
+  - `ShareAPI::Storage#write_sweeper_report!`
+  - `services/share_api/bin/sweep_expired_shares.rb` now records successful and failed janitor runs under the persisted share storage so the host monitor can inspect freshness without needing Ruby on the VPS host.
+- Updated `.env.example` and `docs/remote_share_api.md` to document cleanup-failure alerts, storage-growth alerts, and the janitor state model.
+- Expanded deployment regression coverage in `test/services/share_api/deployment_artifacts_test.rb` and storage coverage in `test/services/share_api/storage_test.rb`.
+- One real issue surfaced during verification: the first failure-reporting version of `services/share_api/bin/sweep_expired_shares.rb` used a top-level `rescue`, which Ruby rejects. That was corrected by wrapping the script body in a proper `begin ... rescue ... end` block before final verification.
+## 2026-03-25 Remote Share Full Shell + Expiry Phase 11
+- Closed the rollout with a migration/docs/test pass instead of adding more runtime surface area.
+- Updated `README.md` so the optional VPS relay section now explains the real end-state:
+  - the VPS serves the full shared-reader UI
+  - different notes get different simultaneous links
+  - the same note keeps one active remote link
+  - `share_remote_expiration_days` controls automatic expiry
+  - expired or revoked shares stop serving immediately and are later swept from disk
+- Expanded `docs/remote_share_api.md` with:
+  - a reader-experience section describing the full remote shared-note UI
+  - the share-link identity model
+  - explicit expiry/revoke behavior
+  - a legacy-share migration section explaining how older fragment-only shares continue to render until refreshed into the newer snapshot package format
+- Updated `remote_api_plan.md` with closeout notes summarizing the implemented remote-share shape and its remaining out-of-scope baseline suite failures.
+- Added focused migration/behavior coverage in `test/services/share_api/app_test.rb` for:
+  - multiple different notes receiving different public tokens and remaining accessible simultaneously
+  - refreshing a legacy fragment-only share into the full snapshot-package format
+- Extended `test/services/share_api/deployment_artifacts_test.rb` so the final docs contract now explicitly covers:
+  - one-active-link-per-note behavior
+  - simultaneous links for different notes
+  - legacy-share refresh/migration expectations
+- Verification results for the closeout phase:
+  - targeted share API + deployment tests passed
+  - full RuboCop passed
+  - full `npx vitest run` still shows the same existing 6 unrelated failures in `keyboard_shortcuts.test.js` and `offline_backup_controller.test.js`
+  - full Rails suite still shows the same broader unrelated baseline failures in images/templates/backups/folders/notes/logs/youtube areas
+- A useful correction surfaced during the new migration test: the stored snapshot document is rebuilt around the sanitized fragment, so a legacy-share refresh must update the fragment content as well as the richer snapshot payload for the expected reader output to change.

@@ -12,6 +12,20 @@ The remote service is intentionally narrow. It is **not** a second full LewisMD
 instance. It only accepts authenticated share publish/update/revoke requests and
 serves read-only public share snapshots.
 
+## Reader Experience
+
+Remote public share pages now render the full LewisMD shared-reader interface:
+
+- shared-note title chrome
+- theme picker
+- locale picker
+- export/share actions
+- display controls for zoom, text width, and font family
+- a same-origin snapshot iframe that holds the sanitized rendered note
+
+The VPS still owns the outer page. LewisMD does not blindly upload an arbitrary
+outer HTML document and publish it as-is.
+
 ## What Lives Where
 
 Tracked deployment assets:
@@ -31,9 +45,12 @@ Generated runtime files on the VPS:
 - `deploy/share_api/runtime/.env`
 - `deploy/share_api/runtime/compose.yml`
 - `deploy/share_api/runtime/Caddyfile`
+- `deploy/share_api/runtime/nginx-lewismd-share.conf`
 - `deploy/share_api/runtime/lewismd_remote_share_config.fed.txt`
 - `deploy/share_api/runtime/lewismd-share-monitor.service`
 - `deploy/share_api/runtime/lewismd-share-monitor.timer`
+- `deploy/share_api/runtime/lewismd-share-sweeper.service`
+- `deploy/share_api/runtime/lewismd-share-sweeper.timer`
 - `deploy/share_api/runtime/monitor/state.env`
 
 The whole `deploy/share_api/runtime/` directory is intentionally ignored by Git.
@@ -50,12 +67,28 @@ What the installer does:
 
 - detects Ubuntu, Fedora, or AlmaLinux
 - installs Docker, Compose, and basic host dependencies if needed
-- prompts for the public host mode and required operator choices
+- prompts for the edge mode and required operator choices
 - writes the runtime deployment files under `deploy/share_api/runtime/`
 - optionally configures the firewall
 - boots the stack and validates `/up`
+- installs the expired-share sweeper timer
 - optionally installs the host-level monitoring timer
 - prints the exact `.fed` values needed by the local LewisMD machine
+
+### Edge Modes
+
+The installer supports two deployment topologies:
+
+- `managed_caddy`
+  - Caddy is part of the generated Docker Compose stack
+  - the installer owns the public `80/443` edge for this service
+- `external_reverse_proxy`
+  - the `share-api` container binds to `127.0.0.1:<internal_port>`
+  - an existing reverse proxy such as Nginx forwards the public host to it
+  - the installer generates `deploy/share_api/runtime/nginx-lewismd-share.conf`
+
+The `external_reverse_proxy` mode is the right choice when the VPS already runs
+Nginx or another shared public edge.
 
 ## Local LewisMD Configuration
 
@@ -78,7 +111,65 @@ The key values include:
 - `share_remote_signing_secret`
 - `share_remote_verify_tls`
 - `share_remote_upload_assets`
+- `share_remote_expiration_days`
 - `share_remote_instance_name`
+
+`share_remote_expiration_days` controls how long newly published or refreshed
+remote shares stay live before they expire automatically.
+
+## Share Link Model
+
+The remote share identity model is intentionally simple:
+
+- different notes get different public links
+- many different notes can be shared at the same time
+- the same note keeps one active public link and refreshes that existing link
+
+So if you share five different notes, you will get five different public URLs.
+Those URLs can all be open and accessible simultaneously.
+
+Refreshing a remote share extends its expiration from the current time again.
+Revoking a remote share removes it immediately instead of waiting for the
+expiry sweep.
+
+## Expiry Sweep
+
+Remote share expiry is enforced in two ways:
+
+- the share API immediately serves expired or revoked links as `404`
+- the VPS runs a periodic sweeper timer that deletes expired metadata,
+  snapshots, assets, and indexes from disk
+
+The generated systemd units are:
+
+- `lewismd-share-sweeper.service`
+- `lewismd-share-sweeper.timer`
+
+Relevant runtime settings include:
+
+- `LEWISMD_SHARE_EXPIRY_SWEEP_MINUTES`
+- `LEWISMD_SHARE_MAX_EXPIRATION_DAYS`
+- `LEWISMD_SHARE_MONITOR_SWEEPER_STALE_MINUTES`
+- `LEWISMD_SHARE_MONITOR_STORAGE_GROWTH_MB`
+
+The public share shell and snapshot routes are also served with strict
+`Cache-Control: no-store` headers so expired or revoked notes do not linger as
+"ghost" pages in normal browser or proxy caches.
+
+## Legacy Share Migration
+
+Older remote shares that were published before the full shared-reader rollout
+still render through a compatibility path.
+
+Migration behavior:
+
+- legacy fragment-only shares continue to work
+- refreshing an existing legacy share republishes it as the newer snapshot
+  package format
+- refreshed shares keep their existing public token for the same note path
+
+This keeps already-shared links alive while gradually moving them onto the newer
+reader shell.
 
 ## Health And Monitoring
 
@@ -97,6 +188,12 @@ It checks:
 - the local edge path from the VPS host
 - the Compose-managed service state
 - disk usage on the persisted share storage path
+- expiry sweeper freshness and failure state
+- storage-growth anomalies between monitor runs
+
+In `external_reverse_proxy` mode, the installer may defer enabling the monitor
+timer until the generated reverse-proxy config has been installed and the public
+edge actually responds.
 
 When enabled through the installer, the monitor is installed as:
 
@@ -109,6 +206,14 @@ Supported outbound notifications:
 - Slack incoming webhook
 - Discord webhook
 - Healthchecks.io heartbeat and fail pings
+
+Additional transition alerts include:
+
+- `cleanup_failed`
+- `cleanup_stale`
+- `cleanup_stopped`
+- `cleanup_recovered`
+- `storage_growth_high`
 
 Alerts are transition-only by default, so repeated healthy or unhealthy runs do
 not spam the configured destination.
@@ -126,7 +231,7 @@ Behavior:
 - optionally creates a pre-upgrade backup first
 - sends `deploy_started`, `deploy_succeeded`, or `deploy_failed` alerts when a
   webhook is configured
-- refreshes the Caddy image
+- refreshes the Caddy image when the deployment uses `managed_caddy`
 - rebuilds the `share-api` image with the current source tree
 - restarts the stack with Docker Compose
 - verifies `/up`
@@ -152,7 +257,8 @@ The backup archive includes:
 
 - persisted share storage
 - generated runtime config files
-- Caddy data/config state
+- Caddy data/config state when present
+- the generated Nginx example when present
 - backup metadata
 
 By default it writes to:
@@ -193,7 +299,7 @@ bash deploy/share_api/uninstall_share_api.sh
 Safe defaults:
 
 - stop and remove the Docker stack
-- remove the monitoring timer and systemd unit files
+- remove the monitoring timer, sweeper timer, and their systemd unit files
 - keep share storage
 - keep Caddy state
 - keep generated runtime files
@@ -227,6 +333,7 @@ If the local edge works but the public URL does not, look at:
 - DNS
 - public firewall rules
 - TLS/certificate state in Caddy
+- or the generated reverse-proxy config if you are using an external reverse proxy
 
 ### Monitoring timer is not running
 
@@ -243,6 +350,19 @@ If needed, reload and re-enable it:
 sudo systemctl daemon-reload
 sudo systemctl enable --now lewismd-share-monitor.timer
 ```
+
+### Need to confirm the expiry janitor is running
+
+Check:
+
+```bash
+systemctl status lewismd-share-sweeper.timer
+systemctl status lewismd-share-sweeper.service
+```
+
+The monitor also reads the janitor state report written under the persisted
+share storage path, so a timer that is active but no longer producing fresh
+cleanup reports will still trigger a stale-cleanup alert.
 
 ### Need to test the alert path manually
 

@@ -268,8 +268,16 @@ notes through a small public relay.
 That remote service is intentionally narrow:
 
 - the local LewisMD app stays the source of truth
-- only sanitized read-only share snapshots are published outward
+- the VPS serves the full shared-reader UI around a sanitized stored snapshot
 - the VPS runs the dedicated share relay, not a second full LewisMD instance
+
+Useful behavior notes:
+
+- different notes get different remote public links and can be shared at the same time
+- the same note keeps one active remote link; refreshing it updates that link instead of creating a second one
+- remote shares can expire automatically via `share_remote_expiration_days`
+- expired or revoked shares stop serving immediately and are swept from disk later
+- the VPS installer supports both a bundled Caddy edge and an existing reverse proxy such as Nginx
 
 For the full install, monitoring, upgrade, backup, uninstall, and recovery
 guide, see:

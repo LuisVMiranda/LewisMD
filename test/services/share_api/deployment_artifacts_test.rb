@@ -4,9 +4,13 @@ require "test_helper"
 require "yaml"
 
 class ShareApiDeploymentArtifactsTest < ActiveSupport::TestCase
-  test ".env example documents the monitoring contract" do
+  test ".env example documents reverse proxy, monitoring, and expiry settings" do
     env_example = deployment_file(".env.example")
 
+    assert_includes env_example, "LEWISMD_SHARE_EDGE_MODE="
+    assert_includes env_example, "LEWISMD_SHARE_PUBLIC_SCHEME="
+    assert_includes env_example, "LEWISMD_SHARE_PUBLIC_HOST="
+    assert_includes env_example, "LEWISMD_SHARE_INTERNAL_PORT="
     assert_includes env_example, "LEWISMD_SHARE_INSTANCE_NAME="
     assert_includes env_example, "LEWISMD_SHARE_HEALTHCHECKS_PING_URL="
     assert_includes env_example, "LEWISMD_SHARE_ALERT_WEBHOOK_KIND="
@@ -14,6 +18,10 @@ class ShareApiDeploymentArtifactsTest < ActiveSupport::TestCase
     assert_includes env_example, "LEWISMD_SHARE_ALERT_WEBHOOK_SECRET="
     assert_includes env_example, "LEWISMD_SHARE_MONITOR_INTERVAL_MINUTES="
     assert_includes env_example, "LEWISMD_SHARE_MONITOR_DISK_THRESHOLD_PERCENT="
+    assert_includes env_example, "LEWISMD_SHARE_MONITOR_SWEEPER_STALE_MINUTES="
+    assert_includes env_example, "LEWISMD_SHARE_MONITOR_STORAGE_GROWTH_MB="
+    assert_includes env_example, "LEWISMD_SHARE_MAX_EXPIRATION_DAYS="
+    assert_includes env_example, "LEWISMD_SHARE_EXPIRY_SWEEP_MINUTES="
   end
 
   test "compose file keeps share-api internal and caddy public" do
@@ -28,10 +36,19 @@ class ShareApiDeploymentArtifactsTest < ActiveSupport::TestCase
     assert_equal [ "${LEWISMD_SHARE_HTTP_PORT:-80}:80", "${LEWISMD_SHARE_HTTPS_PORT:-443}:443" ], caddy["ports"]
   end
 
-  test "installer summary and prompts cover the operator workflow" do
+  test "installer summary and prompts cover managed caddy and external reverse proxy workflows" do
     installer = deployment_file("install_share_api.sh")
 
+    assert_includes installer, 'EDGE_MODE="managed_caddy"'
+    assert_includes installer, "Existing reverse proxy (for example Nginx)"
+    assert_includes installer, "Localhost port the share-api should bind to"
+    assert_includes installer, "write_runtime_nginx_file"
+    assert_includes installer, "write_runtime_sweeper_units"
+    assert_includes installer, "install_sweeper_timer"
+    assert_includes installer, "share_remote_expiration_days = $LOCAL_SHARE_EXPIRATION_DAYS"
     assert_includes installer, "Install the host-level monitoring timer?"
+    assert_includes installer, "Minutes before the expiry sweeper is considered stale"
+    assert_includes installer, "Alert if share storage grows by at least this many MB between monitor runs"
     assert_includes installer, "Enable Healthchecks.io heartbeat pings?"
     assert_includes installer, "Enable outbound webhook alerts?"
     assert_includes installer, "upgrade_share_api.sh"
@@ -42,7 +59,7 @@ class ShareApiDeploymentArtifactsTest < ActiveSupport::TestCase
     assert_includes installer, "logs --no-color --tail=200 share-api"
   end
 
-  test "upgrade script creates a backup by default and emits deployment alerts" do
+  test "upgrade script creates a backup by default and handles managed caddy separately" do
     script = deployment_file("upgrade_share_api.sh")
 
     assert_includes script, 'prompt_yes_no "Create a pre-upgrade backup before restarting the stack?" "y"'
@@ -50,27 +67,31 @@ class ShareApiDeploymentArtifactsTest < ActiveSupport::TestCase
     assert_includes script, 'notify_event "deploy_succeeded"'
     assert_includes script, 'notify_event "deploy_failed"'
     assert_includes script, 'bash "$SCRIPT_DIR/backup_share_api.sh"'
+    assert_includes script, 'if [[ "$EDGE_MODE" == "managed_caddy" ]]; then'
   end
 
-  test "backup script writes a tar archive and checksum" do
+  test "backup script writes a tar archive and checksum with optional edge assets" do
     script = deployment_file("backup_share_api.sh")
 
     assert_includes script, 'archive_name="lewismd-share-backup-${timestamp}.tar.gz"'
     assert_includes script, "sha256sum"
     assert_includes script, 'copy_if_present "$STORAGE_HOST_PATH" "$temp_dir/host-data/storage"'
     assert_includes script, 'copy_if_present "$CADDY_DATA_PATH" "$temp_dir/host-data/caddy-data"'
+    assert_includes script, 'copy_if_present "$RUNTIME_DIR/nginx-lewismd-share.conf"'
+    assert_includes script, "edge_mode=$EDGE_MODE"
   end
 
-  test "uninstall script preserves persisted data by default" do
+  test "uninstall script preserves persisted data by default and removes sweeper units" do
     script = deployment_file("uninstall_share_api.sh")
 
     assert_includes script, 'DELETE_RUNTIME="false"'
     assert_includes script, 'DELETE_STORAGE="false"'
     assert_includes script, 'DELETE_CADDY_STATE="false"'
     assert_includes script, 'prompt_yes_no "Create a final backup before uninstalling anything?" "y"'
+    assert_includes script, "lewismd-share-sweeper.timer"
   end
 
-  test "operator guide covers install, upgrade, backup, uninstall, and restore" do
+  test "operator guide covers install, reverse proxy mode, expiry sweep, upgrade, backup, uninstall, and restore" do
     guide = Rails.root.join("docs", "remote_share_api.md").read
 
     assert_includes guide, "bash deploy/share_api/install_share_api.sh"
@@ -79,6 +100,28 @@ class ShareApiDeploymentArtifactsTest < ActiveSupport::TestCase
     assert_includes guide, "bash deploy/share_api/uninstall_share_api.sh"
     assert_includes guide, "There is no dedicated restore script yet."
     assert_includes guide, "lewismd-share-monitor.timer"
+    assert_includes guide, "external reverse proxy"
+    assert_includes guide, "nginx-lewismd-share.conf"
+    assert_includes guide, "lewismd-share-sweeper.timer"
+    assert_includes guide, "share_remote_expiration_days"
+    assert_includes guide, "different notes get different public links"
+    assert_includes guide, "same note keeps one active public link"
+    assert_includes guide, "legacy fragment-only shares continue to work"
+    assert_includes guide, "refreshing an existing legacy share republishes it as the newer snapshot"
+    assert_includes guide, "cleanup_failed"
+    assert_includes guide, "storage-growth anomalies"
+  end
+
+  test "monitor script covers cleanup health and storage growth alerts" do
+    script = deployment_file("monitor_share_api.sh")
+
+    assert_includes script, "LEWISMD_SHARE_MONITOR_SWEEPER_STALE_MINUTES"
+    assert_includes script, "LEWISMD_SHARE_MONITOR_STORAGE_GROWTH_MB"
+    assert_includes script, "cleanup_failed"
+    assert_includes script, "cleanup_stale"
+    assert_includes script, "cleanup_recovered"
+    assert_includes script, "storage_growth_high"
+    assert_includes script, "sweeper-state.json"
   end
 
   test "readme links the optional remote share api workflow" do
@@ -87,6 +130,9 @@ class ShareApiDeploymentArtifactsTest < ActiveSupport::TestCase
     assert_includes readme, "Optional: Remote Share API On A VPS"
     assert_includes readme, "docs/remote_share_api.md"
     assert_includes readme, "bash deploy/share_api/install_share_api.sh"
+    assert_includes readme, "different notes get different remote public links"
+    assert_includes readme, "same note keeps one active remote link"
+    assert_includes readme, "share_remote_expiration_days"
   end
 
   private

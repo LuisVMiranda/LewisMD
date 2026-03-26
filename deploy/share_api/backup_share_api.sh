@@ -24,6 +24,7 @@ CADDY_DATA_PATH=""
 CADDY_CONFIG_PATH=""
 INSTANCE_NAME="remote-share-vps"
 PUBLIC_BASE=""
+EDGE_MODE="managed_caddy"
 
 usage() {
   cat <<'EOF'
@@ -117,10 +118,9 @@ load_env_file() {
   CADDY_CONFIG_PATH="${LEWISMD_SHARE_CADDY_CONFIG_PATH:-}"
   INSTANCE_NAME="${LEWISMD_SHARE_INSTANCE_NAME:-remote-share-vps}"
   PUBLIC_BASE="${LEWISMD_SHARE_PUBLIC_BASE:-}"
+  EDGE_MODE="${LEWISMD_SHARE_EDGE_MODE:-managed_caddy}"
 
   [[ -n "$STORAGE_HOST_PATH" ]] || die "LEWISMD_SHARE_STORAGE_HOST_PATH is missing from $ENV_FILE"
-  [[ -n "$CADDY_DATA_PATH" ]] || die "LEWISMD_SHARE_CADDY_DATA_PATH is missing from $ENV_FILE"
-  [[ -n "$CADDY_CONFIG_PATH" ]] || die "LEWISMD_SHARE_CADDY_CONFIG_PATH is missing from $ENV_FILE"
 }
 
 copy_if_present() {
@@ -154,9 +154,12 @@ main() {
   copy_if_present "$ENV_FILE" "$temp_dir/runtime/.env"
   copy_if_present "$RUNTIME_DIR/compose.yml" "$temp_dir/runtime/compose.yml"
   copy_if_present "$RUNTIME_DIR/Caddyfile" "$temp_dir/runtime/Caddyfile"
+  copy_if_present "$RUNTIME_DIR/nginx-lewismd-share.conf" "$temp_dir/runtime/nginx-lewismd-share.conf"
   copy_if_present "$RUNTIME_DIR/lewismd_remote_share_config.fed.txt" "$temp_dir/runtime/lewismd_remote_share_config.fed.txt"
   copy_if_present "$RUNTIME_DIR/lewismd-share-monitor.service" "$temp_dir/runtime/lewismd-share-monitor.service"
   copy_if_present "$RUNTIME_DIR/lewismd-share-monitor.timer" "$temp_dir/runtime/lewismd-share-monitor.timer"
+  copy_if_present "$RUNTIME_DIR/lewismd-share-sweeper.service" "$temp_dir/runtime/lewismd-share-sweeper.service"
+  copy_if_present "$RUNTIME_DIR/lewismd-share-sweeper.timer" "$temp_dir/runtime/lewismd-share-sweeper.timer"
 
   copy_if_present "$STORAGE_HOST_PATH" "$temp_dir/host-data/storage"
   copy_if_present "$CADDY_DATA_PATH" "$temp_dir/host-data/caddy-data"
@@ -165,6 +168,7 @@ main() {
   cat >"$temp_dir/backup-metadata.txt" <<EOF
 created_at=$checked_at
 instance_name=$INSTANCE_NAME
+edge_mode=$EDGE_MODE
 public_base=$PUBLIC_BASE
 runtime_dir=$RUNTIME_DIR
 storage_host_path=$STORAGE_HOST_PATH

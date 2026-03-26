@@ -3,7 +3,7 @@
 #
 # The default behavior is intentionally conservative:
 # - stop and remove the compose stack
-# - remove the monitoring timer/service
+# - remove the monitoring timer/service and expiry sweeper timer/service
 # - keep share storage, Caddy state, and generated runtime config unless the
 #   operator explicitly asks to delete them
 
@@ -204,10 +204,14 @@ remove_monitoring_units_if_requested() {
   if command -v systemctl >/dev/null 2>&1; then
     run_root systemctl disable --now lewismd-share-monitor.timer >/dev/null 2>&1 || true
     run_root systemctl stop lewismd-share-monitor.service >/dev/null 2>&1 || true
+    run_root systemctl disable --now lewismd-share-sweeper.timer >/dev/null 2>&1 || true
+    run_root systemctl stop lewismd-share-sweeper.service >/dev/null 2>&1 || true
   fi
 
   run_root rm -f /etc/systemd/system/lewismd-share-monitor.timer
   run_root rm -f /etc/systemd/system/lewismd-share-monitor.service
+  run_root rm -f /etc/systemd/system/lewismd-share-sweeper.timer
+  run_root rm -f /etc/systemd/system/lewismd-share-sweeper.service
 
   if command -v systemctl >/dev/null 2>&1; then
     run_root systemctl daemon-reload >/dev/null 2>&1 || true
@@ -255,7 +259,7 @@ main() {
     echo "Share storage was preserved."
   fi
   if [[ "$DELETE_CADDY_STATE" != "true" ]]; then
-    echo "Caddy state was preserved."
+    echo "Caddy state was preserved when present."
   fi
   if [[ "$DELETE_RUNTIME" != "true" ]]; then
     echo "Generated runtime files were preserved under $RUNTIME_DIR."

@@ -2,230 +2,221 @@
 
 ## Purpose
 
-This document defines the implementation plan for an **optional remote publishing
-system** for LewisMD.
+This document defines the revised implementation plan for LewisMD's optional
+remote publishing system.
 
-The goal is to keep LewisMD as a **local-first, private application** while
-allowing users to publish selected shared notes to a small public-facing API
-hosted on a VPS.
+The original remote-share rollout proved the narrow VPS relay, signed write
+contract, asset uploads, installer, monitoring, and Windows/local launcher
+integration. The next objective is different:
 
-This plan intentionally avoids turning the VPS into a second full LewisMD
-instance. The remote side should behave as a **narrow share relay**:
+- keep LewisMD local-first and private
+- keep the VPS as a small read-only share relay
+- replace the current minimal remote fragment view with the full shared-reader UI
+- add automatic expiration and server-side cleanup so remote shares do not pile
+  up forever
 
-- accept authenticated publish/update/revoke requests from the local app
-- store and serve public read-only note snapshots
-- expose only a minimal, hardened surface to the internet
+This plan is intentionally architecture-first. It extends the systems already in
+the repository instead of creating a second parallel share stack.
 
-## Core Product Decisions
+## Current State Rebaseline
 
-### 1. Remote publishing is optional
+### What already exists
 
-Default behavior remains local-only:
+- local and remote share backends behind the same `/shares` browser contract
+- a standalone Rack relay under `services/share_api`
+- signed write requests, replay protection, and filesystem-backed VPS storage
+- image asset upload support
+- installer, monitoring, backup, upgrade, and uninstall tooling
 
-- `share_backend = local`
+### What needs to change
 
-Users must explicitly opt into remote publishing in `.fed`.
+The current remote relay still stores and serves a sanitized HTML fragment
+inside a minimal public shell. That is secure, but it does not match the richer
+shared-reader experience already available locally.
 
-### 2. The browser frontend does not talk directly to the VPS
+The new target is:
 
-The local LewisMD backend remains the only component that:
+- a server-owned remote share shell that visually and behaviorally matches the
+  existing local shared-reader UI
+- a versioned snapshot package instead of a fragment-only payload
+- built-in expiration and cleanup
+- first-class support for both managed Caddy deployments and existing Nginx
+  reverse-proxy VPS setups
 
-- reads `.fed`
-- knows the VPS token and signing secret
-- publishes outward
+## Architecture Alignment
 
-This prevents credential leakage in Stimulus or browser dev tools.
-
-### 3. The VPS receives sanitized share payloads, not arbitrary full HTML
-
-The local app sends:
-
-- note identity
-- title
-- sanitized HTML fragment
-- metadata
-- asset manifest
-
-The remote service sanitizes again before storage and wraps the fragment in its
-own fixed public shell.
-
-### 4. The VPS is a dedicated share API, not a full notes app
-
-The public service must not expose:
-
-- file trees
-- note editing
-- templates
-- local backups
-- AI features
-- config mutation
-
-Only share publishing and read-only serving are in scope.
-
-### 5. Docker Compose is the preferred VPS runtime
-
-This keeps Ubuntu, Fedora, and AlmaLinux support manageable while minimizing
-cross-distro differences.
-
-## High-Level Architecture
-
-### Local LewisMD app
-
-Responsibilities:
-
-- decide whether share backend is `local` or `remote`
-- build the sanitized payload
-- upload referenced assets if enabled
-- authenticate with the remote API
-- preserve the last known public URL and sync state
-
-### Remote share API
-
-Responsibilities:
-
-- authenticate write requests
-- re-sanitize incoming fragments
-- persist metadata, snapshots, and assets
-- serve public share pages and assets
-- expose health and capability endpoints
-
-### Reverse proxy
-
-Recommended:
-
-- Caddy in front of the API
-
-Responsibilities:
-
-- TLS termination
-- public routing
-- security headers where appropriate
-- access logging
-
-## Architectural Reconciliation
-
-This plan has been cross-checked against the existing LewisMD architecture in:
+This plan has been reconciled against:
 
 - [AGENTS.md](C:/Users/Admin/Documents/GitHub/LewisMD/AGENTS.md)
 - [CLAUDE.md](C:/Users/Admin/Documents/GitHub/LewisMD/CLAUDE.md)
 - [antigravity.md](C:/Users/Admin/Documents/GitHub/LewisMD/antigravity.md)
 
-The main conclusion is that the remote publishing feature should be implemented
-as an extension of the current local share/export flow, not as a second parallel
-system.
+### Existing systems we must reuse
 
-### Existing code paths we should explicitly reuse
+#### Config and runtime settings
 
-#### 1. Config and runtime settings
-
-Configuration must continue to flow through:
+Configuration stays in:
 
 - [app/models/config.rb](C:/Users/Admin/Documents/GitHub/LewisMD/app/models/config.rb)
 
-This matches the contributor guidance:
+Rules:
 
-- use `Config.new.get("key")`
-- keep `.fed` as the main runtime override surface
-- do not read raw `ENV` directly for app configuration
+- continue using `Config.new.get("key")`
+- continue using `.fed` as the runtime override surface
+- do not introduce direct `ENV` reads in the main Rails app for configurable
+  behavior
 
-#### 2. Frontend share UX
+#### Browser share UX
 
-The current browser-side share UX already exists in:
+The browser already talks to the local Rails app through:
 
+- [app/controllers/shares_controller.rb](C:/Users/Admin/Documents/GitHub/LewisMD/app/controllers/shares_controller.rb)
 - [app/javascript/controllers/app_controller.js](C:/Users/Admin/Documents/GitHub/LewisMD/app/javascript/controllers/app_controller.js)
 - [app/javascript/controllers/export_menu_controller.js](C:/Users/Admin/Documents/GitHub/LewisMD/app/javascript/controllers/export_menu_controller.js)
 
-The remote-share rollout should preserve the existing frontend contract:
+That contract must stay unchanged:
 
 - `POST /shares`
 - `PATCH /shares/:path`
 - `DELETE /shares/:path`
 - `GET /shares/:path`
 
-The browser should continue to talk only to the local Rails app. The local
-backend decides whether a share is `local` or `remote`.
+The browser must continue talking only to the local Rails app.
 
-#### 3. Existing preview/export rendering pipeline
+#### Preview/export rendering pipeline
 
-Remote publishing should reuse the rendering already produced by the current
-preview/export stack:
+The source material for remote publishing must continue to come from:
 
 - [app/javascript/controllers/preview_controller.js](C:/Users/Admin/Documents/GitHub/LewisMD/app/javascript/controllers/preview_controller.js)
 - [app/javascript/lib/rendered_document_payload.js](C:/Users/Admin/Documents/GitHub/LewisMD/app/javascript/lib/rendered_document_payload.js)
 - [app/javascript/lib/export_document_builder.js](C:/Users/Admin/Documents/GitHub/LewisMD/app/javascript/lib/export_document_builder.js)
-- [app/javascript/controllers/app_controller.js](C:/Users/Admin/Documents/GitHub/LewisMD/app/javascript/controllers/app_controller.js)
 
-That means:
+Rules:
 
-- do not invent a second markdown renderer for remote sharing
-- do not move rendering responsibility into the VPS
-- do not ask the frontend to generate a separate remote-only payload shape
+- do not invent a second markdown renderer
+- do not move note rendering responsibility into the VPS
+- do not create a separate browser-only remote rendering path
 
-Instead, Phase 2 and beyond should continue transforming the current share
-document into a server-owned sanitized payload.
+#### Local shared-reader UI
 
-#### 4. Existing local share storage and controller flow
+The existing share reader already lives in:
 
-The current local share implementation already establishes the correct layering:
+- [app/views/shares/show.html.erb](C:/Users/Admin/Documents/GitHub/LewisMD/app/views/shares/show.html.erb)
+- [app/assets/tailwind/components/share_view.css](C:/Users/Admin/Documents/GitHub/LewisMD/app/assets/tailwind/components/share_view.css)
+- [app/javascript/controllers/share_view_controller.js](C:/Users/Admin/Documents/GitHub/LewisMD/app/javascript/controllers/share_view_controller.js)
+
+This is the UI target for remote shares. We should extract and adapt it, not
+recreate it from scratch.
+
+#### Existing controller/service layering
+
+The current local share layering is already correct:
 
 - [app/controllers/shares_controller.rb](C:/Users/Admin/Documents/GitHub/LewisMD/app/controllers/shares_controller.rb)
 - [app/services/share_service.rb](C:/Users/Admin/Documents/GitHub/LewisMD/app/services/share_service.rb)
 - [app/services/share_provider_selector.rb](C:/Users/Admin/Documents/GitHub/LewisMD/app/services/share_provider_selector.rb)
+- [app/services/share_publishers/remote_share_provider.rb](C:/Users/Admin/Documents/GitHub/LewisMD/app/services/share_publishers/remote_share_provider.rb)
+- [app/services/remote_share_registry_service.rb](C:/Users/Admin/Documents/GitHub/LewisMD/app/services/remote_share_registry_service.rb)
 
-Remote publishing should build on this shape:
+Rules:
 
-- thin controller
-- provider-selected backend
-- service objects for business logic
-- filesystem storage for local mode
+- keep controllers thin
+- keep remote mode behind provider selection
+- keep local share metadata registry filesystem-backed
+- do not introduce a database
 
-#### 5. Existing public share reader
+#### Existing VPS relay
 
-LewisMD already has a polished read-only shared view in:
+The remote service already exists in:
 
-- [app/views/layouts/share.html.erb](C:/Users/Admin/Documents/GitHub/LewisMD/app/views/layouts/share.html.erb)
-- [app/views/shares/show.html.erb](C:/Users/Admin/Documents/GitHub/LewisMD/app/views/shares/show.html.erb)
+- [services/share_api/app.rb](C:/Users/Admin/Documents/GitHub/LewisMD/services/share_api/app.rb)
+- [services/share_api/lib/share_api/storage.rb](C:/Users/Admin/Documents/GitHub/LewisMD/services/share_api/lib/share_api/storage.rb)
 
-The VPS service should not depend on Rails to render these templates directly,
-but the remote public shell should borrow the same product decisions:
+This remains the runtime boundary for public sharing. The work ahead is an
+evolution of this relay, not a replacement.
 
-- read-only presentation
-- minimal controls
-- no editing state
-- no note-tree exposure
+### Real-world deployment finding
 
-#### 6. Existing deployment and installer conventions
+The first installer assumed bundled Caddy would own public `80/443`. The real
+VPS validation showed an important supported topology:
 
-LewisMD already has install/deploy conventions in:
+- `managed_caddy`
+- `external_reverse_proxy`
 
-- [install.sh](C:/Users/Admin/Documents/GitHub/LewisMD/install.sh)
-- [config/fed/fed.sh](C:/Users/Admin/Documents/GitHub/LewisMD/config/fed/fed.sh)
-- [docker-compose.yml](C:/Users/Admin/Documents/GitHub/LewisMD/docker-compose.yml)
+`external_reverse_proxy` must be a first-class install mode because many VPSes
+already run Nginx for other subdomains.
 
-The remote-share installer should follow the same principles:
+## Product Decisions
 
-- one clear entrypoint script
-- health-check driven validation using `/up`
-- Docker Compose as the runtime boundary
-- print final next-step instructions instead of assuming operator knowledge
-- keep the remote setup optional and isolated from the default local install path
+### 1. Remote publishing remains optional
 
-### Plan adjustments from this reconciliation
+Default behavior remains:
 
-The implementation phases remain valid, but the following constraints should now
-be treated as explicit requirements:
+- `share_backend = local`
 
-- keep the current `/shares` browser contract unchanged
-- keep remote publishing entirely behind the local Rails backend
-- reuse the existing rendered-preview/export document pipeline as the source
-  material for remote payload construction
-- keep the remote API as a narrow relay, not a second LewisMD UI
-- shape the VPS installer like the existing `install.sh` experience: one
-  entrypoint, guided setup, clear final instructions
+Users explicitly opt into remote publishing in `.fed`.
+
+### 2. The browser still does not talk directly to the VPS
+
+The local Rails app remains the only component that:
+
+- reads `.fed`
+- knows API token and signing secret
+- publishes to the VPS
+
+### 3. The remote page will use the full shared-reader UI
+
+This is now an explicit requirement.
+
+However, the VPS should still own the outer public page. We will not blindly
+upload and serve arbitrary client-provided outer HTML.
+
+The right model is:
+
+- upload a versioned snapshot package
+- store a sanitized snapshot document for iframe rendering
+- render the full shared-reader shell from server-owned assets and metadata
+
+### 4. One active link per note remains the v1 behavior
+
+The current identity model reuses one token per note path on refresh.
+
+This plan keeps that behavior:
+
+- different notes -> different links
+- many notes can be shared simultaneously
+- the same note refreshes the same link
+
+Multiple concurrent public links for the same note are out of scope for this
+plan and should be treated as a separate feature if needed later.
+
+### 5. Expiration and cleanup are first-class requirements
+
+Remote shares must support:
+
+- configurable expiration from the local app
+- immediate expiry enforcement on read
+- physical deletion by a sweeper/janitor process
+- removal of associated assets and indexes
+
+### 6. The VPS remains a narrow read-only relay
+
+The remote service must not expose:
+
+- note trees
+- editing
+- local-only dialogs or settings
+- templates
+- backups
+- AI features
+
+Only publish/update/revoke and public share reading are in scope.
 
 ## Required `.fed` Settings
 
-These keys should be added to [app/models/config.rb](C:/Users/Admin/Documents/GitHub/LewisMD/app/models/config.rb).
+These keys belong in:
+
+- [app/models/config.rb](C:/Users/Admin/Documents/GitHub/LewisMD/app/models/config.rb)
 
 ### Non-sensitive
 
@@ -238,6 +229,7 @@ These keys should be added to [app/models/config.rb](C:/Users/Admin/Documents/Gi
 - `share_remote_verify_tls = true`
 - `share_remote_upload_assets = true`
 - `share_remote_instance_name = my-vps`
+- `share_remote_expiration_days = 30`
 - `share_remote_healthchecks_ping_url = `
 - `share_remote_alert_webhook_url = `
 
@@ -247,30 +239,35 @@ These keys should be added to [app/models/config.rb](C:/Users/Admin/Documents/Gi
 - `share_remote_signing_secret = `
 - `share_remote_alert_webhook_secret = `
 
-### Notes
+### Expiration semantics
 
-- Keep `share_backend = local` as the default.
-- Mark secret keys as sensitive in `Config::SENSITIVE_KEYS`.
-- Render commented template lines for all new remote-share keys in generated
-  `.fed` files.
+- `share_remote_expiration_days` is the local default TTL for new and refreshed
+  remote shares
+- recommended default: `30`
+- `0` may be treated as "no automatic expiration" if we decide to preserve that
+  operator choice
+- successful refresh extends expiration from the current time again
 
-## Remote API Contract
+## Remote Share Contract
 
 ### Capability endpoint
 
-Public or authenticated read-only:
-
 - `GET /api/v1/capabilities`
 
-Returns:
+Capabilities should include at least:
 
 - API version
 - minimum supported client version
 - feature flags
-- max payload size
-- max asset size/count
+- max payload bytes
+- max asset bytes
+- max asset count
 
-This prevents local/VPS version drift from failing silently.
+New feature flags for the updated contract:
+
+- `asset_uploads`
+- `full_share_shell`
+- `expiring_shares`
 
 ### Health endpoint
 
@@ -279,8 +276,9 @@ This prevents local/VPS version drift from failing silently.
 Used by:
 
 - installer smoke tests
-- uptime monitoring
-- systemd timer heartbeat jobs
+- monitoring
+- reverse proxy validation
+- operator troubleshooting
 
 ### Authenticated write endpoints
 
@@ -291,90 +289,125 @@ Used by:
 ### Public read endpoints
 
 - `GET /s/:token`
+- `GET /snapshots/:token`
 - `GET /assets/:token/:asset_name`
 
-## Payload Design
+## Snapshot Package Design
 
 ### Local app sends
 
 - note path
 - logical note identifier
-- share title
-- sanitized HTML fragment
+- title
+- `snapshot_version`
+- `shell_version`
+- `snapshot_document_html`
+- shell metadata and display metadata
+- theme/locale hints
 - content hash
-- optional theme/locale hints
 - asset manifest
-- optional source metadata for auditing
+- uploaded assets
+- requested expiration timestamp or TTL-derived `expires_at`
 
 ### Local app does not send
 
 - full editable note state
 - app config
-- templates
 - folder metadata
 - secrets
-- arbitrary scripts
+- arbitrary third-party scripts
 
-### Asset manifest fields
+### Snapshot package model
 
-Per asset:
+The package should separate:
 
-- normalized original path
-- filename
-- mime type
-- byte size
-- sha256
-- upload token/reference
+- server-owned outer shell
+- sanitized stored snapshot document for iframe rendering
+- asset storage
+- share metadata
 
-## Sanitization Strategy
+That keeps the remote page expressive without turning the VPS into a blind HTML
+host.
 
-### Local sanitization
+### Shell payload fields
 
-Before publish, LewisMD should sanitize the generated share fragment using a
-strict allowlist.
+Expected shell metadata should include at least:
 
-Allow only:
+- title
+- locale
+- theme id
+- display defaults if needed
+- any version markers required by the remote shell bundle
 
-- headings
-- paragraphs
-- lists
-- blockquotes
-- code and pre
-- tables
-- emphasis tags
-- links
-- images
+## Share States
 
-Disallow:
+Remote shares should have clear lifecycle states:
 
-- `script`
-- `iframe`
-- `form`
-- `object`
-- `embed`
-- dangerous URL schemes
-- event-handler attributes
-- inline JavaScript
+- `active`
+- `stale`
+- `expired`
+- `revoked`
+- `deleted`
 
-### Remote sanitization
+### Meaning
 
-The VPS sanitizes the fragment again before writing it to storage.
+- `active`: current public snapshot is valid
+- `stale`: last refresh failed, but last known public URL remains valid
+- `expired`: TTL has passed and public reads must stop immediately
+- `revoked`: explicitly disabled by the user
+- `deleted`: files have been physically removed
 
-This protects against:
+## Expiration And Cleanup Contract
 
-- local bugs
-- malformed payloads
-- future regressions in the local renderer
+### Immediate enforcement
 
-### Public shell rendering
+On every public read:
 
-The remote API should never trust uploaded outer HTML. It should generate its
-own page shell and inject only the sanitized fragment into a controlled content
-container.
+- if share is revoked -> return uniform `404`
+- if share is expired -> return uniform `404`
+- if share is invalid or missing -> return uniform `404`
+
+This prevents ghost notes from remaining accessible while waiting for cleanup.
+
+### Physical cleanup
+
+A janitor/sweeper job must remove:
+
+- share metadata
+- stored snapshot document
+- assets for the token
+- identity/path index entries
+- any stale bookkeeping records that are safe to remove
+
+### Refresh behavior
+
+Successful refresh should:
+
+- keep the same token for the same note path
+- extend `expires_at`
+- replace the stored snapshot package atomically
+
+### Revoke behavior
+
+Revoke should:
+
+- stop public serving immediately
+- remove associated files
+- remove indexes
+- preserve uniform public `404`
+
+### Cache behavior
+
+To avoid ghost notes:
+
+- shell and snapshot routes should use strict no-store or equivalent no-cache
+  headers
+- assets should not outlive the share lifecycle
+- cleanup must remove the physical asset files too
 
 ## Remote Storage Layout
 
-Suggested filesystem layout on the VPS:
+Suggested filesystem layout:
 
 - `/var/lib/lewismd-share/shares/<token>.json`
 - `/var/lib/lewismd-share/path-index/<path-hash>.json`
@@ -382,13 +415,52 @@ Suggested filesystem layout on the VPS:
 - `/var/lib/lewismd-share/assets/<token>/<sha>-<filename>`
 - `/var/lib/lewismd-share/nonces/<request-id>.json`
 
+Optional if needed later:
+
+- `/var/lib/lewismd-share/tombstones/<token>.json`
+
 ### Storage rules
 
 - use atomic writes
 - fsync before rename when practical
 - stage assets before promotion
-- delete orphaned assets on update/revoke
-- never partially replace a live share in-place
+- delete orphaned assets on update/revoke/expiry
+- never partially replace a live share
+
+## UI Reuse Strategy
+
+### Existing UI target
+
+Remote shares should match the local reader in:
+
+- [app/views/shares/show.html.erb](C:/Users/Admin/Documents/GitHub/LewisMD/app/views/shares/show.html.erb)
+- [app/assets/tailwind/components/share_view.css](C:/Users/Admin/Documents/GitHub/LewisMD/app/assets/tailwind/components/share_view.css)
+- [app/javascript/controllers/share_view_controller.js](C:/Users/Admin/Documents/GitHub/LewisMD/app/javascript/controllers/share_view_controller.js)
+
+### Known extraction challenges
+
+The current local share view still depends on:
+
+- [app/views/notes/_export_menu.html.erb](C:/Users/Admin/Documents/GitHub/LewisMD/app/views/notes/_export_menu.html.erb)
+- [app/javascript/controllers/theme_controller.js](C:/Users/Admin/Documents/GitHub/LewisMD/app/javascript/controllers/theme_controller.js)
+- [app/javascript/controllers/locale_controller.js](C:/Users/Admin/Documents/GitHub/LewisMD/app/javascript/controllers/locale_controller.js)
+- Rails translation/config endpoints
+- inline Tailwind utility classes embedded in the ERB shell
+
+### Design decision
+
+We should:
+
+- extract a reusable share shell structure from the existing local reader
+- create remote-safe static JS/CSS for theme, locale, export, and display
+  controls
+- preserve the current local UX while removing Rails-only assumptions from the
+  parts the VPS must reuse
+
+We should not:
+
+- invent a second unrelated remote UI
+- upload the literal client outer page and serve it blindly
 
 ## Authentication And Replay Protection
 
@@ -399,407 +471,212 @@ Every write request should include:
 - `X-LewisMD-Request-Id`
 - `X-LewisMD-Signature`
 
-### Validation rules
+Validation rules remain:
 
 - bearer token must match configured API token
-- HMAC signature must match request body + headers
-- timestamp must be within a short replay window
-- request ID must not have been seen before
-
-### Preventive measures
-
-- store request IDs temporarily on disk
-- expire old request IDs
-- reject replays with the same request ID
-- log all auth failures with source IP and reason
+- HMAC signature must match
+- timestamp must be inside replay window
+- request ID must not be reused
 
 ## Security Requirements
 
 ### Mandatory
 
-- HTTPS only in production
+- HTTPS in production
 - long random API token
 - HMAC signing secret
-- strict CSP for public pages
-- uniform 404 behavior for invalid or revoked shares
+- strict CSP for public shell
+- strict no-cache handling for shell and snapshot routes
 - request size limits
-- rate limiting
 - asset type allowlist
-- secret values never exposed to the browser
+- uniform public `404`
+- no browser exposure of remote secrets
 
 ### Strongly recommended
 
-- use a real domain instead of raw IP
-- keep Caddy as the only public entrypoint
-- place the share API on an internal Docker network
-- rotate publish secrets
-- keep public share tokens separate from admin auth
+- use a domain instead of raw IP
+- support both Caddy and existing reverse proxies cleanly
+- keep the app internal behind the reverse proxy in external-proxy mode
 
 ### Explicit pitfalls to avoid
 
 - exposing the full LewisMD app publicly
-- trusting arbitrary incoming HTML
-- storing SVG in v1
-- relying on frontend-side remote secrets
-- exposing Docker engine ports
-- assuming Docker always cooperates with host firewalls by default
+- trusting uploaded outer HTML
+- mixing public token handling with admin auth
+- forgetting to delete expired assets
+- assuming Caddy owns `80/443` on every VPS
 
-## Firewall And Network Model
+## Edge And Deployment Modes
 
-### Public ports
+### Managed edge
 
-Expose only:
+- `managed_caddy`
 
-- `80/tcp`
-- `443/tcp`
+Use when the share relay owns public `80/443`.
 
-### Internal ports
+### Existing reverse proxy
 
-The share API container should stay internal to Docker networking.
+- `external_reverse_proxy`
 
-### Firewall tools by distro
+Use when the VPS already has Nginx or another edge service.
 
-- Ubuntu: `ufw` if present, otherwise explicit `iptables`/`nftables` guidance
-- Fedora: `firewall-cmd`
-- AlmaLinux: `firewall-cmd`
+Behavior:
 
-### Preventive measure
+- bind the share relay to `127.0.0.1:<internal_port>`
+- skip bundled public edge
+- generate ready-to-use Nginx guidance/snippet
+- still generate the local `.fed` summary file
 
-The installer must verify actual listening sockets after deployment instead of
-assuming the firewall rules behaved as expected.
+## Monitoring And Operations
 
-## Monitoring And Webhooks
+Monitoring must cover:
 
-### Monitoring model
+- `/up` availability
+- container health
+- reverse proxy reachability
+- cleanup/janitor health
+- disk growth from stored shares/assets
 
-Use both:
+Suggested additional alerts:
 
-- `/up` health checks
-- host-level timer/service checks outside the containers
+- cleanup failure
+- sweep backlog or storage growth anomaly
+- certificate or reverse-proxy mismatch
 
-### Supported outbound notifications
+## Installer Design Updates
 
-- generic JSON webhook
-- Slack incoming webhook
-- Discord webhook
-- Healthchecks.io heartbeat
+The installer remains:
 
-For v1, the generated host-side monitor should support one alert webhook target
-at a time plus an optional Healthchecks heartbeat URL.
+- [deploy/share_api/install_share_api.sh](C:/Users/Admin/Documents/GitHub/LewisMD/deploy/share_api/install_share_api.sh)
 
-### Suggested events
+New required behavior:
 
-- `service_up`
-- `service_down`
-- `service_recovered`
-- `deploy_started`
-- `deploy_succeeded`
-- `deploy_failed`
-- `share_publish_failed`
-- `disk_usage_high`
-- `certificate_problem`
+- ask which edge mode to use
+- support `managed_caddy` and `external_reverse_proxy`
+- ask for expiration-related operator defaults if needed
+- install or configure the janitor/sweeper timer
+- generate the local `.fed` summary even when using external reverse proxy mode
 
-### Anti-spam rule
+Relevant env settings should include:
 
-Only send alerts on state transitions unless explicitly configured otherwise.
+- `LEWISMD_SHARE_MAX_EXPIRATION_DAYS`
+- `LEWISMD_SHARE_EXPIRY_SWEEP_MINUTES`
 
-## Installer Design
+## Backward Compatibility
 
-The VPS installer is a major part of v1 and must be considered part of the
-core plan, not an afterthought.
+Already-published fragment-only remote shares should continue to render during
+the transition.
 
-### Main entrypoint
+Compatibility rule:
 
-Recommended file:
+- legacy shares may continue using the old minimal rendering path
+- once refreshed, they should be rewritten to the new snapshot-package format
 
-- `deploy/share_api/install_share_api.sh`
-
-### Goals
-
-- install all required dependencies
-- configure Docker and Compose
-- configure reverse proxy
-- create runtime directories
-- configure firewall rules
-- run smoke tests
-- guide the user through any required choices
-
-### Distros to support
-
-- Ubuntu
-- Fedora
-- AlmaLinux
-
-### Dependency handling
-
-The installer should detect and install if missing:
-
-- Docker Engine
-- Docker Compose plugin
-- curl
-- openssl
-- systemd service utilities
-- firewall tools if needed
-
-Ruby should **not** be required on the VPS host when using the containerized
-share API. If a helper script needs Ruby, it should run inside the container or
-as part of the build image, not as a host dependency.
-
-### Interactive installer prompts
-
-The installer should ask for only the values that are truly user-dependent.
-
-Prompts should include:
-
-- domain name or public host
-- whether to proceed with raw IP mode if no domain is available
-- public contact email for TLS/cert provisioning
-- public HTTP port for raw IP mode
-- whether to enable Healthchecks.io integration
-- whether to enable Slack/Discord/generic webhook alerts
-- webhook URLs and optional secrets
-- instance name label
-- monitoring interval in minutes
-- disk-usage threshold for warning alerts
-- storage path override or default confirmation
-- whether to open firewall rules automatically
-- whether to create a backup timer
-
-Optional prompt behavior:
-
-- auto-generate strong API token and signing secret unless the user provides them
-- confirm generated values before writing the `.env`
-- print the exact `.fed` values the local LewisMD app should receive afterward
-
-### Implementation note
-
-To keep automatic HTTPS predictable in the first installer version, domain mode
-should stay on standard ports `80` and `443`. Nonstandard public ports can be
-offered only in raw-IP HTTP mode until a more advanced TLS story is added.
-
-### Installer outputs
-
-The installer should generate:
-
-- `.env`
-- `compose.yml`
-- `Caddyfile`
-- monitoring scripts
-- systemd service/timer units if needed
-
-### Post-install smoke tests
-
-The installer must verify:
-
-- Docker is running
-- containers are healthy
-- reverse proxy responds
-- `/up` returns success
-- public ports are listening
-- firewall configuration matches the chosen port layout
-
-### Backup and lifecycle helpers
-
-Also create:
-
-- `deploy/share_api/upgrade_share_api.sh`
-- `deploy/share_api/backup_share_api.sh`
-- `deploy/share_api/uninstall_share_api.sh`
-- `deploy/share_api/check_share_api.sh`
-
-## Local UX Rules
-
-The local share menu should remain familiar:
-
-- create shared link
-- copy shared link
-- refresh shared snapshot
-- disable shared link
-
-### Remote-mode feedback
-
-Add clear user feedback for:
-
-- incompatible remote API version
-- authentication failure
-- TLS verification failure
-- service unavailable
-- asset upload failure
-- remote share out of sync
-
-### Failure safety
-
-- never auto-revoke on network failure
-- preserve the last known share URL on failed refresh
-- mark remote share state as stale when sync fails
-
-## Testing Requirements
-
-### Local app tests
-
-- config parsing
-- provider selection
-- payload generation
-- sanitization
-- stale-state handling
-- user error messages
-
-### Remote API tests
-
-- auth success/failure
-- replay rejection
-- sanitization enforcement
-- public share serving
-- revoke behavior
-- asset upload validation
-- header/CSP presence
-
-### End-to-end tests
-
-- publish
-- refresh
-- revoke
-- publish with assets
-- publish while VPS unavailable
-- reinstall/upgrade smoke tests
-
-### Installer tests
-
-Validate the install flow on:
-
-- Ubuntu
-- Fedora
-- AlmaLinux
+This avoids breaking already shared public links during rollout.
 
 ## Recommended Implementation Phases
 
-### Phase 1: Config and provider scaffolding
+### Phase 1: Lock the new contract
 
-- add `.fed` keys
-- add config sensitivity rules
-- introduce local vs remote provider abstraction
-- keep `local` as default
+- update this plan
+- define the full-shell snapshot package contract
+- define expiration semantics and cleanup behavior
+- define compatibility and deployment-mode expectations
 
-### Phase 2: Sanitized payload builder
+### Phase 2: Add expiration config to LewisMD
 
-- build sanitized share fragment locally
-- define asset manifest contract
-- add tests around allowed/disallowed markup
+- add `share_remote_expiration_days`
+- update `.fed` template/upgrade flow
+- validate numeric behavior
 
-### Phase 3: Remote share registry and client
+### Phase 3: Refactor the local share shell for reuse
 
-- remote provider implementation
-- local persistence of remote share metadata
-- version/capability preflight checks
+- extract the current local reader structure
+- reduce Rails-only coupling
+- move more styling responsibility into reusable share-view CSS
 
-### Phase 4: Share API service
+### Phase 4: Create a remote-safe reader UI bundle
 
-- minimal authenticated write API
-- public read endpoints
-- filesystem-backed storage
-- atomic writes
+- adapt the existing share-view behavior
+- extract remote-safe theme, locale, export, and display controls
+- remove dependence on Rails-only endpoints
 
-### Phase 5: Public rendering hardening
+### Phase 5: Expand the local publish payload
 
-- fixed remote shell
-- CSP and related headers
-- token handling and uniform not-found behavior
+- evolve the current fragment builder into a snapshot package builder
+- preserve current asset/metadata logic
+- send shell metadata plus stored snapshot document and expiration data
 
-### Phase 6: Asset uploads
+### Phase 6: Expand remote storage and serving
 
-- local asset detection
-- upload flow
-- manifest validation
-- atomic promotion
+- store full snapshot packages
+- add snapshot route
+- keep shell route server-owned
+- keep legacy fragment fallback during migration
 
-### Phase 7: Dockerized VPS deployment
+### Phase 7: Add expiry enforcement and cleanup
 
-- compose stack
-- Caddy integration
-- internal networking
-- environment generation
+- enforce expired/revoked `404`s immediately
+- add janitor cleanup for shares, assets, and indexes
+- make revoke/expiry deletion reliable
 
-### Phase 8: Interactive installer
+### Phase 8: Render the full remote shared-reader UI
 
-- distro detection
-- dependency installation
-- prompt flow
-- firewall automation
-- smoke tests
+- replace the minimal remote public shell
+- match the existing local reader UX
+- keep CSP and public-surface hardening in place
 
-### Phase 9: Monitoring and alerting
+### Phase 9: Update installer and deployment modes
 
-- `/up` checks
-- systemd timers
-- webhooks
-- state transition alerts
+- add `managed_caddy` and `external_reverse_proxy`
+- generate Nginx guidance when needed
+- wire in janitor scheduling and expiration env values
 
-### Phase 10: Upgrade, backup, and recovery tooling
+### Phase 10: Extend monitoring and operations
 
-- upgrade script
-- backup script
-- uninstall script
-- troubleshooting docs
+- monitor cleanup health and storage growth
+- add operational visibility around expirations
 
-Implementation guardrails for this phase:
+### Phase 11: Tests, migration, and docs
 
-- the upgrade script should create a pre-upgrade backup by default unless the
-  operator explicitly skips it
-- the backup archive should include runtime config, persisted share storage, and
-  Caddy state so a replacement VPS can be restored without hand-rebuilding the
-  environment
-- uninstall should preserve data by default and only delete persisted state when
-  the operator explicitly opts in
-- operator docs should explain both the safe defaults and the manual recovery
-  path from a backup archive
+- add coverage for config, payloads, storage, expiry, cleanup, rendering, and
+  deployment modes
+- update README, operator docs, and rollout docs
 
-### Phase 11: Discoverability and deployment contract checks
+## Closeout Notes
 
-- README discoverability for the optional VPS relay
-- deployment artifact regression tests
-- operator workflow coverage for install/upgrade/backup/uninstall
+With Phase 11 complete, the implemented remote-share system now provides:
 
-Implementation guardrails for this phase:
+- the full shared-reader UI on the VPS
+- one active remote link per note path
+- simultaneous sharing for many different notes
+- configurable expiration with immediate 404 enforcement and janitor cleanup
+- backward-compatible rendering for older fragment-only remote shares until
+  they are refreshed
+- installer/deployment support for both bundled Caddy and existing reverse
+  proxies such as Nginx
 
-- the VPS operator path should be linked from the main README so users can find
-  it without hunting through deployment folders
-- automated tests should verify the tracked deployment artifacts still describe
-  the expected contract even when a Linux VPS is not available locally
-- these tests should focus on high-signal invariants such as:
-  - compose topology
-  - required monitoring env keys
-  - upgrade/backup/uninstall script intent
-  - operator guide coverage
+Residual full-suite failures outside the remote-share area remain existing
+repository baseline work and are not part of this rollout.
 
-## Plan Updates From The Earlier Draft
+## Acceptance Criteria For This Replan
 
-This plan updates the earlier draft in these important ways:
+Before implementation starts, this revised plan should lock these choices:
 
-1. The VPS installer is now treated as a first-class phase, not a later polish step.
-2. The installer must be interactive for user-dependent settings instead of
-   expecting manual file editing.
-3. The remote service is explicitly container-first, which removes host Ruby as
-   a VPS prerequisite.
-4. The remote shell must render around a sanitized fragment instead of serving
-   uploaded outer HTML directly.
-5. Asset upload and rewrite support stays in the v1 plan, not postponed
-   indefinitely, because broken local images would make the feature feel
-   incomplete.
-6. Firewall verification is included as an explicit post-install step, not just
-   “apply rules and hope”.
-7. Monitoring, outbound webhooks, and transition-only alerts are part of the
-   plan from the start.
+- full remote shared-reader UI is in scope
+- one active link per note remains the current identity model
+- many different notes can be shared simultaneously
+- expiration and cleanup are mandatory
+- remote rendering stays server-owned
+- deployment must support both clean VPS installs and existing Nginx setups
 
-## Recommended First Implementation Boundary
+## Recommended Starting Boundary
 
-Before writing the VPS service itself, the safest place to begin is:
+Start with:
 
-- config schema
-- remote/local provider abstraction
-- sanitized payload builder
+- contract/documentation lock
+- expiration config addition
+- local share-shell extraction
 
-That gives the local app a stable contract before the remote API and installer
-are added.
-
-Once those are done, the remote API can be implemented against a real payload
-shape instead of a speculative one.
+That sequence gives the rest of the implementation a stable contract and avoids
+rewriting the remote service before the reusable UI boundary is clear.

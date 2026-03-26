@@ -18,6 +18,7 @@ SKIP_MONITOR_CHECK="false"
 
 SUDO=""
 BACKUP_OUTPUT=""
+EDGE_MODE="managed_caddy"
 
 usage() {
   cat <<'EOF'
@@ -108,6 +109,25 @@ ensure_runtime_files() {
   [[ -f "$COMPOSE_FILE" ]] || die "Compose file not found at $COMPOSE_FILE"
 }
 
+load_env_file() {
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    case "$line" in
+      ''|\#*)
+        continue
+        ;;
+    esac
+
+    local key="${line%%=*}"
+    local value="${line#*=}"
+
+    case "$key" in
+      LEWISMD_SHARE_EDGE_MODE)
+        EDGE_MODE="$value"
+        ;;
+    esac
+  done <"$ENV_FILE"
+}
+
 prompt_yes_no() {
   local label="$1"
   local default_value="${2:-y}"
@@ -193,9 +213,14 @@ main() {
   parse_args "$@"
   detect_privilege_mode
   ensure_runtime_files
+  load_env_file
 
   if [[ "$AUTO_CONFIRM" != "true" ]]; then
-    echo "This will rebuild the share-api image, refresh the Caddy image, and restart the remote share stack."
+    if [[ "$EDGE_MODE" == "managed_caddy" ]]; then
+      echo "This will rebuild the share-api image, refresh the Caddy image, and restart the remote share stack."
+    else
+      echo "This will rebuild the share-api image and restart the remote share stack behind the existing reverse proxy."
+    fi
     prompt_yes_no "Proceed with the upgrade?" "y" || die "Upgrade cancelled."
   fi
 
@@ -203,7 +228,9 @@ main() {
   notify_event "deploy_started" "starting" "The remote share API upgrade has started."
 
   log "Refreshing container images..."
-  run_root docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" pull caddy
+  if [[ "$EDGE_MODE" == "managed_caddy" ]]; then
+    run_root docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" pull caddy
+  fi
   run_root docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" build --pull share-api
   run_root docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --remove-orphans
 
