@@ -263,6 +263,41 @@ class TranslationsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "all locales include ai provider selection and fallback translations" do
+    checks = [
+      [ "dialogs", "custom_ai", "provider_label" ],
+      [ "dialogs", "custom_ai", "loading_options" ],
+      [ "dialogs", "custom_ai", "saved_choice" ],
+      [ "dialogs", "custom_ai", "default_choice" ],
+      [ "dialogs", "custom_ai", "invalid_saved_choice" ],
+      [ "dialogs", "custom_ai", "selected_choice" ],
+      [ "dialogs", "custom_ai", "using_default_setup" ],
+      [ "dialogs", "custom_ai", "no_available_options" ],
+      [ "dialogs", "custom_ai", "preference_save_failed" ],
+      [ "dialogs", "ai_diff", "provider_label" ],
+      [ "dialogs", "ai_diff", "chooser_prompt" ],
+      [ "dialogs", "ai_diff", "rerun_prompt" ],
+      [ "dialogs", "ai_diff", "run_check" ],
+      [ "dialogs", "ai_diff", "run_again" ],
+      [ "dialogs", "ai_diff", "saved_choice" ],
+      [ "dialogs", "ai_diff", "default_choice" ],
+      [ "dialogs", "ai_diff", "invalid_saved_choice" ],
+      [ "dialogs", "ai_diff", "selected_choice" ],
+      [ "dialogs", "ai_diff", "using_default_setup" ],
+      [ "dialogs", "ai_diff", "preference_save_failed" ]
+    ]
+
+    %w[en pt-BR pt-PT es he ja ko].each do |locale|
+      get translations_url(locale: locale), as: :json
+      data = JSON.parse(response.body)
+
+      checks.each do |path|
+        value = data.dig("translations", *path)
+        assert value.present?, "Locale #{locale} is missing #{path.join('.')}"
+      end
+    end
+  end
+
   test "all locales include complete template UI translations" do
     checks = [
       [ "header", "save_as_template" ],

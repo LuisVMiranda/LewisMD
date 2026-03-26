@@ -161,6 +161,8 @@
 - **Custom Prompts (Magic Wand)**: Select any text and send bespoke commands to local or cloud LLMs directly.
 - Side-by-side diff view with original and corrected text (shared seamlessly across grammar checks and custom prompts)
 - Editable corrections before accepting changes
+- Provider/model pickers in both Grammar Check and Magic Wand when multiple AI options are configured
+- Separate saved AI choices for Grammar Check and Magic Wand, remembered directly in `.fed`
 - Supports Ollama (local), OpenAI, Anthropic, Gemini, and OpenRouter
 
 <p align="center">
@@ -418,6 +420,10 @@ google_cse_id = your-cse-id
 
 # AI/LLM (configure one or more providers)
 # ai_provider = auto
+# ai_grammar_provider = openai
+# ai_grammar_model = gpt-4o-mini
+# ai_custom_prompt_provider = anthropic
+# ai_custom_prompt_model = claude-sonnet-4-20250514
 # ollama_api_base = http://localhost:11434/v1
 # ollama_model = llama3.2:latest
 # openrouter_api_key = sk-or-...
@@ -470,6 +476,10 @@ The `.fed` file appears in the explorer panel with a gear icon. You can click it
 | `google_cse_id` | string | - | Google Custom Search Engine ID |
 | `ai_provider` | string | auto | AI provider: auto, ollama, openrouter, anthropic, gemini, openai |
 | `ai_model` | string | (per provider) | Override model for any provider |
+| `ai_grammar_provider` | string | - | Saved provider choice for AI Grammar Check |
+| `ai_grammar_model` | string | - | Saved model choice for AI Grammar Check |
+| `ai_custom_prompt_provider` | string | - | Saved provider choice for Magic Wand custom prompts |
+| `ai_custom_prompt_model` | string | - | Saved model choice for Magic Wand custom prompts |
 | `ollama_api_base` | string | - | Ollama API base URL (e.g., http://localhost:11434/v1) |
 | `ollama_model` | string | llama3.2:latest | Ollama model |
 | `openrouter_api_key` | string | - | OpenRouter API key |
@@ -641,6 +651,21 @@ To override the model for any provider:
 ```ini
 ai_model = claude-3-opus-20240229
 ```
+
+When multiple provider/model pairs are configured, both `AI Grammar Check` and
+`Magic Wand` show a picker so you can choose the best option for that task.
+LewisMD remembers those choices separately and writes them back to `.fed`, so
+you do not need to reselect them on every request.
+
+```ini
+ai_grammar_provider = openai
+ai_grammar_model = gpt-4o-mini
+ai_custom_prompt_provider = anthropic
+ai_custom_prompt_model = claude-sonnet-4-20250514
+```
+
+If a saved choice no longer matches your current provider setup, LewisMD falls
+back gently to the current default AI option and explains that in the UI.
 
 #### Per-Folder AI Configuration
 
