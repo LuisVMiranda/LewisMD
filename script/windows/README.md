@@ -205,6 +205,7 @@ What it does:
 - loads a small WPF window using the checked-in LewisMD icon
 - polls `tmp/windows-launcher/launcher-progress.json`
 - ignores stale progress left behind by an older launcher session
+- keeps only one splash instance open per LewisMD launcher profile
 - shows the current launcher message and percent complete
 - fades away automatically once the launcher reports `ready` / `running`
 - stays open with a readable message when launcher state becomes `error`

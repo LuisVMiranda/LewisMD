@@ -125,6 +125,16 @@ function Get-DefaultProgressPayload {
   }
 }
 
+function Get-SplashMutexName {
+  param([string]$ProgressPath)
+
+  $bytes = [System.Text.Encoding]::UTF8.GetBytes($ProgressPath.ToLowerInvariant())
+  $hashBytes = [System.Security.Cryptography.SHA256]::HashData($bytes)
+  $hash = [Convert]::ToHexString($hashBytes)
+
+  return "Local\LewisMD-Splash-{0}" -f $hash
+}
+
 function Load-BitmapImage {
   param([string]$Path)
 
@@ -361,6 +371,20 @@ if ($ValidateOnly) {
   exit 0
 }
 
+$mutexName = Get-SplashMutexName -ProgressPath $resolvedConfig.ProgressFile
+$script:SplashMutex = [System.Threading.Mutex]::new($false, $mutexName)
+$script:SplashMutexHandle = $false
+
+try {
+  $script:SplashMutexHandle = $script:SplashMutex.WaitOne(0, $false)
+} catch [System.Threading.AbandonedMutexException] {
+  $script:SplashMutexHandle = $true
+}
+
+if (-not $script:SplashMutexHandle) {
+  exit 0
+}
+
 $script:SplashClosing = $false
 $launchStartedAt = Get-Date
 $readyObservedAt = $null
@@ -449,6 +473,17 @@ $dismissButton.Add_Click({
 $window.Add_Closed({
   $timer.Stop()
   Stop-SpinnerAnimation -RotateTransform $spinnerRotate
+  if ($script:SplashMutexHandle) {
+    try {
+      $script:SplashMutex.ReleaseMutex()
+    } catch {
+    }
+    $script:SplashMutexHandle = $false
+  }
+  if ($null -ne $script:SplashMutex) {
+    $script:SplashMutex.Dispose()
+    $script:SplashMutex = $null
+  }
 })
 
 $timer.Start()
