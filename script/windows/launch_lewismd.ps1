@@ -310,6 +310,7 @@ function Stop-ManagedRailsServer {
 
 function Test-BundlerReady {
   $env:BUNDLE_GEMFILE = (Join-Path $script:ResolvedConfig.RepoRoot "Gemfile")
+  $env:BUNDLE_APP_CONFIG = $script:ResolvedConfig.BundleAppConfig
   $env:BUNDLE_PATH = $script:ResolvedConfig.BundlePath
   $env:BUNDLE_WITHOUT = "test"
 
@@ -356,6 +357,7 @@ function Start-RailsServerProcess {
   $startInfo.RedirectStandardOutput = $true
   $startInfo.RedirectStandardError = $true
   $startInfo.EnvironmentVariables["BUNDLE_GEMFILE"] = (Join-Path $script:ResolvedConfig.RepoRoot "Gemfile")
+  $startInfo.EnvironmentVariables["BUNDLE_APP_CONFIG"] = $script:ResolvedConfig.BundleAppConfig
   $startInfo.EnvironmentVariables["BUNDLE_PATH"] = $script:ResolvedConfig.BundlePath
   $startInfo.EnvironmentVariables["BUNDLE_WITHOUT"] = "test"
   $startInfo.EnvironmentVariables["RAILS_ENV"] = $script:ResolvedConfig.RailsEnvironment
@@ -614,6 +616,7 @@ function Resolve-Config {
     RubyExe = Resolve-LauncherPath -PathValue (Join-Path $defaults.PortableRubyDir "bin\ruby.exe") -RepoRoot $repoRoot
     BundleCmd = Resolve-LauncherPath -PathValue (Join-Path $defaults.PortableRubyDir "bin\bundle.bat") -RepoRoot $repoRoot
     BundlePath = Resolve-LauncherPath -PathValue $defaults.BundlePath -RepoRoot $repoRoot
+    BundleAppConfig = [System.IO.Path]::GetFullPath((Join-Path (Resolve-LauncherPath -PathValue $defaults.StateDirectory -RepoRoot $repoRoot) "bundle-config"))
     BinRailsScript = Resolve-LauncherPath -PathValue "bin\rails" -RepoRoot $repoRoot
     StateDirectory = Resolve-LauncherPath -PathValue $defaults.StateDirectory -RepoRoot $repoRoot
     RailsLogFile = Resolve-LauncherPath -PathValue $defaults.RailsLogFile -RepoRoot $repoRoot
@@ -631,6 +634,7 @@ $script:LauncherMode = if ($StopOnly) { "stop" } elseif ($ValidateOnly) { "valid
 $script:LauncherSessionId = "{0}-{1}" -f (Get-Date -Format "yyyyMMdd-HHmmss"), ([System.Guid]::NewGuid().ToString("N").Substring(0, 8))
 
 Ensure-Directory -Path $script:ResolvedConfig.StateDirectory
+Ensure-Directory -Path $script:ResolvedConfig.BundleAppConfig
 Initialize-LogFile -Path $script:ResolvedConfig.LauncherLogFile -Label "LAUNCHER"
 
 Write-LauncherMessage "Repo root: $($script:ResolvedConfig.RepoRoot)"

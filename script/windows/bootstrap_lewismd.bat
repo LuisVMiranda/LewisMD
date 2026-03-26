@@ -83,8 +83,10 @@ set "RIDK_CMD=%REPO_ROOT%\%PortableRubyDir%\bin\ridk.cmd"
 set "NOTES_DIR=%REPO_ROOT%\%DefaultNotesPath%"
 set "STATE_DIR=%REPO_ROOT%\%StateDirectory%"
 set "BUNDLE_PATH_ABS=%REPO_ROOT%\%BundlePath%"
+set "BUNDLE_APP_CONFIG=%STATE_DIR%\bundle-config"
 
 if not exist "%STATE_DIR%" mkdir "%STATE_DIR%" >nul 2>&1
+if not exist "%BUNDLE_APP_CONFIG%" mkdir "%BUNDLE_APP_CONFIG%" >nul 2>&1
 set "LAUNCHER_LOG=%STATE_DIR%\launcher.log"
 call :log "Bootstrap started."
 
@@ -170,6 +172,7 @@ if defined INSTALL_ALL_GROUPS (
   call "%BUNDLE_CMD%" config unset --local without >nul 2>&1
 ) else (
   echo [bootstrap] Excluding the test group for the personal launcher runtime.
+  call "%BUNDLE_CMD%" config unset --local with >nul 2>&1
   call "%BUNDLE_CMD%" config set --local without "%BUNDLE_WITHOUT_GROUPS%" || goto fail
 )
 
