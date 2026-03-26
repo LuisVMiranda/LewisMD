@@ -250,7 +250,7 @@ html.dark .dark\:text-red-400 {
 .share-view__toolbar-handle {
   position: absolute;
   top: 0.85rem;
-  right: 0.85rem;
+  right: 1.35rem;
   z-index: 45;
   display: none;
   align-items: center;

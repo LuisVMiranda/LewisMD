@@ -69,6 +69,7 @@ class ShareApiAppTest < ActiveSupport::TestCase
     assert_includes last_response.body, "@media (max-width: 1023px)"
     assert_includes last_response.body, "top: 30px;"
     assert_includes last_response.body, "left: 30px;"
+    assert_includes last_response.body, "right: 1.35rem;"
     assert_includes last_response.body, "justify-content: center;"
     assert_includes last_response.body, 'data-toolbar-collapsed="true"'
     assert_includes last_response.body, "display: none !important;"
