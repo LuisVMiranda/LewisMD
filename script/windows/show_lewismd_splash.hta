@@ -2,21 +2,23 @@
 <head>
   <title>LewisMD Launching</title>
   <meta http-equiv="x-ua-compatible" content="IE=11" />
-  <hta:application
-    applicationname="LewisMDSplash"
-    border="none"
-    caption="no"
-    contextmenu="no"
-    innerborder="no"
-    maximizebutton="no"
-    minimizebutton="no"
-    navigable="no"
-    scroll="no"
-    selection="no"
-    showintaskbar="no"
-    singleinstance="yes"
-    sysmenu="no"
-    windowstate="normal" />
+  <HTA:APPLICATION
+    ID="LewisMDSplash"
+    APPLICATIONNAME="LewisMDSplash"
+    BORDER="none"
+    BORDERSTYLE="normal"
+    CAPTION="no"
+    CONTEXTMENU="no"
+    INNERBORDER="no"
+    MAXIMIZEBUTTON="no"
+    MINIMIZEBUTTON="no"
+    NAVIGABLE="no"
+    SCROLL="no"
+    SELECTION="no"
+    SHOWINTASKBAR="no"
+    SINGLEINSTANCE="yes"
+    SYSMENU="no"
+    WINDOWSTATE="normal"></HTA:APPLICATION>
   <style type="text/css">
     html, body {
       margin: 0;
@@ -300,8 +302,10 @@
     }
 
     function repoRootPath() {
-      var scriptDir = fso.GetParentFolderName(currentScriptPath());
-      return fso.GetParentFolderName(scriptDir);
+      var scriptPath = currentScriptPath();
+      var scriptDir = fso.GetParentFolderName(scriptPath);
+      var scriptRoot = fso.GetParentFolderName(scriptDir);
+      return fso.GetParentFolderName(scriptRoot);
     }
 
     function initializePaths() {

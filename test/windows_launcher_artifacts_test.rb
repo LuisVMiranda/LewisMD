@@ -12,11 +12,13 @@ class WindowsLauncherArtifactsTest < ActiveSupport::TestCase
   test "windows splash helper uses an hta shell with launcher progress polling" do
     splash_script = Rails.root.join("script", "windows", "show_lewismd_splash.hta").read
 
-    assert_includes splash_script, "<hta:application"
-    assert_includes splash_script, 'applicationname="LewisMDSplash"'
-    assert_includes splash_script, 'showintaskbar="no"'
+    assert_includes splash_script, "<HTA:APPLICATION"
+    assert_includes splash_script, 'APPLICATIONNAME="LewisMDSplash"'
+    assert_includes splash_script, 'SHOWINTASKBAR="no"'
     assert_includes splash_script, "Scripting.FileSystemObject"
     assert_includes splash_script, "launcher-progress.json"
+    assert_includes splash_script, "var scriptRoot = fso.GetParentFolderName(scriptDir);"
+    assert_includes splash_script, "return fso.GetParentFolderName(scriptRoot);"
     assert_includes splash_script, "window.resizeTo"
     assert_includes splash_script, "window.moveTo"
     assert_includes splash_script, "shell.AppActivate(document.title)"
