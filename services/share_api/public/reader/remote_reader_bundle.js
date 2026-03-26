@@ -49,6 +49,7 @@ const DEFAULT_TRANSLATIONS = {
   header: {
     change_theme: "Change theme",
     change_language: "Change language",
+    outline: "Outline",
     share: "Share",
     open_share_menu: "Open share menu"
   },
@@ -174,6 +175,11 @@ export class RemoteShareReader {
     this.outlineEmpty = element.querySelector('[data-role="outline-empty"]')
     this.outlineBody = element.querySelector('[data-role="outline-body"]')
     this.outlineToggle = element.querySelector('[data-role="outline-toggle"]')
+    this.outlineMenuAnchor = element.querySelector('[data-role="outline-menu-anchor"]')
+    this.outlineMenuButton = element.querySelector('[data-role="outline-menu-toggle"]')
+    this.outlineMenu = element.querySelector('[data-role="outline-menu"]')
+    this.outlineMenuList = element.querySelector('[data-role="outline-menu-list"]')
+    this.outlineMenuEmpty = element.querySelector('[data-role="outline-menu-empty"]')
     this.themeButton = element.querySelector('[data-role="theme-toggle"]')
     this.themeMenu = element.querySelector('[data-role="theme-menu"]')
     this.themeCurrentLabel = element.querySelector('[data-role="theme-current-label"]')
@@ -238,7 +244,9 @@ export class RemoteShareReader {
     this.exportMenu?.removeEventListener("click", this.boundExportMenuClick)
     this.displayToggle?.removeEventListener("click", this.boundDisplayToggle)
     this.outlineList?.removeEventListener("click", this.boundOutlineClick)
+    this.outlineMenuList?.removeEventListener("click", this.boundOutlineClick)
     this.outlineToggle?.removeEventListener("click", this.boundOutlineToggle)
+    this.outlineMenuButton?.removeEventListener("click", this.boundOutlineMenuToggle)
     this.element.querySelector('[data-role="zoom-in"]')?.removeEventListener("click", this.boundZoomIn)
     this.element.querySelector('[data-role="zoom-out"]')?.removeEventListener("click", this.boundZoomOut)
     this.element.querySelector('[data-role="width-increase"]')?.removeEventListener("click", this.boundWidthIncrease)
@@ -257,6 +265,7 @@ export class RemoteShareReader {
     this.boundLocaleMenuClick = (event) => this.onLocaleMenuClick(event)
     this.boundExportToggle = (event) => this.toggleMenu(event, "export")
     this.boundExportMenuClick = (event) => this.onExportMenuClick(event)
+    this.boundOutlineMenuToggle = (event) => this.toggleMenu(event, "outline")
     this.boundDisplayToggle = () => this.toggleDisplayPanel()
     this.boundOutlineClick = (event) => this.onOutlineClick(event)
     this.boundOutlineToggle = () => this.toggleOutline()
@@ -275,8 +284,10 @@ export class RemoteShareReader {
     this.localeMenu?.addEventListener("click", this.boundLocaleMenuClick)
     this.exportButton?.addEventListener("click", this.boundExportToggle)
     this.exportMenu?.addEventListener("click", this.boundExportMenuClick)
+    this.outlineMenuButton?.addEventListener("click", this.boundOutlineMenuToggle)
     this.displayToggle?.addEventListener("click", this.boundDisplayToggle)
     this.outlineList?.addEventListener("click", this.boundOutlineClick)
+    this.outlineMenuList?.addEventListener("click", this.boundOutlineClick)
     this.outlineToggle?.addEventListener("click", this.boundOutlineToggle)
     this.element.querySelector('[data-role="zoom-in"]')?.addEventListener("click", this.boundZoomIn)
     this.element.querySelector('[data-role="zoom-out"]')?.addEventListener("click", this.boundZoomOut)
@@ -347,6 +358,7 @@ export class RemoteShareReader {
 
   menuFor(menuName) {
     return {
+      outline: this.outlineMenu,
       theme: this.themeMenu,
       locale: this.localeMenu,
       export: this.exportMenu
@@ -355,6 +367,7 @@ export class RemoteShareReader {
 
   buttonFor(menuName) {
     return {
+      outline: this.outlineMenuButton,
       theme: this.themeButton,
       locale: this.localeButton,
       export: this.exportButton
@@ -362,8 +375,8 @@ export class RemoteShareReader {
   }
 
   closeMenus() {
-    [this.themeMenu, this.localeMenu, this.exportMenu].forEach((menu) => menu?.classList.add("hidden"))
-    ;[this.themeButton, this.localeButton, this.exportButton].forEach((button) => button?.setAttribute("aria-expanded", "false"))
+    [this.outlineMenu, this.themeMenu, this.localeMenu, this.exportMenu].forEach((menu) => menu?.classList.add("hidden"))
+    ;[this.outlineMenuButton, this.themeButton, this.localeButton, this.exportButton].forEach((button) => button?.setAttribute("aria-expanded", "false"))
   }
 
   onThemeMenuClick(event) {
@@ -450,31 +463,39 @@ export class RemoteShareReader {
   renderOutline() {
     if (!this.outlineSection || !this.outlineList) return
 
-    this.outlineList.replaceChildren()
+    ;[this.outlineList, this.outlineMenuList].forEach((list) => list?.replaceChildren())
 
     const hasOutline = this.outlineEntries.length > 0
-    this.outlineSection.classList.toggle("hidden", !hasOutline)
-    this.outlineEmpty?.classList.toggle("hidden", hasOutline)
+    ;[this.outlineEmpty, this.outlineMenuEmpty].forEach((emptyState) => emptyState?.classList.toggle("hidden", hasOutline))
     this.activeOutlineId = null
 
-    if (!hasOutline) return
+    if (hasOutline) {
+      ;[this.outlineList, this.outlineMenuList].forEach((list) => {
+        if (!list) return
 
-    const fragment = document.createDocumentFragment()
+        const fragment = document.createDocumentFragment()
+        this.outlineEntries.forEach((entry) => {
+          fragment.appendChild(this.buildOutlineButton(entry))
+        })
+        list.appendChild(fragment)
+      })
+    } else {
+      this.closeMenus()
+    }
 
-    this.outlineEntries.forEach((entry) => {
-      const button = document.createElement("button")
-      button.type = "button"
-      button.className = "outline-item"
-      button.dataset.outlineId = entry.id
-      button.dataset.active = "false"
-      button.style.setProperty("--outline-level", String(entry.level))
-      button.textContent = entry.text
-      button.title = entry.text
-      fragment.appendChild(button)
-    })
-
-    this.outlineList.appendChild(fragment)
     this.applyOutlineState()
+  }
+
+  buildOutlineButton(entry) {
+    const button = document.createElement("button")
+    button.type = "button"
+    button.className = "outline-item"
+    button.dataset.outlineId = entry.id
+    button.dataset.active = "false"
+    button.style.setProperty("--outline-level", String(entry.level))
+    button.textContent = entry.text
+    button.title = entry.text
+    return button
   }
 
   attachFrameScroll() {
@@ -511,9 +532,9 @@ export class RemoteShareReader {
   }
 
   setActiveOutlineId(activeId, { scrollList = true } = {}) {
-    if (!this.outlineList) return
+    if (!this.outlineList && !this.outlineMenuList) return
 
-    this.outlineList.querySelectorAll("[data-outline-id]").forEach((button) => {
+    this.element.querySelectorAll("[data-outline-id]").forEach((button) => {
       const isActive = button.dataset.outlineId === activeId
       button.dataset.active = String(isActive)
       if (isActive) {
@@ -541,6 +562,7 @@ export class RemoteShareReader {
       block: "start"
     })
 
+    this.closeMenus()
     this.setActiveOutlineId(entry.id, { scrollList: false })
   }
 
@@ -751,7 +773,13 @@ export class RemoteShareReader {
 
     const hasOutline = this.outlineEntries.length > 0
     this.outlineSection.classList.toggle("hidden", !hasOutline)
-    if (!hasOutline) return
+    this.outlineMenuAnchor?.classList.toggle("hidden", !hasOutline)
+
+    if (!hasOutline) {
+      this.outlineMenu?.classList.add("hidden")
+      this.outlineMenuButton?.setAttribute("aria-expanded", "false")
+      return
+    }
 
     this.outlineSection.dataset.collapsed = String(this.outlineCollapsed)
     this.outlineBody?.classList.toggle("hidden", this.outlineCollapsed)

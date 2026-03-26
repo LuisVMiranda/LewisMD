@@ -62,9 +62,13 @@ class ShareApiAppTest < ActiveSupport::TestCase
     assert_includes last_response.body, ".share-view__toolbar"
     assert_includes last_response.body, ".share-view__frame"
     assert_includes last_response.body, ".share-view__outline-card"
+    assert_includes last_response.body, ".share-view__outline-menu-anchor"
+    assert_includes last_response.body, ".share-view__outline-menu"
+    assert_includes last_response.body, "@media (max-width: 1100px)"
     assert_includes last_response.body, "top: 30px;"
     assert_includes last_response.body, "left: 30px;"
     assert_includes last_response.body, "justify-content: center;"
+    assert_includes last_response.body, "display: none !important;"
     assert_includes last_response.body, "box-sizing: border-box"
 
     get "/reader/assets/theme_helpers.js"
@@ -157,9 +161,15 @@ class ShareApiAppTest < ActiveSupport::TestCase
     assert_includes last_response.body, 'data-role="display-toggle"'
     assert_includes last_response.body, 'data-role="outline-section"'
     assert_includes last_response.body, 'data-role="outline-list"'
+    assert_includes last_response.body, 'data-role="outline-menu-anchor"'
+    assert_includes last_response.body, 'data-role="outline-menu-toggle"'
+    assert_includes last_response.body, 'data-role="outline-menu"'
+    assert_includes last_response.body, 'data-role="outline-menu-list"'
+    assert_includes last_response.body, 'data-role="outline-menu-empty"'
     assert_includes last_response.body, 'data-role="outline-toggle"'
     assert_includes last_response.body, 'data-role="outline-body"'
     assert_includes last_response.body, '<h2 class="share-view__outline-title">Outline</h2>'
+    assert_includes last_response.body, '<span class="share-view__toolbar-label">Outline</span>'
     assert_includes last_response.body, 'href="/reader/assets/icon.svg"'
     assert_includes last_response.body, 'href="/reader/assets/favicon-32x32.png"'
     assert_includes last_response.body, 'href="/reader/assets/apple-touch-icon.png"'
@@ -187,6 +197,8 @@ class ShareApiAppTest < ActiveSupport::TestCase
     assert_includes last_response.body, 'data-translations="{&quot;header&quot;:{&quot;change_theme&quot;:&quot;Alterar Tema&quot;'
     assert_includes last_response.body, 'data-show-controls-label="Mostrar controles de leitura"'
     assert_includes last_response.body, 'data-hide-controls-label="Ocultar controles de leitura"'
+    assert_includes last_response.body, 'title="Estrutura"'
+    assert_includes last_response.body, '<span class="share-view__toolbar-label">Estrutura</span>'
     assert_includes last_response.body, '<h2 class="share-view__outline-title">Estrutura</h2>'
     assert_includes last_response.body, 'title="Recolher estrutura"'
     assert_includes last_response.body, ">Nenhum título ainda</p>"

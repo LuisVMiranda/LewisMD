@@ -32,6 +32,7 @@ ko:
     change_theme: 테마 변경
     change_language: 언어 변경
     exports: 내보내기
+    outline: 개요
     share: 공유
     open_exports: 내보내기 및 공유 작업 열기
     open_share_menu: 공유, 내보내기 및 복사 작업 열기

@@ -196,7 +196,7 @@ class ShareApiDeploymentArtifactsTest < ActiveSupport::TestCase
     )
 
     translation_keys = {
-      "header" => %w[change_theme change_language share open_share_menu],
+      "header" => %w[change_theme change_language outline share open_share_menu],
       "sidebar" => %w[outline no_headings_yet],
       "share_view" => %w[
         label

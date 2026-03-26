@@ -96,6 +96,10 @@ iframe {
   gap: 0.85rem;
 }
 
+.share-view__outline-menu-anchor {
+  display: none;
+}
+
 .share-view__toolbar-icon {
   width: 1.05rem;
   height: 1.05rem;
@@ -317,6 +321,23 @@ html.dark .dark\:text-red-400 {
   min-width: 0;
 }
 
+.share-view__outline-menu {
+  left: 0;
+  right: auto;
+  width: min(35ch, calc(100vw - 2rem));
+  max-width: calc(100vw - 2rem);
+  background: var(--theme-bg-primary);
+  padding: 0.45rem;
+}
+
+.share-view__outline-menu .outline-panel__scroll {
+  max-height: min(50vh, 20rem);
+}
+
+.share-view__outline-menu .outline-item {
+  max-width: 35ch;
+}
+
 .share-view__outline-card .outline-panel__scroll {
   max-height: min(45vh, 28rem);
   padding-right: 0.1rem;
@@ -330,35 +351,24 @@ html.dark .dark\:text-red-400 {
   background: transparent;
 }
 
-@media (min-width: 769px) and (max-width: 1100px) {
+@media (max-width: 1100px) {
   .share-view__outline-shell {
-    top: 14px;
-    left: 14px;
-    width: min(35ch, calc(100% - 28px));
-    min-width: min(16rem, calc(100% - 28px));
+    display: none !important;
   }
 
-  .share-view__outline-card {
-    padding: 0.9rem;
+  .share-view__outline-menu-anchor {
+    display: block;
   }
 }
 
 @media (max-width: 768px) {
-  .share-view__outline-shell {
-    top: 10px;
-    left: 10px;
-    width: min(35ch, calc(100% - 20px));
-    max-width: calc(100% - 20px);
-    min-width: 0;
+  .share-view__outline-menu {
+    width: min(35ch, calc(100vw - 1.25rem));
+    max-width: calc(100vw - 1.25rem);
   }
 
-  .share-view__outline-card {
-    padding: 0.9rem;
-    border-radius: 1rem;
-  }
-
-  .share-view__outline-card .outline-panel__scroll {
-    max-height: min(28vh, 11.5rem);
+  .share-view__outline-menu .outline-panel__scroll {
+    max-height: min(55vh, 18rem);
   }
 }
 

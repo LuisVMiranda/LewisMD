@@ -38,6 +38,7 @@ en:
     change_theme: "Change Theme"
     change_language: "Change Language"
     exports: "Export"
+    outline: "Outline"
     share: "Share"
     open_exports: "Open export and share actions"
     open_share_menu: "Open share, export, and copy actions"

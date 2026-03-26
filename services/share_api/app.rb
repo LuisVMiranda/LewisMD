@@ -379,7 +379,13 @@ module ShareAPI
                     <h1 class="share-view__title">#{CGI.escapeHTML(title)}</h1>
                   </div>
 
-                  #{reader_toolbar_actions_html(current_theme:, current_locale:, ui_locale: current_locale)}
+                  #{reader_toolbar_actions_html(
+                    current_theme:,
+                    current_locale:,
+                    ui_locale: current_locale,
+                    outline_label:,
+                    no_headings_label:
+                  )}
                 </div>
 
                 #{reader_display_panel_html(default_font_family:, ui_locale: current_locale)}
@@ -434,16 +440,39 @@ module ShareAPI
       HTML
     end
 
-    def reader_toolbar_actions_html(current_theme:, current_locale:, ui_locale:)
+    def reader_toolbar_actions_html(current_theme:, current_locale:, ui_locale:, outline_label:, no_headings_label:)
       change_theme_label = reader_translate(ui_locale, "header.change_theme", default: "Change theme")
       change_language_label = reader_translate(ui_locale, "header.change_language", default: "Change language")
       open_share_menu_label = reader_translate(ui_locale, "header.open_share_menu", default: "Open share menu")
+      toolbar_outline_label = reader_translate(ui_locale, "header.outline", default: outline_label)
       share_label = reader_translate(ui_locale, "header.share", default: "Share")
       display_label = reader_translate(ui_locale, "share_view.display", default: "Display")
       show_controls_label = reader_translate(ui_locale, "share_view.show_controls", default: "Show reading controls")
 
       <<~HTML
         <div class="share-view__toolbar-actions">
+          <div class="share-view__menu-anchor share-view__outline-menu-anchor hidden" data-role="outline-menu-anchor">
+            <button
+              type="button"
+              class="share-view__toolbar-button share-view__toolbar-button--outline"
+              title="#{CGI.escapeHTML(toolbar_outline_label)}"
+              aria-label="#{CGI.escapeHTML(toolbar_outline_label)}"
+              aria-haspopup="menu"
+              aria-expanded="false"
+              data-role="outline-menu-toggle"
+            >
+              #{outline_icon_markup}
+              <span class="share-view__toolbar-label">#{CGI.escapeHTML(toolbar_outline_label)}</span>
+              #{caret_icon_markup}
+            </button>
+            <div class="share-view__picker-menu share-view__outline-menu hidden" data-role="outline-menu">
+              <div class="outline-panel__scroll">
+                <div class="outline-list" data-role="outline-menu-list"></div>
+                <p class="outline-empty hidden" data-role="outline-menu-empty">#{CGI.escapeHTML(no_headings_label)}</p>
+              </div>
+            </div>
+          </div>
+
           <div class="share-view__menu-anchor">
             <button
               type="button"
@@ -999,6 +1028,15 @@ module ShareAPI
       <<~SVG.chomp
         <svg class="share-view__toolbar-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C9.886 12.511 11.36 12 13 12c1.64 0 3.114.511 4.316 1.342m-8.632 0A8.966 8.966 0 004 21h18a8.966 8.966 0 00-4.684-7.658m-8.632 0a5.002 5.002 0 118.632 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+      SVG
+    end
+
+    def outline_icon_markup
+      <<~SVG.chomp
+        <svg class="share-view__toolbar-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M6.75 6.75h10.5M6.75 12h8.5M6.75 17.25h6.5" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M4.5 6.75h.01M4.5 12h.01M4.5 17.25h.01" />
         </svg>
       SVG
     end

@@ -58,7 +58,7 @@ class ShareApiStorageTest < ActiveSupport::TestCase
         note_identifier: "notes/active-note.md",
         title: "Active Note",
         content_hash: "hash-active",
-        expires_at: "2026-03-26T12:00:00Z"
+        expires_at: "2099-03-26T12:00:00Z"
       ),
       fragment_html: "<p>Active share</p>",
       snapshot_document_html: "<!doctype html><html><body><p>Active share</p></body></html>"

@@ -3,6 +3,7 @@
     "header": {
       "change_theme": "Change Theme",
       "change_language": "Change Language",
+      "outline": "Outline",
       "share": "Share",
       "open_share_menu": "Open share, export, and copy actions"
     },
@@ -54,6 +55,7 @@
     "header": {
       "change_theme": "Alterar Tema",
       "change_language": "Alterar Idioma",
+      "outline": "Estrutura",
       "share": "Compartilhar",
       "open_share_menu": "Abrir ações de compartilhamento, exportação e cópia"
     },
@@ -105,6 +107,7 @@
     "header": {
       "change_theme": "Alterar Tema",
       "change_language": "Alterar Idioma",
+      "outline": "Estrutura",
       "share": "Partilhar",
       "open_share_menu": "Abrir ações de partilha, exportação e cópia"
     },
@@ -156,6 +159,7 @@
     "header": {
       "change_theme": "Cambiar Tema",
       "change_language": "Cambiar Idioma",
+      "outline": "Esquema",
       "share": "Compartir",
       "open_share_menu": "Abrir acciones de compartir, exportar y copiar"
     },
@@ -207,6 +211,7 @@
     "header": {
       "change_theme": "שנה ערכת נושא",
       "change_language": "שנה שפה",
+      "outline": "מתאר",
       "share": "שיתוף",
       "open_share_menu": "פתח פעולות שיתוף, ייצוא והעתקה"
     },
@@ -258,6 +263,7 @@
     "header": {
       "change_theme": "テーマ変更",
       "change_language": "言語変更",
+      "outline": "アウトライン",
       "share": "共有",
       "open_share_menu": "共有、書き出し、コピーの操作を開く"
     },
@@ -309,6 +315,7 @@
     "header": {
       "change_theme": "테마 변경",
       "change_language": "언어 변경",
+      "outline": "개요",
       "share": "공유",
       "open_share_menu": "공유, 내보내기 및 복사 작업 열기"
     },
