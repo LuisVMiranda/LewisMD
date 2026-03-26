@@ -654,7 +654,7 @@ export default class extends Controller {
   async deleteTemplate() {
     if (!this.currentTemplatePath) return
 
-    const displayName = this.templateDisplayName({ path: this.currentTemplatePath, name: this.currentTemplatePath.replace(/\.(md|markdown)$/i, "") })
+    const displayName = this.displayNameForTemplatePath(this.currentTemplatePath)
     if (!confirm(window.t("dialogs.templates.delete_confirm", { name: displayName }))) {
       return
     }
@@ -766,7 +766,7 @@ export default class extends Controller {
   async deleteTemplateForNote(notePath) {
     try {
       const status = await this.fetchTemplateLinkStatus(notePath)
-      const displayName = status.template_path || notePath
+      const displayName = this.displayNameForTemplatePath(status.template_path || notePath)
       if (!confirm(window.t("dialogs.templates.delete_linked_confirm", { name: displayName }))) {
         return
       }
@@ -1000,10 +1000,13 @@ export default class extends Controller {
     this.hideContextMenu()
     if (!this.contextItem) return
 
-    const itemName = this.contextItem.path.split("/").pop()
+    const itemName = this.displayNameForPath(
+      this.contextItem.path,
+      { stripMarkdown: this.contextItem.type === "file" }
+    )
     const confirmKey = this.contextItem.type === "folder"
-      ? "dialogs.confirm.delete_folder"
-      : "dialogs.confirm.delete_file"
+      ? "confirm.delete_folder"
+      : "confirm.delete_note"
 
     if (!confirm(window.t(confirmKey, { name: itemName }))) {
       return
@@ -1108,6 +1111,21 @@ export default class extends Controller {
     return name
       .replace(/[-_]+/g, " ")
       .replace(/(^|[\s])([\p{L}\p{N}])/gu, (match, prefix, char) => `${prefix}${char.toLocaleUpperCase()}`)
+  }
+
+  displayNameForTemplatePath(path) {
+    return this.templateDisplayName({
+      path,
+      name: this.displayNameForPath(path, { stripMarkdown: true })
+    })
+  }
+
+  displayNameForPath(path, { stripMarkdown = false } = {}) {
+    const leaf = String(path || "").split("/").pop() || String(path || "")
+
+    if (!stripMarkdown) return leaf
+
+    return leaf.replace(/\.(md|markdown)$/i, "")
   }
 
   escapeHtml(value) {

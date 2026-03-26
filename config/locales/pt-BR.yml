@@ -219,8 +219,8 @@ pt-BR:
       path_placeholder: ex. equipe/retro
       content_label: Conteúdo markdown
       content_placeholder: Escreva aqui o markdown do modelo...
-      delete_confirm: Excluir o modelo \"%{name}\"?
-      delete_linked_confirm: Excluir o modelo vinculado \"%{name}\"?
+      delete_confirm: "Excluir o modelo \"%{name}\"?\n\nAs notas que já foram criadas a partir dele continuarão como estão."
+      delete_linked_confirm: "Remover o vínculo com o modelo \"%{name}\"?\n\nA nota continuará como está."
       built_ins:
         daily_note:
           name: Nota Diária
@@ -262,7 +262,7 @@ pt-BR:
       use_tabs: Usar tabs
       code_placeholder: Cole ou digite seu código aqui...
       insert_code: Inserir Código
-      unrecognized_language: '"%{language}" não é uma linguagem reconhecida. Inserir mesmo assim?'
+      unrecognized_language: "\"%{language}\" não está na lista de linguagens reconhecidas pelo LewisMD.\n\nInserir o bloco de código mesmo assim?"
     video:
       title: Inserir Vídeo
       tab_url: URL / Arquivo
@@ -555,8 +555,8 @@ pt-BR:
     templates_markdown_only: Modelos estão disponíveis apenas para notas markdown
     failed_to_process_ai: Falha ao processar texto com IA
   confirm:
-    delete_note: Tem certeza que deseja excluir esta nota?
-    delete_folder: Tem certeza que deseja excluir esta pasta e todo seu conteúdo?
+    delete_note: "Excluir a nota \"%{name}\"?\n\nEssa ação não pode ser desfeita."
+    delete_folder: "Excluir a pasta \"%{name}\" e tudo o que está dentro dela?\n\nEssa ação não pode ser desfeita."
   success:
     note_created: Nota criada
     note_saved: Nota salva

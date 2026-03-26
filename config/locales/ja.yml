@@ -215,8 +215,8 @@ ja:
       path_placeholder: 例 team/retro
       content_label: マークダウン内容
       content_placeholder: ここにテンプレートのマークダウンを書いてください...
-      delete_confirm: テンプレート「%{name}」を削除しますか？
-      delete_linked_confirm: リンク済みテンプレート「%{name}」を削除しますか？
+      delete_confirm: "テンプレート「%{name}」を削除しますか？\n\nこのテンプレートから作成済みのノートはそのまま残ります。"
+      delete_linked_confirm: "テンプレート「%{name}」とのリンクを解除しますか？\n\nノート自体の内容は変わりません。"
       built_ins:
         daily_note:
           name: デイリーノート
@@ -258,7 +258,7 @@ ja:
       use_tabs: タブを使用
       code_placeholder: コードをここに貼り付けまたは入力...
       insert_code: コードを挿入
-      unrecognized_language: '"%{language}"は認識されない言語です。それでも挿入しますか？'
+      unrecognized_language: "\"%{language}\" は LewisMD の認識済み言語一覧にありません。\n\nそれでもコードブロックを挿入しますか？"
     video:
       title: 動画を挿入
       tab_url: URL / ファイル
@@ -550,8 +550,8 @@ ja:
     templates_markdown_only: テンプレートはMarkdownノートでのみ利用できます
     failed_to_process_ai: AIでのテキスト処理に失敗しました
   confirm:
-    delete_note: このノートを削除してもよろしいですか？
-    delete_folder: このフォルダとすべての内容を削除してもよろしいですか？
+    delete_note: "ノート「%{name}」を削除しますか？\n\nこの操作は元に戻せません。"
+    delete_folder: "フォルダ「%{name}」とその中身をすべて削除しますか？\n\nこの操作は元に戻せません。"
   success:
     note_created: ノートを作成しました
     note_saved: ノートを保存しました

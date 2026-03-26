@@ -38,6 +38,7 @@ class TranslationsControllerTest < ActionDispatch::IntegrationTest
     assert translations.key?("status_strip")
     assert translations.key?("header")
     assert translations.key?("share_view")
+    assert translations.key?("confirm")
   end
 
   test "show returns correct English translations" do
@@ -343,6 +344,26 @@ class TranslationsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "all locales include complete confirmation dialog translations" do
+    checks = [
+      [ "confirm", "delete_note" ],
+      [ "confirm", "delete_folder" ],
+      [ "dialogs", "templates", "delete_confirm" ],
+      [ "dialogs", "templates", "delete_linked_confirm" ],
+      [ "dialogs", "code", "unrecognized_language" ]
+    ]
+
+    %w[en pt-BR pt-PT es he ja ko].each do |locale|
+      get translations_url(locale: locale), as: :json
+      data = JSON.parse(response.body)
+
+      checks.each do |path|
+        value = data.dig("translations", *path)
+        assert value.present?, "Locale #{locale} is missing #{path.join('.')}"
+      end
+    end
+  end
+
   test "all locales include backup menu and status translations" do
     checks = [
       [ "context_menu", "backup_note" ],
@@ -440,7 +461,7 @@ class TranslationsControllerTest < ActionDispatch::IntegrationTest
   # === Translations Include All Required Sections ===
 
   test "translations include all sections needed by JavaScript" do
-    expected_sections = %w[common dialogs status status_strip errors success editor sidebar preview context_menu connection export_menu header share_view]
+    expected_sections = %w[common dialogs status status_strip errors success editor sidebar preview context_menu connection export_menu header share_view confirm]
 
     get translations_url, as: :json
     data = JSON.parse(response.body)

@@ -215,8 +215,8 @@ ko:
       path_placeholder: "예: team/retro"
       content_label: 마크다운 내용
       content_placeholder: 여기에 템플릿 마크다운을 작성하세요...
-      delete_confirm: 템플릿 \"%{name}\"을 삭제할까요?
-      delete_linked_confirm: 연결된 템플릿 \"%{name}\"을 삭제할까요?
+      delete_confirm: "템플릿 \"%{name}\"을 삭제할까요?\n\n이미 이 템플릿으로 만든 노트는 그대로 유지됩니다."
+      delete_linked_confirm: "템플릿 \"%{name}\"과의 연결을 해제할까요?\n\n노트 자체는 그대로 유지됩니다."
       built_ins:
         daily_note:
           name: 데일리 노트
@@ -258,7 +258,7 @@ ko:
       use_tabs: 탭 사용
       code_placeholder: 코드를 붙여넣거나 입력하세요...
       insert_code: 코드 삽입
-      unrecognized_language: '"%{language}"은(는) 인식되지 않는 언어입니다. 그래도 삽입하시겠습니까?'
+      unrecognized_language: "\"%{language}\"은(는) LewisMD의 인식된 언어 목록에 없습니다.\n\n그래도 코드 블록을 삽입할까요?"
     video:
       title: 동영상 삽입
       tab_url: URL / 파일
@@ -550,8 +550,8 @@ ko:
     templates_markdown_only: 템플릿은 마크다운 노트에서만 사용할 수 있습니다
     failed_to_process_ai: AI로 텍스트 처리 실패
   confirm:
-    delete_note: 이 노트를 삭제하시겠습니까?
-    delete_folder: 이 폴더와 모든 내용을 삭제하시겠습니까?
+    delete_note: "노트 \"%{name}\"을 삭제할까요?\n\n이 작업은 되돌릴 수 없습니다."
+    delete_folder: "폴더 \"%{name}\"과(와) 그 안의 모든 내용을 삭제할까요?\n\n이 작업은 되돌릴 수 없습니다."
   success:
     note_created: 노트가 생성되었습니다
     note_saved: 노트가 저장되었습니다

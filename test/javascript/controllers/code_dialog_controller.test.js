@@ -9,7 +9,10 @@ describe("CodeDialogController", () => {
   let application, controller, element
 
   beforeEach(() => {
-    window.t = vi.fn((key) => key)
+    window.t = vi.fn((key, params) => {
+      if (params) return `${key} ${JSON.stringify(params)}`
+      return key
+    })
 
     document.body.innerHTML = `
       <div data-controller="code-dialog">
@@ -280,7 +283,7 @@ describe("CodeDialogController", () => {
 
       controller.insert()
 
-      expect(window.confirm).toHaveBeenCalled()
+      expect(window.confirm).toHaveBeenCalledWith('dialogs.code.unrecognized_language {"language":"unknownlang"}')
     })
 
     it("does not insert when confirmation is cancelled", () => {

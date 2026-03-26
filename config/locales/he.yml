@@ -212,8 +212,8 @@ he:
       path_placeholder: למשל team/retro
       content_label: תוכן מרקדאון
       content_placeholder: כתוב כאן את המרקדאון של התבנית...
-      delete_confirm: למחוק את התבנית \"%{name}\"?
-      delete_linked_confirm: למחוק את התבנית המקושרת \"%{name}\"?
+      delete_confirm: "למחוק את התבנית \"%{name}\"?\n\nהערות שכבר נוצרו ממנה יישארו כפי שהן."
+      delete_linked_confirm: "להסיר את הקישור לתבנית \"%{name}\"?\n\nההערה עצמה תישאר כפי שהיא."
       built_ins:
         daily_note:
           name: הערה יומית
@@ -255,7 +255,7 @@ he:
       use_tabs: השתמש בטאבים
       code_placeholder: הדבק או הקלד את הקוד שלך כאן...
       insert_code: הוסף קוד
-      unrecognized_language: '"%{language}" אינה שפה מוכרת. להוסיף בכל זאת?'
+      unrecognized_language: "\"%{language}\" אינה מופיעה ברשימת השפות המוכרות של LewisMD.\n\nלהוסיף את בלוק הקוד בכל זאת?"
     video:
       title: הוסף סרטון
       tab_url: URL / קובץ
@@ -524,8 +524,8 @@ he:
     templates_markdown_only: תבניות זמינות רק עבור הערות markdown
     failed_to_process_ai: נכשל בעיבוד טקסט עם AI
   confirm:
-    delete_note: האם אתה בטוח שברצונך למחוק הערה זו?
-    delete_folder: האם אתה בטוח שברצונך למחוק תיקייה זו וכל תוכנה?
+    delete_note: "למחוק את ההערה \"%{name}\"?\n\nאי אפשר לבטל את הפעולה הזו."
+    delete_folder: "למחוק את התיקייה \"%{name}\" ואת כל מה שבתוכה?\n\nאי אפשר לבטל את הפעולה הזו."
   success:
     note_created: ההערה נוצרה
     note_saved: ההערה נשמרה

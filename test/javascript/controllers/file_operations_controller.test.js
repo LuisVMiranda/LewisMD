@@ -864,7 +864,14 @@ describe("FileOperationsController", () => {
       controller.contextItem = { path: "test.md", type: "file" }
       await controller.deleteItem()
 
-      expect(global.confirm).toHaveBeenCalled()
+      expect(global.confirm).toHaveBeenCalledWith('confirm.delete_note {"name":"test"}')
+    })
+
+    it("uses a human-friendly folder name in the confirmation dialog", async () => {
+      controller.contextItem = { path: "projects/archive", type: "folder" }
+      await controller.deleteItem()
+
+      expect(global.confirm).toHaveBeenCalledWith('confirm.delete_folder {"name":"archive"}')
     })
 
     it("does not delete if confirmation cancelled", async () => {
@@ -897,6 +904,22 @@ describe("FileOperationsController", () => {
 
       expect(handler).toHaveBeenCalled()
       expect(handler.mock.calls[0][0].detail.path).toBe("test.md")
+    })
+  })
+
+  describe("template confirmations", () => {
+    it("uses a human-friendly template name when deleting a template", async () => {
+      controller.currentTemplatePath = "team/retro.md"
+
+      await controller.deleteTemplate()
+
+      expect(global.confirm).toHaveBeenCalledWith('dialogs.templates.delete_confirm {"name":"Retro"}')
+    })
+
+    it("uses a human-friendly template name when removing a linked template", async () => {
+      await controller.deleteTemplateForNote("linked.md")
+
+      expect(global.confirm).toHaveBeenCalledWith('dialogs.templates.delete_linked_confirm {"name":"Linked"}')
     })
   })
 

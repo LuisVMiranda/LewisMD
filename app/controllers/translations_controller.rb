@@ -5,7 +5,7 @@ class TranslationsController < ApplicationController
   # Returns translations for JavaScript use
   def show
     locale = requested_locale || I18n.locale
-    js_keys = %w[common dialogs status status_strip errors success editor sidebar preview context_menu connection export_menu header share_view]
+    js_keys = %w[common dialogs status status_strip errors success editor sidebar preview context_menu connection export_menu header share_view confirm]
     translations = js_keys.each_with_object({}) do |key, hash|
       hash[key] = I18n.t(key, locale: locale, default: {})
     end
