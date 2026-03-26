@@ -654,6 +654,44 @@ class ConfigTest < ActiveSupport::TestCase
     assert_equal "claude-3-opus-20240229", config.effective_ai_model
   end
 
+  test "ai_provider_options returns normalized provider and model pairs in priority order" do
+    ENV["OPENROUTER_API_KEY"] = "sk-or-test"
+    ENV["OPENAI_API_KEY"] = "sk-test"
+    ENV["ANTHROPIC_API_KEY"] = "sk-ant-test"
+
+    config = Config.new(base_path: @test_dir)
+    options = config.ai_provider_options
+
+    assert_equal %w[openai anthropic openrouter], options.map { |option| option["provider"] }
+    assert_equal(
+      [
+        "OpenAI · gpt-4o-mini",
+        "Anthropic · claude-sonnet-4-20250514",
+        "OpenRouter · openai/gpt-4o-mini"
+      ],
+      options.map { |option| option["label"] }
+    )
+    assert_equal [ "provider_specific" ], options.map { |option| option["model_source"] }.uniq
+    assert_equal [ false ], options.map { |option| option["selected"] }.uniq
+  end
+
+  test "effective_ai_option keeps global ai_model override separate from provider options" do
+    ENV["OPENAI_API_KEY"] = "sk-test"
+    ENV["ANTHROPIC_API_KEY"] = "sk-ant-test"
+
+    @test_dir.join(".fed").write("ai_model = gpt-4-turbo")
+    config = Config.new(base_path: @test_dir)
+
+    assert_equal "gpt-4-turbo", config.effective_ai_option["model"]
+    assert_equal "global_override", config.effective_ai_option["model_source"]
+    assert_equal true, config.effective_ai_option["selected"]
+    assert_equal "OpenAI · gpt-4-turbo", config.effective_ai_option["label"]
+
+    options = config.ai_provider_options
+    assert_equal "gpt-4o-mini", options.find { |option| option["provider"] == "openai" }["model"]
+    assert_equal "claude-sonnet-4-20250514", options.find { |option| option["provider"] == "anthropic" }["model"]
+  end
+
   test "feature_available? returns true for ai when any provider configured" do
     ENV["GEMINI_API_KEY"] = "gemini-test"
 

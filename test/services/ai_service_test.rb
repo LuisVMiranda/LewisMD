@@ -228,11 +228,16 @@ class AiServiceTest < ActiveSupport::TestCase
     assert_includes info.keys, :provider
     assert_includes info.keys, :model
     assert_includes info.keys, :available_providers
+    assert_includes info.keys, :available_options
+    assert_includes info.keys, :current_selection
 
     assert info[:enabled]
     assert_equal "openai", info[:provider]  # openai has highest priority
     assert_includes info[:available_providers], "openai"
     assert_includes info[:available_providers], "anthropic"
+    assert_equal %w[openai anthropic], info[:available_options].map { |option| option["provider"] }
+    assert_equal "openai", info[:current_selection]["provider"]
+    assert_equal "gpt-4o-mini", info[:current_selection]["model"]
   end
 
   test "available_providers returns all configured providers" do
@@ -247,6 +252,22 @@ class AiServiceTest < ActiveSupport::TestCase
     assert_includes providers, "anthropic"
     assert_not_includes providers, "gemini"
     assert_not_includes providers, "openrouter"
+  end
+
+  test "available_options uses provider-specific models even when ai_model is globally overridden" do
+    ENV["OPENAI_API_KEY"] = "sk-test"
+    ENV["ANTHROPIC_API_KEY"] = "sk-ant-test"
+    ENV["AI_MODEL"] = "gpt-4-turbo"
+
+    options = AiService.available_options
+
+    assert_equal "gpt-4o-mini", options.find { |option| option["provider"] == "openai" }["model"]
+    assert_equal "claude-sonnet-4-20250514", options.find { |option| option["provider"] == "anthropic" }["model"]
+
+    selection = AiService.current_selection
+    assert_equal "openai", selection["provider"]
+    assert_equal "gpt-4-turbo", selection["model"]
+    assert_equal "global_override", selection["model_source"]
   end
 
   # Image generation tests

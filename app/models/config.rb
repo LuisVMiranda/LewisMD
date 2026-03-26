@@ -115,6 +115,33 @@ class Config
   # Gemini is last because its API key is primarily for image generation (Imagen)
   # This allows using Anthropic for text while Gemini handles images
   AI_PROVIDER_PRIORITY = %w[openai anthropic openrouter ollama gemini].freeze
+  AI_PROVIDER_METADATA = {
+    "openai" => {
+      credential_key: "openai_api_key",
+      model_key: "openai_model",
+      label: "OpenAI"
+    },
+    "anthropic" => {
+      credential_key: "anthropic_api_key",
+      model_key: "anthropic_model",
+      label: "Anthropic"
+    },
+    "openrouter" => {
+      credential_key: "openrouter_api_key",
+      model_key: "openrouter_model",
+      label: "OpenRouter"
+    },
+    "ollama" => {
+      credential_key: "ollama_api_base",
+      model_key: "ollama_model",
+      label: "Ollama"
+    },
+    "gemini" => {
+      credential_key: "gemini_api_key",
+      model_key: "gemini_model",
+      label: "Google Gemini"
+    }
+  }.freeze
 
   # AI credential keys - if ANY of these are set in .fed, ignore ALL AI ENV vars
   # This allows users to override their global ENV config per-folder
@@ -411,13 +438,15 @@ class Config
 
   # Get list of available AI providers (those with credentials configured)
   def ai_providers_available
-    available = []
-    available << "ollama" if get_ai("ollama_api_base").present?
-    available << "openrouter" if get_ai("openrouter_api_key").present?
-    available << "anthropic" if get_ai("anthropic_api_key").present?
-    available << "gemini" if get_ai("gemini_api_key").present?
-    available << "openai" if get_ai("openai_api_key").present?
-    available
+    AI_PROVIDER_METADATA.each_with_object([]) do |(provider, metadata), available|
+      available << provider if get_ai(metadata[:credential_key]).present?
+    end
+  end
+
+  def ai_provider_options
+    AI_PROVIDER_PRIORITY.filter_map do |provider|
+      ai_provider_option(provider)
+    end
   end
 
   # Get the effective AI provider based on priority
@@ -447,6 +476,19 @@ class Config
 
     # Use provider-specific model
     get_ai("#{provider}_model")
+  end
+
+  def effective_ai_option
+    provider = effective_ai_provider
+    return nil unless provider
+
+    global_model = get_ai("ai_model")
+    ai_provider_option(
+      provider,
+      model: global_model.presence || effective_ai_model,
+      model_source: global_model.present? ? "global_override" : "provider_specific",
+      selected: true
+    )
   end
 
   # Get the effective value for a setting (used by services)
@@ -757,5 +799,23 @@ class Config
     end
 
     lines
+  end
+
+  def ai_provider_option(provider, model: nil, model_source: "provider_specific", selected: false)
+    provider = provider.to_s
+    metadata = AI_PROVIDER_METADATA[provider]
+    return nil unless metadata && ai_providers_available.include?(provider)
+
+    resolved_model = model.presence || get_ai(metadata[:model_key])
+    return nil if resolved_model.blank?
+
+    {
+      "provider" => provider,
+      "provider_label" => metadata[:label],
+      "model" => resolved_model,
+      "label" => "#{metadata[:label]} · #{resolved_model}",
+      "model_source" => model_source,
+      "selected" => selected
+    }
   end
 end

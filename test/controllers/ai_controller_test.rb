@@ -142,6 +142,23 @@ class AiControllerTest < ActionDispatch::IntegrationTest
     assert_equal "gpt-4-turbo", data["model"]
   end
 
+  test "config returns normalized provider options and current selection" do
+    ENV["OPENAI_API_KEY"] = "sk-test"
+    ENV["ANTHROPIC_API_KEY"] = "sk-ant-test"
+    ENV["AI_MODEL"] = "gpt-4-turbo"
+
+    get "/ai/config", as: :json
+    assert_response :success
+
+    data = JSON.parse(response.body)
+    assert_equal %w[openai anthropic], data["available_options"].map { |option| option["provider"] }
+    assert_equal "gpt-4o-mini", data["available_options"].find { |option| option["provider"] == "openai" }["model"]
+    assert_equal "claude-sonnet-4-20250514", data["available_options"].find { |option| option["provider"] == "anthropic" }["model"]
+    assert_equal "openai", data["current_selection"]["provider"]
+    assert_equal "gpt-4-turbo", data["current_selection"]["model"]
+    assert_equal "global_override", data["current_selection"]["model_source"]
+  end
+
   # Fix grammar endpoint tests
   test "fix_grammar returns error when path is blank" do
     post "/ai/fix_grammar", params: { path: "" }, as: :json

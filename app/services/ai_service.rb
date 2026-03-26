@@ -50,6 +50,14 @@ class AiService
       config_instance.effective_ai_model
     end
 
+    def available_options
+      config_instance.ai_provider_options
+    end
+
+    def current_selection
+      config_instance.effective_ai_option
+    end
+
     def fix_grammar(text)
       return { error: "AI not configured" } unless enabled?
       return { error: "No text provided" } if text.blank?
@@ -108,7 +116,9 @@ class AiService
         enabled: enabled?,
         provider: current_provider,
         model: current_model,
-        available_providers: available_providers
+        available_providers: available_providers,
+        available_options: available_options,
+        current_selection: current_selection
       }
     end
 
