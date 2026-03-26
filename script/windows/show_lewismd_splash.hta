@@ -1,0 +1,553 @@
+<html>
+<head>
+  <title>LewisMD Launching</title>
+  <meta http-equiv="x-ua-compatible" content="IE=11" />
+  <hta:application
+    applicationname="LewisMDSplash"
+    border="none"
+    caption="no"
+    contextmenu="no"
+    innerborder="no"
+    maximizebutton="no"
+    minimizebutton="no"
+    navigable="no"
+    scroll="no"
+    selection="no"
+    showintaskbar="no"
+    singleinstance="yes"
+    sysmenu="no"
+    windowstate="normal" />
+  <style type="text/css">
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: transparent;
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      color: #ffffff;
+    }
+
+    body {
+      opacity: 1;
+      transition: opacity 220ms ease;
+    }
+
+    body.closing {
+      opacity: 0;
+    }
+
+    #shell {
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
+      padding: 28px;
+      border-radius: 26px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: linear-gradient(135deg, #2d1b4e 0%, #ff6b9d 100%);
+      box-shadow: 0 18px 42px rgba(0, 0, 0, 0.26);
+    }
+
+    #layout {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      width: 100%;
+      height: 100%;
+    }
+
+    #hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      height: 100%;
+    }
+
+    #logo {
+      width: 120px;
+      height: 120px;
+      margin-bottom: 20px;
+      object-fit: contain;
+    }
+
+    #spinner {
+      width: 60px;
+      height: 60px;
+      margin-bottom: 18px;
+      border-radius: 999px;
+      position: relative;
+    }
+
+    #spinner-track,
+    #spinner-arc {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 44px;
+      height: 44px;
+      margin-left: -22px;
+      margin-top: -22px;
+      border-radius: 999px;
+      box-sizing: border-box;
+    }
+
+    #spinner-track {
+      border: 4px solid rgba(255, 255, 255, 0.18);
+    }
+
+    #spinner-arc {
+      border: 4px solid transparent;
+      border-top-color: #ffffff;
+      border-right-color: #ffffff;
+      animation: spin 1.6s linear infinite;
+    }
+
+    body.error #spinner-arc {
+      animation: none;
+      border-top-color: #ffe4e1;
+      border-right-color: #ffe4e1;
+    }
+
+    #title {
+      font-size: 32px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    #statusText {
+      font-size: 15px;
+      color: #f5ffffff;
+      margin-bottom: 4px;
+    }
+
+    #detailText {
+      max-width: 360px;
+      font-size: 13px;
+      line-height: 1.45;
+      color: rgba(255, 255, 255, 0.84);
+    }
+
+    #hintText {
+      display: none;
+      max-width: 420px;
+      margin-top: 14px;
+      font-size: 12px;
+      line-height: 1.45;
+      color: rgba(255, 255, 255, 0.95);
+      white-space: pre-line;
+    }
+
+    body.error #hintText {
+      display: block;
+    }
+
+    #footer {
+      margin-top: 16px;
+    }
+
+    #progressTrack {
+      width: 100%;
+      height: 8px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    #progressFill {
+      width: 5%;
+      height: 100%;
+      background: #ffffff;
+      transition: width 180ms ease;
+    }
+
+    body.error #progressFill {
+      background: #ffe4e1;
+    }
+
+    #meta {
+      margin-top: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+    }
+
+    #stepText {
+      color: rgba(255, 255, 255, 0.8);
+      text-transform: lowercase;
+    }
+
+    #percentText {
+      color: #ffffff;
+      font-weight: 600;
+    }
+
+    #dismissButton {
+      display: none;
+      margin: 16px auto 0;
+      width: 124px;
+      height: 34px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      background: rgba(0, 0, 0, 0.12);
+      color: #ffffff;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    body.error #dismissButton {
+      display: block;
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+  </style>
+  <script language="javascript" type="text/javascript">
+    var shell = new ActiveXObject("WScript.Shell");
+    var fso = new ActiveXObject("Scripting.FileSystemObject");
+    var launchStartedAt = new Date();
+    var readyObservedAt = null;
+    var closeRequested = false;
+    var pollTimer = null;
+    var promoteTimer = null;
+    var progressPath = null;
+    var iconPath = null;
+    var visibleLauncherPath = null;
+    var launcherLogPath = null;
+
+    function defaultPayload() {
+      return {
+        state: "starting",
+        percent: 5,
+        message: "Starting LewisMD...",
+        step: "prepare"
+      };
+    }
+
+    function safeText(value, fallbackValue) {
+      if (typeof value === "string" && value.replace(/\s+/g, "").length > 0) {
+        return value;
+      }
+
+      return fallbackValue;
+    }
+
+    function normalizePercent(value, fallbackValue) {
+      var parsed = parseInt(value, 10);
+      if (isNaN(parsed)) {
+        parsed = fallbackValue;
+      }
+
+      if (parsed < 0) {
+        parsed = 0;
+      }
+
+      if (parsed > 100) {
+        parsed = 100;
+      }
+
+      return parsed;
+    }
+
+    function parseIsoTimestamp(value) {
+      var match;
+
+      if (!value || typeof value !== "string") {
+        return null;
+      }
+
+      match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})$/.exec(value);
+      if (!match) {
+        return null;
+      }
+
+      return new Date(
+        parseInt(match[1], 10),
+        parseInt(match[2], 10) - 1,
+        parseInt(match[3], 10),
+        parseInt(match[4], 10),
+        parseInt(match[5], 10),
+        parseInt(match[6], 10)
+      );
+    }
+
+    function parseJson(raw) {
+      if (window.JSON && typeof window.JSON.parse === "function") {
+        return window.JSON.parse(raw);
+      }
+
+      return eval("(" + raw + ")");
+    }
+
+    function decodePathname(value) {
+      var decoded = decodeURIComponent(value || "");
+      decoded = decoded.replace(/\//g, "\\");
+
+      if (/^\\[A-Za-z]:/.test(decoded)) {
+        decoded = decoded.substring(1);
+      }
+
+      return decoded;
+    }
+
+    function currentScriptPath() {
+      return decodePathname(document.location.pathname);
+    }
+
+    function repoRootPath() {
+      var scriptDir = fso.GetParentFolderName(currentScriptPath());
+      return fso.GetParentFolderName(scriptDir);
+    }
+
+    function initializePaths() {
+      var root = repoRootPath();
+      progressPath = fso.BuildPath(root, "tmp\\windows-launcher\\launcher-progress.json");
+      iconPath = fso.BuildPath(root, "public\\icon.png");
+      visibleLauncherPath = fso.BuildPath(root, "script\\windows\\start_lewismd.bat");
+      launcherLogPath = fso.BuildPath(root, "tmp\\windows-launcher\\launcher.log");
+    }
+
+    function readProgressPayload() {
+      var fallback = defaultPayload();
+      var updatedAt = null;
+      var payload = null;
+      var fileHandle = null;
+      var raw = "";
+
+      try {
+        if (!fso.FileExists(progressPath)) {
+          return fallback;
+        }
+
+        fileHandle = fso.OpenTextFile(progressPath, 1, false, -1);
+        raw = fileHandle.ReadAll();
+        fileHandle.Close();
+        fileHandle = null;
+
+        if (!raw || raw.replace(/\s+/g, "").length === 0) {
+          return fallback;
+        }
+
+        payload = parseJson(raw);
+        updatedAt = parseIsoTimestamp(payload.updatedAt);
+        if (!updatedAt || updatedAt < launchStartedAt) {
+          return fallback;
+        }
+
+        return {
+          state: safeText(payload.state, fallback.state),
+          percent: normalizePercent(payload.percent, fallback.percent),
+          message: safeText(payload.message, fallback.message),
+          step: safeText(payload.step, fallback.step)
+        };
+      } catch (error) {
+        try {
+          if (fileHandle) {
+            fileHandle.Close();
+          }
+        } catch (closeError) {
+        }
+
+        return fallback;
+      }
+    }
+
+    function setText(id, value) {
+      document.getElementById(id).innerText = value;
+    }
+
+    function statusHeadingFor(payload) {
+      switch (payload.state) {
+        case "error":
+          return "LewisMD couldn't finish starting";
+        case "ready":
+          return "LewisMD is ready";
+        case "running":
+          return "LewisMD is open";
+        case "stopping":
+          return "Closing LewisMD...";
+        case "validation":
+          return "Validating launcher runtime";
+        default:
+          return "Starting LewisMD...";
+      }
+    }
+
+    function errorHintFor(payload) {
+      if (payload.step === "timeout") {
+        return "LewisMD may still finish opening, but if it keeps stalling, run the visible launcher for details:\n" +
+          visibleLauncherPath + "\n\nLauncher log:\n" + launcherLogPath;
+      }
+
+      return "Open the visible launcher for details:\n" +
+        visibleLauncherPath + "\n\nLauncher log:\n" + launcherLogPath;
+    }
+
+    function updateFromPayload(payload) {
+      setText("statusText", statusHeadingFor(payload));
+      setText("detailText", payload.message);
+      setText("percentText", payload.percent + "%");
+      setText("stepText", payload.step || "prepare");
+      document.getElementById("progressFill").style.width = payload.percent + "%";
+
+      if (payload.state === "error") {
+        document.body.className = "error";
+        setText("hintText", errorHintFor(payload));
+      } else {
+        document.body.className = "";
+        document.getElementById("hintText").innerText = "";
+      }
+    }
+
+    function requestClose() {
+      if (closeRequested) {
+        return;
+      }
+
+      closeRequested = true;
+      document.body.className += (document.body.className ? " " : "") + "closing";
+
+      window.setTimeout(function() {
+        window.close();
+      }, 220);
+    }
+
+    function centerSplashWindow() {
+      var width = 560;
+      var height = 380;
+      var left = Math.max(0, Math.round((screen.availWidth - width) / 2));
+      var top = Math.max(0, Math.round((screen.availHeight - height) / 2));
+
+      window.resizeTo(width, height);
+      window.moveTo(left, top);
+    }
+
+    function promoteSplashWindow() {
+      try {
+        window.focus();
+        shell.AppActivate(document.title);
+      } catch (error) {
+      }
+    }
+
+    function finishOnTimeout() {
+      var timeoutPayload = {
+        state: "error",
+        percent: 100,
+        message: "LewisMD is taking longer than expected to start. You can keep waiting or open the visible launcher for details.",
+        step: "timeout"
+      };
+
+      if (pollTimer) {
+        window.clearInterval(pollTimer);
+        pollTimer = null;
+      }
+
+      updateFromPayload(timeoutPayload);
+    }
+
+    function pollProgress() {
+      var payload = readProgressPayload();
+      updateFromPayload(payload);
+
+      if (payload.state === "error") {
+        if (pollTimer) {
+          window.clearInterval(pollTimer);
+          pollTimer = null;
+        }
+        return;
+      }
+
+      if (payload.state === "ready" || payload.state === "running") {
+        if (readyObservedAt === null) {
+          readyObservedAt = new Date();
+        } else if ((new Date()).getTime() - readyObservedAt.getTime() >= 700) {
+          if (pollTimer) {
+            window.clearInterval(pollTimer);
+            pollTimer = null;
+          }
+          requestClose();
+          return;
+        }
+      } else {
+        readyObservedAt = null;
+      }
+
+      if ((new Date()).getTime() - launchStartedAt.getTime() >= 90000) {
+        finishOnTimeout();
+      }
+    }
+
+    function initializeLogo() {
+      if (fso.FileExists(iconPath)) {
+        document.getElementById("logo").src = iconPath;
+      }
+    }
+
+    function startPromotionPulse() {
+      var elapsed = 0;
+
+      promoteTimer = window.setInterval(function() {
+        elapsed += 500;
+        promoteSplashWindow();
+
+        if (elapsed >= 5000) {
+          window.clearInterval(promoteTimer);
+          promoteTimer = null;
+        }
+      }, 500);
+    }
+
+    function initializeSplash() {
+      initializePaths();
+      centerSplashWindow();
+      initializeLogo();
+      promoteSplashWindow();
+      startPromotionPulse();
+
+      document.getElementById("dismissButton").onclick = function() {
+        requestClose();
+      };
+
+      updateFromPayload(defaultPayload());
+      pollProgress();
+      pollTimer = window.setInterval(pollProgress, 250);
+    }
+  </script>
+</head>
+<body onload="initializeSplash()" onunload="if (pollTimer) { window.clearInterval(pollTimer); } if (promoteTimer) { window.clearInterval(promoteTimer); }">
+  <div id="shell">
+    <div id="layout">
+      <div id="hero">
+        <img id="logo" alt="LewisMD logo" />
+        <div id="spinner">
+          <div id="spinner-track"></div>
+          <div id="spinner-arc"></div>
+        </div>
+        <div id="title">LewisMD</div>
+        <div id="statusText">Starting LewisMD...</div>
+        <div id="detailText">Preparing the local launcher</div>
+        <div id="hintText"></div>
+      </div>
+
+      <div id="footer">
+        <div id="progressTrack">
+          <div id="progressFill"></div>
+        </div>
+
+        <div id="meta">
+          <div id="stepText">prepare</div>
+          <div id="percentText">5%</div>
+        </div>
+
+        <button id="dismissButton" type="button">Close</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

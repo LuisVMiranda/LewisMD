@@ -17,7 +17,7 @@ Option Explicit
 
 Dim shell, fso
 Dim scriptDir, repoRoot, startScript, splashScript, launcherLog, railsLog, progressFile, iconPath, shortcutPath
-Dim command, splashCommand, powershellExe
+Dim command, splashCommand, mshtaExe
 Dim exitCode, argument, dryRun, installShortcut
 Dim hiddenWindowStyle, splashWindowStyle
 
@@ -27,13 +27,13 @@ Set fso = CreateObject("Scripting.FileSystemObject")
 scriptDir = fso.GetParentFolderName(WScript.ScriptFullName)
 repoRoot = fso.GetAbsolutePathName(fso.BuildPath(scriptDir, "..\.."))
 startScript = fso.BuildPath(scriptDir, "start_lewismd.bat")
-splashScript = fso.BuildPath(scriptDir, "show_lewismd_splash.ps1")
+splashScript = fso.BuildPath(scriptDir, "show_lewismd_splash.hta")
 launcherLog = fso.GetAbsolutePathName(fso.BuildPath(repoRoot, "tmp\windows-launcher\launcher.log"))
 railsLog = fso.GetAbsolutePathName(fso.BuildPath(repoRoot, "tmp\windows-launcher\rails.log"))
 progressFile = fso.GetAbsolutePathName(fso.BuildPath(repoRoot, "tmp\windows-launcher\launcher-progress.json"))
 iconPath = fso.GetAbsolutePathName(fso.BuildPath(repoRoot, "public\icon.ico"))
 shortcutPath = fso.BuildPath(shell.SpecialFolders("Desktop"), "LewisMD.lnk")
-powershellExe = shell.ExpandEnvironmentStrings("%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe")
+mshtaExe = shell.ExpandEnvironmentStrings("%SystemRoot%\System32\mshta.exe")
 hiddenWindowStyle = 0
 splashWindowStyle = 1
 
@@ -54,7 +54,7 @@ If Not fso.FileExists(startScript) Then
 End If
 
 command = "cmd.exe /c """"" & startScript & """ --skip-bootstrap-check --no-auto-bootstrap --no-pause-on-error"""
-splashCommand = """" & powershellExe & """ -NoProfile -Sta -ExecutionPolicy Bypass -File """ & splashScript & """ -ProgressFile """ & progressFile & """"
+splashCommand = """" & mshtaExe & """ """ & splashScript & """"
 
 If dryRun Then
   WScript.Echo "startScript=" & startScript
@@ -78,8 +78,8 @@ End If
 ' Start the splash helper first so hidden launches still give the user immediate
 ' feedback while the PowerShell orchestrator boots Rails and opens the browser.
 If fso.FileExists(splashScript) Then
-  ' Let the splash helper render in a normal STA host, then hide its own
-  ' console window from inside the script once the WPF splash is on-screen.
+  ' Use mshta.exe so the splash can render without spawning a browser tab or a
+  ' visible PowerShell console host in front of the user.
   shell.Run splashCommand, splashWindowStyle, False
   WScript.Sleep 150
 End If
