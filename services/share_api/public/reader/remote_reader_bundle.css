@@ -17,6 +17,7 @@
 @import "/reader/assets/themes/solarized-light.css";
 @import "/reader/assets/themes/tokyo-night.css";
 @import "/reader/assets/share_view.css"; /* inlined by the share-api asset server */
+@import "/reader/assets/outline.css"; /* inlined by the share-api asset server */
 
 html {
   box-sizing: border-box;
@@ -236,4 +237,115 @@ html.dark .dark\:text-red-400 {
   box-shadow: 0 12px 30px color-mix(in srgb, var(--theme-shadow, #020617) 16%, transparent);
   font-size: 0.875rem;
   backdrop-filter: blur(12px);
+}
+
+.share-view--remote .share-view__content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.35rem;
+  padding: 40px 24px 24px 40px;
+  align-items: stretch;
+}
+
+.share-view--remote.share-view--outline-visible .share-view__content {
+  grid-template-columns: minmax(15rem, 18rem) minmax(0, 1fr);
+}
+
+.share-view__outline-shell {
+  min-width: 0;
+  min-height: 0;
+  align-self: start;
+}
+
+.share-view__outline-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 1rem;
+  border: 1px solid var(--theme-border);
+  border-radius: 1.2rem;
+  background: color-mix(in srgb, var(--theme-bg-primary) 90%, transparent);
+  box-shadow: 0 16px 36px color-mix(in srgb, var(--theme-shadow, #020617) 12%, transparent);
+  backdrop-filter: blur(14px);
+}
+
+.share-view__outline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.share-view__outline-title {
+  margin: 0;
+  color: var(--theme-text-primary);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.share-view__outline-card .outline-panel__scroll {
+  max-height: min(45vh, 28rem);
+  padding-right: 0.1rem;
+}
+
+.share-view__frame-shell {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--theme-border) 88%, transparent);
+  border-radius: 1.25rem;
+  background: color-mix(in srgb, var(--theme-bg-primary) 94%, transparent);
+  box-shadow: 0 18px 40px color-mix(in srgb, var(--theme-shadow, #020617) 12%, transparent);
+}
+
+.share-view--remote .share-view__frame {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: transparent;
+}
+
+@media (min-width: 769px) and (max-width: 1100px) {
+  .share-view--remote .share-view__content {
+    gap: 1rem;
+    padding: 24px 18px 18px 24px;
+  }
+
+  .share-view--remote.share-view--outline-visible .share-view__content {
+    grid-template-columns: minmax(13rem, 15rem) minmax(0, 1fr);
+  }
+
+  .share-view__outline-card {
+    padding: 0.9rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .share-view--remote .share-view__content {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.9rem;
+    padding: 16px;
+  }
+
+  .share-view--remote.share-view--outline-visible .share-view__content {
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .share-view__outline-card {
+    padding: 0.9rem;
+    border-radius: 1rem;
+  }
+
+  .share-view__outline-card .outline-panel__scroll {
+    max-height: min(28vh, 11.5rem);
+  }
+
+  .share-view__frame-shell {
+    border-radius: 1rem;
+  }
 }

@@ -61,6 +61,7 @@ class ShareApiAppTest < ActiveSupport::TestCase
     assert_equal "text/css", last_response.media_type
     assert_includes last_response.body, ".share-view__toolbar"
     assert_includes last_response.body, ".share-view__frame"
+    assert_includes last_response.body, ".share-view__outline-card"
     assert_includes last_response.body, "box-sizing: border-box"
 
     get "/reader/assets/theme_helpers.js"
@@ -68,6 +69,12 @@ class ShareApiAppTest < ActiveSupport::TestCase
     assert_equal 200, last_response.status
     assert_equal "text/javascript", last_response.media_type
     assert_includes last_response.body, "BUILTIN_THEMES"
+
+    get "/reader/assets/outline_helpers.js"
+
+    assert_equal 200, last_response.status
+    assert_equal "text/javascript", last_response.media_type
+    assert_includes last_response.body, "collectOutlineEntries"
 
     get "/reader/assets/icon.svg"
 
@@ -80,6 +87,12 @@ class ShareApiAppTest < ActiveSupport::TestCase
     assert_equal 200, last_response.status
     assert_equal "text/css", last_response.media_type
     assert_includes last_response.body, ".share-view__toolbar"
+
+    get "/reader/assets/outline.css"
+
+    assert_equal 200, last_response.status
+    assert_equal "text/css", last_response.media_type
+    assert_includes last_response.body, ".outline-item"
 
     get "/reader/assets/themes/dark.css"
 
@@ -139,10 +152,15 @@ class ShareApiAppTest < ActiveSupport::TestCase
     assert_includes last_response.body, 'data-role="locale-toggle"'
     assert_includes last_response.body, 'data-role="export-toggle"'
     assert_includes last_response.body, 'data-role="display-toggle"'
+    assert_includes last_response.body, 'data-role="outline-section"'
+    assert_includes last_response.body, 'data-role="outline-list"'
+    assert_includes last_response.body, '<h2 class="share-view__outline-title">Outline</h2>'
     assert_includes last_response.body, 'href="/reader/assets/icon.svg"'
     assert_includes last_response.body, 'href="/reader/assets/favicon-32x32.png"'
     assert_includes last_response.body, 'href="/reader/assets/apple-touch-icon.png"'
     assert_includes last_response.body, 'class="share-view__display-panel hidden"'
+    assert_includes last_response.body, 'class="share-view__outline-shell hidden"'
+    assert_includes last_response.body, 'class="share-view__frame-shell"'
     assert_includes last_response.body, 'data-role="display-toggle"'
     assert_includes last_response.body, 'aria-expanded="false"'
     assert_includes last_response.body, 'title="Show reading controls"'

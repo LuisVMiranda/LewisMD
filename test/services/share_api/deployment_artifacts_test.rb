@@ -147,12 +147,17 @@ class ShareApiDeploymentArtifactsTest < ActiveSupport::TestCase
       Rails.root.join("app", "assets", "tailwind", "components", "share_view.css").read,
       Rails.root.join("services", "share_api", "public", "reader", "share_view.css").read
     )
+    assert_equal(
+      Rails.root.join("app", "assets", "tailwind", "components", "outline.css").read,
+      Rails.root.join("services", "share_api", "public", "reader", "outline.css").read
+    )
 
     %w[
       theme_helpers.js
       locale_helpers.js
       translation_helpers.js
       export_menu_helpers.js
+      outline_helpers.js
     ].each do |filename|
       assert_equal(
         Rails.root.join("app", "javascript", "lib", "share_reader", filename).read,

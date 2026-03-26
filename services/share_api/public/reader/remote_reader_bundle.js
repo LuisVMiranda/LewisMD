@@ -22,6 +22,10 @@ import {
   installGlobalTranslationHelper,
   setGlobalTranslations
 } from "/reader/assets/translation_helpers.js"
+import {
+  collectOutlineEntries,
+  findActiveOutlineIndex
+} from "/reader/assets/outline_helpers.js"
 
 const EXPORT_THEME_VARIABLES = [
   "--theme-bg-primary",
@@ -148,10 +152,13 @@ function downloadFile(filename, content, contentType) {
   }, 0)
 }
 
-class RemoteShareReader {
+export class RemoteShareReader {
   constructor(element) {
     this.element = element
     this.frame = element.querySelector('[data-role="frame"]')
+    this.outlineSection = element.querySelector('[data-role="outline-section"]')
+    this.outlineList = element.querySelector('[data-role="outline-list"]')
+    this.outlineEmpty = element.querySelector('[data-role="outline-empty"]')
     this.themeButton = element.querySelector('[data-role="theme-toggle"]')
     this.themeMenu = element.querySelector('[data-role="theme-menu"]')
     this.themeCurrentLabel = element.querySelector('[data-role="theme-current-label"]')
@@ -177,6 +184,10 @@ class RemoteShareReader {
     this.displayPanelExpanded = !this.displayPanel?.classList.contains("hidden")
     this.exportGroupExpanded = false
     this.baseFontSize = null
+    this.outlineEntries = []
+    this.activeOutlineId = null
+    this.outlineSyncQueued = false
+    this.frameScrollTarget = null
   }
 
   connect() {
@@ -197,6 +208,7 @@ class RemoteShareReader {
   disconnect() {
     document.removeEventListener("click", this.boundDocumentClick)
     this.frame?.removeEventListener("load", this.boundFrameLoad)
+    this.detachFrameScroll()
     this.themeButton?.removeEventListener("click", this.boundThemeToggle)
     this.themeMenu?.removeEventListener("click", this.boundThemeMenuClick)
     this.localeButton?.removeEventListener("click", this.boundLocaleToggle)
@@ -204,6 +216,7 @@ class RemoteShareReader {
     this.exportButton?.removeEventListener("click", this.boundExportToggle)
     this.exportMenu?.removeEventListener("click", this.boundExportMenuClick)
     this.displayToggle?.removeEventListener("click", this.boundDisplayToggle)
+    this.outlineList?.removeEventListener("click", this.boundOutlineClick)
     this.element.querySelector('[data-role="zoom-in"]')?.removeEventListener("click", this.boundZoomIn)
     this.element.querySelector('[data-role="zoom-out"]')?.removeEventListener("click", this.boundZoomOut)
     this.element.querySelector('[data-role="width-increase"]')?.removeEventListener("click", this.boundWidthIncrease)
@@ -223,11 +236,13 @@ class RemoteShareReader {
     this.boundExportToggle = (event) => this.toggleMenu(event, "export")
     this.boundExportMenuClick = (event) => this.onExportMenuClick(event)
     this.boundDisplayToggle = () => this.toggleDisplayPanel()
+    this.boundOutlineClick = (event) => this.onOutlineClick(event)
     this.boundZoomIn = () => this.zoomIn()
     this.boundZoomOut = () => this.zoomOut()
     this.boundWidthIncrease = () => this.increaseWidth()
     this.boundWidthDecrease = () => this.decreaseWidth()
     this.boundFontChange = (event) => this.changeFontFamily(event)
+    this.boundFrameScroll = () => this.scheduleOutlineSync()
 
     document.addEventListener("click", this.boundDocumentClick)
     this.frame?.addEventListener("load", this.boundFrameLoad)
@@ -238,6 +253,7 @@ class RemoteShareReader {
     this.exportButton?.addEventListener("click", this.boundExportToggle)
     this.exportMenu?.addEventListener("click", this.boundExportMenuClick)
     this.displayToggle?.addEventListener("click", this.boundDisplayToggle)
+    this.outlineList?.addEventListener("click", this.boundOutlineClick)
     this.element.querySelector('[data-role="zoom-in"]')?.addEventListener("click", this.boundZoomIn)
     this.element.querySelector('[data-role="zoom-out"]')?.addEventListener("click", this.boundZoomOut)
     this.element.querySelector('[data-role="width-increase"]')?.addEventListener("click", this.boundWidthIncrease)
@@ -400,6 +416,112 @@ class RemoteShareReader {
     this.baseFontSize = this.detectBaseFontSize()
     this.syncFrameTheme()
     this.applySettings()
+    this.rebuildOutline()
+  }
+
+  rebuildOutline() {
+    this.detachFrameScroll()
+    this.outlineEntries = collectOutlineEntries(this.frameDocument)
+    this.renderOutline()
+    this.attachFrameScroll()
+    this.updateActiveOutlineItem({ scrollList: false })
+  }
+
+  renderOutline() {
+    if (!this.outlineSection || !this.outlineList) return
+
+    this.outlineList.replaceChildren()
+
+    const hasOutline = this.outlineEntries.length > 0
+    this.outlineSection.classList.toggle("hidden", !hasOutline)
+    this.element.classList.toggle("share-view--outline-visible", hasOutline)
+    this.outlineEmpty?.classList.toggle("hidden", hasOutline)
+    this.activeOutlineId = null
+
+    if (!hasOutline) return
+
+    const fragment = document.createDocumentFragment()
+
+    this.outlineEntries.forEach((entry) => {
+      const button = document.createElement("button")
+      button.type = "button"
+      button.className = "outline-item"
+      button.dataset.outlineId = entry.id
+      button.dataset.active = "false"
+      button.style.setProperty("--outline-level", String(entry.level))
+      button.textContent = entry.text
+      button.title = entry.text
+      fragment.appendChild(button)
+    })
+
+    this.outlineList.appendChild(fragment)
+  }
+
+  attachFrameScroll() {
+    const frameWindow = this.frameWindow
+    if (!frameWindow?.addEventListener || !this.boundFrameScroll || this.outlineEntries.length === 0) return
+
+    frameWindow.addEventListener("scroll", this.boundFrameScroll, { passive: true })
+    this.frameScrollTarget = frameWindow
+  }
+
+  detachFrameScroll() {
+    if (!this.frameScrollTarget?.removeEventListener || !this.boundFrameScroll) return
+
+    this.frameScrollTarget.removeEventListener("scroll", this.boundFrameScroll)
+    this.frameScrollTarget = null
+  }
+
+  scheduleOutlineSync() {
+    if (this.outlineSyncQueued) return
+
+    this.outlineSyncQueued = true
+    const scheduler = window.requestAnimationFrame || ((callback) => window.setTimeout(callback, 16))
+    scheduler(() => {
+      this.outlineSyncQueued = false
+      this.updateActiveOutlineItem()
+    })
+  }
+
+  updateActiveOutlineItem({ scrollList = true } = {}) {
+    const activeIndex = findActiveOutlineIndex(this.outlineEntries, this.frameWindow)
+    const activeId = activeIndex >= 0 ? this.outlineEntries[activeIndex]?.id : null
+
+    this.setActiveOutlineId(activeId, { scrollList })
+  }
+
+  setActiveOutlineId(activeId, { scrollList = true } = {}) {
+    if (!this.outlineList) return
+
+    this.outlineList.querySelectorAll("[data-outline-id]").forEach((button) => {
+      const isActive = button.dataset.outlineId === activeId
+      button.dataset.active = String(isActive)
+      if (isActive) {
+        button.setAttribute("aria-current", "true")
+        if (scrollList) button.scrollIntoView({ block: "nearest" })
+      } else {
+        button.removeAttribute("aria-current")
+      }
+    })
+
+    this.activeOutlineId = activeId
+  }
+
+  onOutlineClick(event) {
+    const button = event.target.closest("[data-outline-id]")
+    if (!button) return
+
+    event.preventDefault()
+
+    const entry = this.outlineEntries.find(({ id }) => id === button.dataset.outlineId)
+    if (!entry?.element?.scrollIntoView) return
+
+    entry.element.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    })
+
+    this.setActiveOutlineId(entry.id, { scrollList: false })
   }
 
   zoomIn() {

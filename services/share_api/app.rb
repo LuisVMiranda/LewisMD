@@ -68,9 +68,17 @@ module ShareAPI
         content_type: "text/javascript; charset=utf-8",
         path: -> { reader_public_path("export_menu_helpers.js") }
       },
+      "/reader/assets/outline_helpers.js" => {
+        content_type: "text/javascript; charset=utf-8",
+        path: -> { reader_public_path("outline_helpers.js") }
+      },
       "/reader/assets/share_view.css" => {
         content_type: "text/css; charset=utf-8",
         path: -> { reader_public_path("share_view.css") }
+      },
+      "/reader/assets/outline.css" => {
+        content_type: "text/css; charset=utf-8",
+        path: -> { reader_public_path("outline.css") }
       },
       "/reader/assets/icon.svg" => {
         content_type: "image/svg+xml",
@@ -368,13 +376,31 @@ module ShareAPI
               </header>
 
               <main class="share-view__content">
-                <iframe
-                  src="#{snapshot_url}"
-                  class="share-view__frame"
-                  title="Shared note preview"
-                  loading="eager"
-                  data-role="frame"
-                ></iframe>
+                <aside
+                  class="share-view__outline-shell hidden"
+                  data-role="outline-section"
+                  aria-label="Note outline"
+                >
+                  <div class="share-view__outline-card outline-panel">
+                    <div class="share-view__outline-header">
+                      <h2 class="share-view__outline-title">Outline</h2>
+                    </div>
+                    <div class="outline-panel__scroll">
+                      <div class="outline-list" data-role="outline-list"></div>
+                      <p class="outline-empty hidden" data-role="outline-empty">This shared note does not include headings yet.</p>
+                    </div>
+                  </div>
+                </aside>
+
+                <div class="share-view__frame-shell">
+                  <iframe
+                    src="#{snapshot_url}"
+                    class="share-view__frame"
+                    title="Shared note preview"
+                    loading="eager"
+                    data-role="frame"
+                  ></iframe>
+                </div>
               </main>
             </div>
           </body>
@@ -668,14 +694,23 @@ module ShareAPI
     def remote_reader_bundle_css_source
       bundle_source = reader_public_path("remote_reader_bundle.css").read
 
-      bundle_source.sub(
-        '@import "/reader/assets/share_view.css"; /* inlined by the share-api asset server */',
-        share_view_css_source
-      )
+      bundle_source
+        .sub(
+          '@import "/reader/assets/share_view.css"; /* inlined by the share-api asset server */',
+          share_view_css_source
+        )
+        .sub(
+          '@import "/reader/assets/outline.css"; /* inlined by the share-api asset server */',
+          outline_css_source
+        )
     end
 
     def share_view_css_source
       reader_public_path("share_view.css").read
+    end
+
+    def outline_css_source
+      reader_public_path("outline.css").read
     end
 
     def reader_public_path(*parts)
