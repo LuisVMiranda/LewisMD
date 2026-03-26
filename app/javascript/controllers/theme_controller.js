@@ -1,5 +1,15 @@
 import { Controller } from "@hotwired/stimulus"
 import { get, patch } from "@rails/request.js"
+import {
+  BUILTIN_THEMES,
+  LIGHT_THEME_IDS,
+  applyThemeToRoot,
+  buildThemeUrl,
+  renderThemeMenuHtml,
+  resolvedThemeId,
+  themeIconMarkup,
+  themeNameFor
+} from "../lib/share_reader/theme_helpers.js"
 
 export default class extends Controller {
   static targets = ["menu", "currentTheme"]
@@ -11,29 +21,10 @@ export default class extends Controller {
   }
 
   // Built-in themes - Light and Dark first, then alphabetical
-  static themes = [
-    { id: "light", name: "Light", icon: "sun" },
-    { id: "dark", name: "Dark", icon: "moon" },
-    { id: "catppuccin", name: "Catppuccin", icon: "palette" },
-    { id: "catppuccin-latte", name: "Catppuccin Latte", icon: "palette" },
-    { id: "ethereal", name: "Ethereal", icon: "palette" },
-    { id: "everforest", name: "Everforest", icon: "palette" },
-    { id: "flexoki-light", name: "Flexoki Light", icon: "palette" },
-    { id: "gruvbox", name: "Gruvbox", icon: "palette" },
-    { id: "hackerman", name: "Hackerman", icon: "palette" },
-    { id: "kanagawa", name: "Kanagawa", icon: "palette" },
-    { id: "matte-black", name: "Matte Black", icon: "palette" },
-    { id: "nord", name: "Nord", icon: "palette" },
-    { id: "osaka-jade", name: "Osaka Jade", icon: "palette" },
-    { id: "ristretto", name: "Ristretto", icon: "palette" },
-    { id: "rose-pine", name: "Rose Pine", icon: "palette" },
-    { id: "solarized-dark", name: "Solarized Dark", icon: "palette" },
-    { id: "solarized-light", name: "Solarized Light", icon: "palette" },
-    { id: "tokyo-night", name: "Tokyo Night", icon: "palette" }
-  ]
+  static themes = BUILTIN_THEMES
 
   // Light themes for Tailwind dark: toggle
-  static lightThemes = ["light", "solarized-light", "catppuccin-latte", "rose-pine", "flexoki-light"]
+  static lightThemes = LIGHT_THEME_IDS
 
   connect() {
     // Load initial theme from server config
@@ -137,7 +128,7 @@ export default class extends Controller {
 
   applyTheme() {
     const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
-    const themeId = this.currentThemeId || (prefersDark ? "dark" : "light")
+    const themeId = resolvedThemeId(this.currentThemeId, prefersDark)
 
     if (themeId === "omarchy" && this.allowOmarchyValue) {
       this.applyOmarchyTheme()
@@ -148,16 +139,11 @@ export default class extends Controller {
     this.stopOmarchyPolling()
     this.removeOmarchyStyles()
 
-    // Set data-theme attribute on html element
-    document.documentElement.setAttribute("data-theme", themeId)
-
-    // Also set dark class for Tailwind dark: variants
-    const isDarkTheme = !this.constructor.lightThemes.includes(themeId)
-    document.documentElement.classList.toggle("dark", isDarkTheme)
+    const themeState = applyThemeToRoot(themeId, document.documentElement, this.constructor.lightThemes)
 
     this.updateCurrentThemeDisplay(themeId)
     this.updateMenuCheckmarks(themeId)
-    this.dispatchThemeChanged(themeId, isDarkTheme ? "dark" : "light")
+    this.dispatchThemeChanged(themeState.themeId, themeState.colorScheme)
   }
 
   async applyOmarchyTheme() {
@@ -274,8 +260,7 @@ export default class extends Controller {
 
   updateCurrentThemeDisplay(themeId) {
     if (this.hasCurrentThemeTarget) {
-      const theme = this.runtimeThemes.find(t => t.id === themeId)
-      this.currentThemeTarget.textContent = theme ? theme.name : "Light"
+      this.currentThemeTarget.textContent = themeNameFor(themeId, this.runtimeThemes)
     }
   }
 
@@ -293,43 +278,20 @@ export default class extends Controller {
   renderMenu() {
     if (!this.hasMenuTarget) return
 
-    const currentTheme = this.currentThemeId ||
-      (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+    const currentTheme = resolvedThemeId(
+      this.currentThemeId,
+      window.matchMedia("(prefers-color-scheme: dark)").matches
+    )
 
-    this.menuTarget.innerHTML = this.runtimeThemes.map(theme => `
-      <button
-        type="button"
-        class="w-full px-3 py-2 text-left text-sm hover:bg-[var(--theme-bg-hover)] flex items-center justify-between gap-2"
-        data-theme="${theme.id}"
-        data-action="click->theme#selectTheme"
-      >
-        <span class="flex items-center gap-2">
-          ${this.getIcon(theme.icon)}
-          ${theme.name}
-        </span>
-        <svg class="w-4 h-4 checkmark ${theme.id !== currentTheme ? 'opacity-0' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-        </svg>
-      </button>
-    `).join("")
+    this.menuTarget.innerHTML = renderThemeMenuHtml({
+      themes: this.runtimeThemes,
+      currentThemeId: currentTheme,
+      action: "click->theme#selectTheme"
+    })
   }
 
   getIcon(iconType) {
-    const icons = {
-      sun: `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-      </svg>`,
-      moon: `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-      </svg>`,
-      palette: `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
-      </svg>`,
-      sync: `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-      </svg>`
-    }
-    return icons[iconType] || icons.palette
+    return themeIconMarkup(iconType)
   }
 
   setupClickOutside() {
@@ -344,9 +306,8 @@ export default class extends Controller {
   syncThemeQueryParam(themeId) {
     if (!this.queryParamValue) return
 
-    const url = new URL(window.location.href)
-    url.searchParams.set("theme", themeId)
-    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`)
+    const nextUrl = new URL(buildThemeUrl(themeId, window.location.href))
+    window.history.replaceState(window.history.state, "", `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`)
   }
 
   dispatchThemeChanged(themeId, colorScheme) {

@@ -91,11 +91,52 @@
     transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   }
 
+  .share-view__menu-anchor {
+    position: relative;
+  }
+
+  .share-view__toolbar-icon {
+    width: 1rem;
+    height: 1rem;
+    flex-shrink: 0;
+  }
+
+  .share-view__toolbar-caret {
+    width: 0.75rem;
+    height: 0.75rem;
+    flex-shrink: 0;
+  }
+
+  .share-view__toolbar-label {
+    font-size: 0.75rem;
+  }
+
   .share-view__toolbar-button span {
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .share-view__picker-menu,
+  .share-view__export-menu {
+    position: absolute;
+    right: 0;
+    margin-top: 0.25rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--theme-border);
+    background: var(--theme-bg-secondary);
+    box-shadow: 0 12px 34px color-mix(in srgb, var(--theme-shadow, #020617) 16%, transparent);
+    padding-block: 0.25rem;
+    z-index: 50;
+  }
+
+  .share-view__picker-menu {
+    width: 12rem;
+  }
+
+  .share-view__export-menu {
+    width: 14rem;
   }
 
   .share-view__toolbar-button:hover {

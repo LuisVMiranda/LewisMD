@@ -1,0 +1,12 @@
+<%= render "notes/export_menu",
+  selection_action: "export-menu:selected->share-view#onExportMenuSelected",
+  shareable: false,
+  markdown_copyable: false,
+  container_class: "share-view__menu-anchor",
+  button_class: "share-view__toolbar-button",
+  button_label: t("header.share"),
+  label_class: "share-view__toolbar-label",
+  icon_class: "share-view__toolbar-icon",
+  caret_class: "share-view__toolbar-caret",
+  menu_class: "share-view__export-menu hidden",
+  menu_title: t("header.open_share_menu") %>

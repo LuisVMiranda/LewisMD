@@ -125,6 +125,7 @@ class SharesController < ApplicationController
     response[:created] = share[:created] if share.key?(:created)
     response[:stale] = share[:stale] if share.key?(:stale)
     response[:last_error] = share[:last_error] if share.key?(:last_error) && share[:last_error].present?
+    response[:expires_at] = share[:expires_at] if share.key?(:expires_at) && share[:expires_at].present?
     response
   end
 

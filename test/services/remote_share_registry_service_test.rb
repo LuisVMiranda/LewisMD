@@ -25,6 +25,7 @@ class RemoteShareRegistryServiceTest < ActiveSupport::TestCase
     assert_equal "abc123", loaded[:content_hash]
     assert_equal "en", loaded[:locale]
     assert_equal "dark", loaded[:theme_id]
+    assert_equal "2026-04-08T12:00:00Z", loaded[:expires_at]
     assert_equal 1, loaded[:asset_manifest].length
   end
 
@@ -47,6 +48,17 @@ class RemoteShareRegistryServiceTest < ActiveSupport::TestCase
     @service.delete(path: "shared-note.md")
 
     assert_nil @service.active_share_for("shared-note.md")
+  end
+
+  test "active_share_for prunes expired metadata and returns nil" do
+    @service.save(remote_share_metadata.merge(expires_at: "2026-03-25T11:59:00Z"))
+
+    travel_to Time.zone.parse("2026-03-25 12:00:00 UTC") do
+      assert_nil @service.active_share_for("shared-note.md")
+    end
+
+    registry_dir = @test_notes_dir.join(RemoteShareRegistryService::REGISTRY_DIR)
+    assert_empty Dir.glob(registry_dir.join("*.json"))
   end
 
   test "active_share_for ignores malformed metadata files" do
@@ -73,6 +85,7 @@ class RemoteShareRegistryServiceTest < ActiveSupport::TestCase
       content_hash: "abc123",
       locale: "en",
       theme_id: "dark",
+      expires_at: "2026-04-08T12:00:00Z",
       asset_manifest: [
         {
           "source_url" => "data:image/png;base64,AAAA",

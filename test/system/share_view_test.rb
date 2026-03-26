@@ -12,6 +12,8 @@ class ShareViewTest < ApplicationSystemTestCase
     assert_selector ".share-view__eyebrow", text: /shared note/i
     assert_text "Shared Snapshot"
     assert_selector "iframe[data-share-view-target='frame']", wait: 2
+    assert_selector "[data-theme-target='menu'].share-view__picker-menu", visible: false
+    assert_selector "[data-locale-target='menu'].share-view__picker-menu", visible: false
     assert_button "Display"
     assert_no_selector "[data-share-view-target='zoomValue']", text: "100%"
     assert_no_selector "[data-share-view-target='widthValue']", text: "72ch"
@@ -130,6 +132,7 @@ class ShareViewTest < ApplicationSystemTestCase
 
     install_download_capture
     open_share_export_menu
+    assert_selector "[data-export-menu-target='menu'].share-view__export-menu", wait: 2
 
     within "[data-export-menu-target='menu']" do
       assert_text "Copy Note (Ctrl+C)"

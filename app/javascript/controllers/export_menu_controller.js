@@ -1,4 +1,14 @@
 import { Controller } from "@hotwired/stimulus"
+import {
+  buildExportMenuItems,
+  COPY_ITEMS,
+  EXPORT_GROUP_ITEM,
+  EXPORT_ITEMS,
+  MARKDOWN_COPY_ITEM,
+  renderExportMenuHtml,
+  SHARE_ACTIVE_ITEMS,
+  SHARE_CREATE_ITEMS
+} from "../lib/share_reader/export_menu_helpers.js"
 
 export default class extends Controller {
   static targets = ["menu", "button"]
@@ -7,29 +17,17 @@ export default class extends Controller {
     markdownCopyable: { type: Boolean, default: true }
   }
 
-  static copyItems = [
-    { id: "copy-html", key: "copy_note" }
-  ]
+  static copyItems = COPY_ITEMS
 
-  static markdownCopyItem = { id: "copy-markdown", key: "copy_markdown" }
+  static markdownCopyItem = MARKDOWN_COPY_ITEM
 
-  static exportGroupItem = { id: "toggle-export-group", key: "export_files", expandable: true }
+  static exportGroupItem = EXPORT_GROUP_ITEM
 
-  static exportItems = [
-    { id: "export-html", key: "export_html" },
-    { id: "export-txt", key: "export_txt" },
-    { id: "print-pdf", key: "export_pdf" }
-  ]
+  static exportItems = EXPORT_ITEMS
 
-  static shareCreateItems = [
-    { id: "create-share-link", key: "create_share_link", divider: true }
-  ]
+  static shareCreateItems = SHARE_CREATE_ITEMS
 
-  static shareActiveItems = [
-    { id: "copy-share-link", key: "copy_share_link", divider: true },
-    { id: "refresh-share-link", key: "refresh_share_link" },
-    { id: "disable-share-link", key: "disable_share_link", destructive: true }
-  ]
+  static shareActiveItems = SHARE_ACTIVE_ITEMS
 
   connect() {
     this.shareState = {
@@ -103,46 +101,22 @@ export default class extends Controller {
   }
 
   menuItems() {
-    const items = [ ...this.constructor.copyItems ]
-
-    if (this.markdownCopyableValue) {
-      items.push(this.constructor.markdownCopyItem)
-    }
-
-    items.push(this.constructor.exportGroupItem)
-
-    if (this.exportGroupExpanded) {
-      items.push(...this.constructor.exportItems.map((item) => ({ ...item, nested: true })))
-    }
-
-    if (this.shareState.shareable) {
-      items.push(...(this.shareState.active
-        ? this.constructor.shareActiveItems
-        : this.constructor.shareCreateItems))
-    }
-
-    return items
+    return buildExportMenuItems({
+      markdownCopyable: this.markdownCopyableValue,
+      shareState: this.shareState,
+      exportGroupExpanded: this.exportGroupExpanded
+    })
   }
 
   renderMenu() {
     if (!this.hasMenuTarget) return
 
-    this.menuTarget.innerHTML = this.menuItems().map((item) => `
-      <button
-        type="button"
-        role="menuitem"
-        class="w-full px-3 py-2 text-left text-sm hover:bg-[var(--theme-bg-hover)] flex items-center justify-between gap-2 ${item.divider ? "border-t border-[var(--theme-border)] mt-1 pt-3" : ""} ${item.destructive ? "text-red-600 dark:text-red-400" : ""} ${item.nested ? "pl-7 text-[var(--theme-text-muted)]" : ""}"
-        ${item.expandable ? "" : `data-action-id="${item.id}"`}
-        data-action="click->export-menu#${item.expandable ? "toggleExportGroup" : "select"}"
-      >
-        <span>${window.t(`export_menu.${item.key}`)}</span>
-        ${item.expandable ? `
-          <svg class="w-3 h-3 shrink-0 transition-transform ${this.exportGroupExpanded ? "rotate-180" : ""}" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
-        ` : ""}
-      </button>
-    `).join("")
+    this.menuTarget.innerHTML = renderExportMenuHtml({
+      items: this.menuItems(),
+      expanded: this.exportGroupExpanded,
+      controllerIdentifier: "export-menu",
+      translate: (key) => window.t(key)
+    })
   }
 
   setupClickOutside() {

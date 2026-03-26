@@ -2,7 +2,9 @@
 
 require "cgi"
 require "json"
+require "pathname"
 require "rack"
+require "nokogiri"
 require_relative "lib/share_api/authenticator"
 require_relative "lib/share_api/configuration"
 require_relative "lib/share_api/fragment_sanitizer"
@@ -10,7 +12,67 @@ require_relative "lib/share_api/storage"
 
 module ShareAPI
   class App
+    REMOTE_READER_THEME_NAMES = {
+      "light" => "Light",
+      "dark" => "Dark",
+      "catppuccin" => "Catppuccin",
+      "catppuccin-latte" => "Catppuccin Latte",
+      "ethereal" => "Ethereal",
+      "everforest" => "Everforest",
+      "flexoki-light" => "Flexoki Light",
+      "gruvbox" => "Gruvbox",
+      "hackerman" => "Hackerman",
+      "kanagawa" => "Kanagawa",
+      "matte-black" => "Matte Black",
+      "nord" => "Nord",
+      "osaka-jade" => "Osaka Jade",
+      "ristretto" => "Ristretto",
+      "rose-pine" => "Rose Pine",
+      "solarized-dark" => "Solarized Dark",
+      "solarized-light" => "Solarized Light",
+      "tokyo-night" => "Tokyo Night"
+    }.freeze
+    REMOTE_READER_LOCALE_NAMES = {
+      "en" => "English",
+      "pt-BR" => "Português (Brasil)",
+      "pt-PT" => "Português (Portugal)",
+      "es" => "Español",
+      "he" => "עברית",
+      "ja" => "日本語",
+      "ko" => "한국어"
+    }.freeze
+    LIGHT_THEME_IDS = %w[light solarized-light catppuccin-latte rose-pine flexoki-light].freeze
     TOKEN_PATTERN = /\A[a-zA-Z0-9\-_]{8,}\z/
+    READER_ASSETS = {
+      "/reader/assets/remote_reader_bundle.js" => {
+        content_type: "text/javascript; charset=utf-8",
+        path: -> { Pathname.new(__dir__).join("public", "reader", "remote_reader_bundle.js") }
+      },
+      "/reader/assets/remote_reader_bundle.css" => {
+        content_type: "text/css; charset=utf-8",
+        path: -> { Pathname.new(__dir__).join("public", "reader", "remote_reader_bundle.css") }
+      },
+      "/reader/assets/theme_helpers.js" => {
+        content_type: "text/javascript; charset=utf-8",
+        path: -> { repo_root.join("app", "javascript", "lib", "share_reader", "theme_helpers.js") }
+      },
+      "/reader/assets/locale_helpers.js" => {
+        content_type: "text/javascript; charset=utf-8",
+        path: -> { repo_root.join("app", "javascript", "lib", "share_reader", "locale_helpers.js") }
+      },
+      "/reader/assets/translation_helpers.js" => {
+        content_type: "text/javascript; charset=utf-8",
+        path: -> { repo_root.join("app", "javascript", "lib", "share_reader", "translation_helpers.js") }
+      },
+      "/reader/assets/export_menu_helpers.js" => {
+        content_type: "text/javascript; charset=utf-8",
+        path: -> { repo_root.join("app", "javascript", "lib", "share_reader", "export_menu_helpers.js") }
+      },
+      "/reader/assets/share_view.css" => {
+        content_type: "text/css; charset=utf-8",
+        path: -> { repo_root.join("app", "assets", "tailwind", "components", "share_view.css") }
+      }
+    }.freeze
     PUBLIC_NOT_FOUND_HTML = <<~HTML.freeze
       <!doctype html>
       <html lang="en">
@@ -68,8 +130,16 @@ module ShareAPI
     attr_reader :config, :storage, :sanitizer, :authenticator
 
     def route_dynamic(request)
+      if request.get? && (reader_asset = reader_asset_for(request.path_info))
+        return render_reader_asset(reader_asset)
+      end
+
       if request.get? && (match = request.path_info.match(%r{\A/s/([^/]+)\z}))
-        return render_public_share(match[1])
+        return render_public_share(request, match[1])
+      end
+
+      if request.get? && (match = request.path_info.match(%r{\A/snapshots/([^/]+)\z}))
+        return render_snapshot_document(match[1])
       end
 
       if request.get? && (match = request.path_info.match(%r{\A/assets/([^/]+)/(.+)\z}))
@@ -99,6 +169,7 @@ module ShareAPI
         identity_key: identity_key,
         share: share_attributes_from(payload),
         fragment_html: sanitized_fragment,
+        snapshot_document_html: build_snapshot_document(payload, sanitized_fragment),
         assets: extract_upload_assets(payload)
       )
 
@@ -115,6 +186,7 @@ module ShareAPI
         token: token,
         share: share_attributes_from(payload),
         fragment_html: sanitized_fragment,
+        snapshot_document_html: build_snapshot_document(payload, sanitized_fragment),
         assets: extract_upload_assets(payload)
       )
 
@@ -130,36 +202,10 @@ module ShareAPI
       json_response(200, share_response(request, share).merge("revoked" => true))
     end
 
-    def render_public_share(token)
+    def render_public_share(request, token)
       validate_token!(token)
       share = storage.fetch_share(token)
-      fragment_html = storage.read_fragment(token)
-      title = CGI.escapeHTML(share["title"].to_s)
-      html = <<~HTML
-        <!doctype html>
-        <html lang="#{CGI.escapeHTML(non_blank(share["locale"]) || "en")}" data-theme="#{CGI.escapeHTML(share["theme_id"].to_s)}">
-          <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1">
-            <meta name="robots" content="noindex,nofollow,noarchive">
-            <title>#{title}</title>
-          </head>
-          <body>
-            <header>
-              <p>LewisMD Share</p>
-              <h1>#{title}</h1>
-            </header>
-            <main class="share-api__content" aria-label="Shared note content">
-              #{fragment_html}
-            </main>
-            <footer>
-              <p>Read-only snapshot</p>
-            </footer>
-          </body>
-        </html>
-      HTML
-
-      html_response(200, html, cache_control: "public, max-age=60")
+      html_response(200, build_reader_shell_html(request: request, share: share), cache_control: "no-store")
     end
 
     def render_asset(token, asset_name)
@@ -172,6 +218,14 @@ module ShareAPI
         asset_headers(content_type: Rack::Mime.mime_type(asset_path.extname, "application/octet-stream")),
         [ asset_path.binread ]
       ]
+    end
+
+    def render_snapshot_document(token)
+      validate_token!(token)
+      share = storage.fetch_share(token)
+      snapshot_document_html = read_snapshot_document_with_fallback(token: token, share: share)
+
+      snapshot_html_response(200, snapshot_document_html, cache_control: "no-store")
     end
 
     def authenticate_write!(request, body)
@@ -197,10 +251,14 @@ module ShareAPI
         "note_identifier" => non_blank(payload["note_identifier"]) || payload["path"],
         "path" => payload["path"],
         "title" => payload["title"],
+        "snapshot_version" => payload["snapshot_version"],
+        "shell_version" => payload["shell_version"],
+        "shell_payload" => payload["shell_payload"].is_a?(Hash) ? payload["shell_payload"] : {},
         "plain_text" => payload["plain_text"],
         "theme_id" => payload["theme_id"],
         "locale" => payload["locale"],
         "content_hash" => payload["content_hash"],
+        "expires_at" => payload["expires_at"],
         "asset_manifest" => Array(payload["asset_manifest"]),
         "instance_name" => payload["instance_name"]
       }
@@ -212,7 +270,8 @@ module ShareAPI
         "title" => share["title"],
         "created_at" => share["created_at"],
         "updated_at" => share["updated_at"],
-        "public_url" => public_url_for(request, share["token"])
+        "public_url" => public_url_for(request, share["token"]),
+        "expires_at" => share["expires_at"]
       }
     end
 
@@ -225,12 +284,228 @@ module ShareAPI
         api_version: "1",
         minimum_client_version: 1,
         feature_flags: {
-          asset_uploads: true
+          asset_uploads: true,
+          full_share_shell: true
         },
         max_payload_bytes: config.max_payload_bytes,
         max_asset_bytes: config.max_asset_bytes,
         max_asset_count: config.max_asset_count
       }
+    end
+
+    def build_reader_shell_html(request:, share:)
+      shell_payload = share["shell_payload"].is_a?(Hash) ? share["shell_payload"] : {}
+      display_payload = shell_payload["display"].is_a?(Hash) ? shell_payload["display"] : {}
+      title = share["title"].to_s.strip.presence || "LewisMD Share"
+      current_theme = current_theme_for(request, share: share, shell_payload: shell_payload)
+      current_locale = current_locale_for(request, share: share, shell_payload: shell_payload)
+      snapshot_url = "#{public_base_for(request)}/snapshots/#{CGI.escapeHTML(share.fetch("token"))}"
+      default_zoom = integer_or_default(display_payload["default_zoom"], 100)
+      default_width = integer_or_default(display_payload["default_width"], 72)
+      default_font_family = non_blank(display_payload["font_family"]) || "default"
+      current_color_scheme = inferred_light_theme?(current_theme) ? "light" : "dark"
+
+      <<~HTML
+        <!doctype html>
+        <html lang="#{CGI.escapeHTML(current_locale)}" data-theme="#{CGI.escapeHTML(current_theme)}"#{current_color_scheme == "dark" ? ' class="dark"' : ""}>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <meta name="robots" content="noindex,nofollow,noarchive">
+            <meta name="color-scheme" content="#{CGI.escapeHTML(current_color_scheme)}">
+            <title>#{CGI.escapeHTML(title)} | LewisMD Share</title>
+            <link rel="stylesheet" href="/reader/assets/remote_reader_bundle.css">
+            <script type="module" src="/reader/assets/remote_reader_bundle.js"></script>
+          </head>
+          <body>
+            <div
+              class="share-view share-view--remote"
+              data-remote-reader
+              data-title="#{CGI.escapeHTML(title)}"
+              data-locale="#{CGI.escapeHTML(current_locale)}"
+              data-theme="#{CGI.escapeHTML(current_theme)}"
+              data-default-zoom="#{default_zoom}"
+              data-default-width="#{default_width}"
+              data-default-font-family="#{CGI.escapeHTML(default_font_family)}"
+              data-show-controls-label="Show reading controls"
+              data-hide-controls-label="Hide reading controls"
+            >
+              <header class="share-view__toolbar">
+                <div class="share-view__toolbar-top">
+                  <div class="share-view__identity">
+                    <p class="share-view__eyebrow">Shared note</p>
+                    <h1 class="share-view__title">#{CGI.escapeHTML(title)}</h1>
+                  </div>
+
+                  #{reader_toolbar_actions_html(current_theme:, current_locale:)}
+                </div>
+
+                #{reader_display_panel_html(default_font_family:)}
+              </header>
+
+              <main class="share-view__content">
+                <iframe
+                  src="#{snapshot_url}"
+                  class="share-view__frame"
+                  title="Shared note preview"
+                  loading="eager"
+                  data-role="frame"
+                ></iframe>
+              </main>
+            </div>
+          </body>
+        </html>
+      HTML
+    end
+
+    def reader_toolbar_actions_html(current_theme:, current_locale:)
+      <<~HTML
+        <div class="share-view__toolbar-actions">
+          <div class="share-view__menu-anchor">
+            <button
+              type="button"
+              class="share-view__toolbar-button"
+              title="Change theme"
+              aria-haspopup="menu"
+              aria-expanded="false"
+              data-role="theme-toggle"
+            >
+              #{palette_icon_markup}
+              <span class="share-view__toolbar-label" data-role="theme-current-label">#{CGI.escapeHTML(theme_name_for(current_theme))}</span>
+              #{caret_icon_markup}
+            </button>
+            <div class="share-view__picker-menu hidden" data-role="theme-menu"></div>
+          </div>
+
+          <div class="share-view__menu-anchor">
+            <button
+              type="button"
+              class="share-view__toolbar-button"
+              title="Change language"
+              aria-haspopup="menu"
+              aria-expanded="false"
+              data-role="locale-toggle"
+            >
+              #{language_icon_markup}
+              <span class="share-view__toolbar-label" data-role="locale-current-label">#{CGI.escapeHTML(locale_name_for(current_locale))}</span>
+              #{caret_icon_markup}
+            </button>
+            <div class="share-view__picker-menu hidden" data-role="locale-menu"></div>
+          </div>
+
+          <div class="share-view__menu-anchor">
+            <button
+              type="button"
+              class="share-view__toolbar-button"
+              title="Open share menu"
+              aria-haspopup="menu"
+              aria-expanded="false"
+              data-role="export-toggle"
+            >
+              #{share_icon_markup}
+              <span class="share-view__toolbar-label">Share</span>
+              #{caret_icon_markup}
+            </button>
+            <div class="share-view__export-menu hidden" data-role="export-menu"></div>
+          </div>
+
+          <button
+            type="button"
+            class="share-view__toolbar-button"
+            data-role="display-toggle"
+            aria-expanded="true"
+            aria-controls="share-view-display-panel"
+            title="Hide reading controls"
+            aria-label="Hide reading controls"
+          >
+            #{display_icon_markup}
+            <span class="share-view__toolbar-label">Display</span>
+          </button>
+        </div>
+      HTML
+    end
+
+    def reader_display_panel_html(default_font_family:)
+      default_selected = default_font_family == "default" ? ' selected="selected"' : ""
+      sans_selected = default_font_family == "sans" ? ' selected="selected"' : ""
+      serif_selected = default_font_family == "serif" ? ' selected="selected"' : ""
+      mono_selected = default_font_family == "mono" ? ' selected="selected"' : ""
+
+      <<~HTML
+        <div
+          id="share-view-display-panel"
+          class="share-view__display-panel"
+          data-role="display-panel"
+          aria-label="Reading controls"
+        >
+          <div class="share-view__group">
+            <span class="share-view__group-label">Zoom</span>
+            <button type="button" class="share-view__button" title="Zoom out" data-role="zoom-out">-</button>
+            <output class="share-view__value" data-role="zoom-value">100%</output>
+            <button type="button" class="share-view__button" title="Zoom in" data-role="zoom-in">+</button>
+          </div>
+
+          <div class="share-view__group">
+            <span class="share-view__group-label">Width</span>
+            <button type="button" class="share-view__button" title="Make text column narrower" data-role="width-decrease">-</button>
+            <output class="share-view__value" data-role="width-value">72ch</output>
+            <button type="button" class="share-view__button" title="Make text column wider" data-role="width-increase">+</button>
+          </div>
+
+          <label class="share-view__group share-view__font-group">
+            <span class="share-view__group-label">Font</span>
+            <select class="share-view__select" data-role="font-select">
+              <option value="default"#{default_selected}>Default</option>
+              <option value="sans"#{sans_selected}>Sans</option>
+              <option value="serif"#{serif_selected}>Serif</option>
+              <option value="mono"#{mono_selected}>Mono</option>
+            </select>
+          </label>
+        </div>
+      HTML
+    end
+
+    def current_theme_for(request, share:, shell_payload:)
+      requested_theme = non_blank(request.params["theme"])
+      return requested_theme if requested_theme && REMOTE_READER_THEME_NAMES.key?(requested_theme)
+
+      shell_theme = non_blank(shell_payload["theme_id"])
+      return shell_theme if shell_theme && REMOTE_READER_THEME_NAMES.key?(shell_theme)
+
+      share_theme = non_blank(share["theme_id"])
+      return share_theme if share_theme && REMOTE_READER_THEME_NAMES.key?(share_theme)
+
+      "light"
+    end
+
+    def current_locale_for(request, share:, shell_payload:)
+      requested_locale = non_blank(request.params["locale"])
+      return requested_locale if requested_locale && REMOTE_READER_LOCALE_NAMES.key?(requested_locale)
+
+      shell_locale = non_blank(shell_payload["locale"])
+      return shell_locale if shell_locale && REMOTE_READER_LOCALE_NAMES.key?(shell_locale)
+
+      share_locale = non_blank(share["locale"])
+      return share_locale if share_locale && REMOTE_READER_LOCALE_NAMES.key?(share_locale)
+
+      "en"
+    end
+
+    def public_base_for(request)
+      non_blank(config.public_base) || request.base_url.delete_suffix("/")
+    end
+
+    def theme_name_for(theme_id)
+      REMOTE_READER_THEME_NAMES.fetch(theme_id.to_s, "Light")
+    end
+
+    def locale_name_for(locale)
+      REMOTE_READER_LOCALE_NAMES.fetch(locale.to_s, "English")
+    end
+
+    def integer_or_default(value, default)
+      integer = value.to_i
+      integer.positive? ? integer : default
     end
 
     def identity_key_for(payload)
@@ -253,8 +528,9 @@ module ShareAPI
     end
 
     def not_found_response(request)
-      return html_response(404, PUBLIC_NOT_FOUND_HTML, cache_control: "public, max-age=60") if request.get? && request.path_info.start_with?("/s/")
-      return [ 404, asset_headers(content_type: "text/plain; charset=utf-8"), [ "Not found" ] ] if request.get? && request.path_info.start_with?("/assets/")
+      return snapshot_html_response(404, PUBLIC_NOT_FOUND_HTML, cache_control: "no-store") if request.get? && request.path_info.start_with?("/snapshots/")
+      return html_response(404, PUBLIC_NOT_FOUND_HTML, cache_control: "no-store") if request.get? && request.path_info.start_with?("/s/")
+      return [ 404, missing_asset_headers, [ "Not found" ] ] if request.get? && request.path_info.start_with?("/assets/")
 
       json_response(404, { error: "Not found" })
     end
@@ -276,6 +552,14 @@ module ShareAPI
       [
         status,
         public_html_headers(cache_control: cache_control),
+        [ html ]
+      ]
+    end
+
+    def snapshot_html_response(status, html, cache_control:)
+      [
+        status,
+        snapshot_html_headers(cache_control: cache_control),
         [ html ]
       ]
     end
@@ -302,6 +586,20 @@ module ShareAPI
       }
     end
 
+    def snapshot_html_headers(cache_control:)
+      {
+        "Content-Type" => "text/html; charset=utf-8",
+        "Cache-Control" => cache_control,
+        "Content-Security-Policy" => snapshot_content_security_policy,
+        "Permissions-Policy" => "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()",
+        "Referrer-Policy" => "no-referrer",
+        "X-Content-Type-Options" => "nosniff",
+        "X-Frame-Options" => "SAMEORIGIN",
+        "X-Robots-Tag" => "noindex, nofollow, noarchive",
+        "Cross-Origin-Resource-Policy" => "same-origin"
+      }
+    end
+
     def asset_headers(content_type:)
       {
         "Content-Type" => content_type,
@@ -311,23 +609,210 @@ module ShareAPI
       }
     end
 
+    def missing_asset_headers
+      {
+        "Content-Type" => "text/plain; charset=utf-8",
+        "Cache-Control" => "no-store",
+        "X-Content-Type-Options" => "nosniff",
+        "Cross-Origin-Resource-Policy" => "same-origin"
+      }
+    end
+
+    def reader_asset_for(path_info)
+      READER_ASSETS[path_info] || theme_reader_asset_for(path_info)
+    end
+
+    def render_reader_asset(reader_asset)
+      asset_path = instance_exec(&reader_asset[:path])
+      raise Storage::NotFoundError unless asset_path.file?
+
+      [
+        200,
+        asset_headers(content_type: reader_asset[:content_type]),
+        [ asset_path.read ]
+      ]
+    end
+
+    def repo_root
+      Pathname.new(File.expand_path("../..", __dir__))
+    end
+
     def public_content_security_policy
       [
         "default-src 'none'",
         "base-uri 'none'",
         "connect-src 'none'",
-        "font-src 'none'",
+        "font-src 'self' data:",
         "form-action 'none'",
         "frame-ancestors 'none'",
-        "frame-src 'none'",
+        "frame-src 'self'",
+        "img-src 'self' data: https:",
+        "manifest-src 'none'",
+        "media-src 'self' data: https:",
+        "object-src 'none'",
+        "script-src 'self'",
+        "style-src 'self' 'unsafe-inline'",
+        "worker-src 'none'"
+      ].join("; ")
+    end
+
+    def snapshot_content_security_policy
+      [
+        "default-src 'none'",
+        "base-uri 'none'",
+        "connect-src 'none'",
+        "font-src 'self' data:",
+        "form-action 'none'",
+        "frame-ancestors 'self'",
         "img-src 'self' data: https:",
         "manifest-src 'none'",
         "media-src 'self' data: https:",
         "object-src 'none'",
         "script-src 'none'",
-        "style-src 'none'",
+        "style-src 'unsafe-inline'",
         "worker-src 'none'"
       ].join("; ")
+    end
+
+    def build_snapshot_document(payload, sanitized_fragment)
+      snapshot_document_html = payload["snapshot_document_html"].to_s
+      return legacy_snapshot_document(payload: payload, fragment_html: sanitized_fragment) if snapshot_document_html.strip.empty?
+
+      document = parse_snapshot_document(snapshot_document_html)
+      style_blocks = document.css("head style").map { |node| node.text.to_s }.reject { |css| css.to_s.strip.empty? }
+      title = payload["title"].to_s.strip.presence || "LewisMD Share"
+      locale = non_blank(payload["locale"]) || document.at_css("html")&.[]("lang").to_s.strip.presence || "en"
+      theme_id = non_blank(payload["theme_id"]) || document.at_css("html")&.[]("data-theme").to_s.strip.presence
+      color_scheme = extract_snapshot_color_scheme(document, theme_id)
+
+      snapshot_document_markup(
+        title: title,
+        locale: locale,
+        theme_id: theme_id,
+        color_scheme: color_scheme,
+        style_blocks: style_blocks,
+        fragment_html: sanitized_fragment
+      )
+    end
+
+    def read_snapshot_document_with_fallback(token:, share:)
+      storage.read_snapshot_document(token)
+    rescue Storage::NotFoundError
+      legacy_snapshot_document(payload: share, fragment_html: storage.read_fragment(token))
+    end
+
+    def parse_snapshot_document(snapshot_document_html)
+      if defined?(Nokogiri::HTML5)
+        Nokogiri::HTML5(snapshot_document_html)
+      else
+        Nokogiri::HTML.parse(snapshot_document_html)
+      end
+    rescue StandardError
+      Nokogiri::HTML.parse(snapshot_document_html)
+    end
+
+    def extract_snapshot_color_scheme(document, theme_id)
+      declared = document.at_css('meta[name="color-scheme"]')&.[]("content").to_s.strip.downcase
+      return declared if %w[light dark].include?(declared)
+
+      inferred_light_theme?(theme_id) ? "light" : "dark"
+    end
+
+    def inferred_light_theme?(theme_id)
+      %w[light solarized-light catppuccin-latte rose-pine flexoki-light].include?(theme_id.to_s)
+    end
+
+    def legacy_snapshot_document(payload:, fragment_html:)
+      snapshot_document_markup(
+        title: payload["title"].to_s.strip.presence || "LewisMD Share",
+        locale: non_blank(payload["locale"]) || "en",
+        theme_id: non_blank(payload["theme_id"]),
+        color_scheme: inferred_light_theme?(payload["theme_id"]) ? "light" : "dark",
+        style_blocks: [],
+        fragment_html: fragment_html
+      )
+    end
+
+    def snapshot_document_markup(title:, locale:, theme_id:, color_scheme:, style_blocks:, fragment_html:)
+      theme_attribute = theme_id.to_s.strip.empty? ? "" : %( data-theme="#{CGI.escapeHTML(theme_id)}")
+      style_markup = Array(style_blocks).map { |css| "<style>\n#{css.to_s.gsub(%r{</style}i, '<\\/style')}\n</style>" }.join("\n    ")
+      head_parts = [
+        '<meta charset="utf-8">',
+        '<meta name="viewport" content="width=device-width, initial-scale=1">',
+        %(<meta name="color-scheme" content="#{CGI.escapeHTML(color_scheme)}">),
+        %(<title>#{CGI.escapeHTML(title)}</title>)
+      ]
+      head_parts << style_markup unless style_markup.empty?
+
+      <<~HTML
+        <!doctype html>
+        <html lang="#{CGI.escapeHTML(locale)}"#{theme_attribute}>
+          <head>
+            #{head_parts.join("\n    ")}
+          </head>
+          <body>
+            <main class="export-shell">
+              <article class="export-article">
+                #{fragment_html}
+              </article>
+            </main>
+          </body>
+        </html>
+      HTML
+    end
+
+    def theme_reader_asset_for(path_info)
+      match = path_info.match(%r{\A/reader/assets/themes/([a-z0-9-]+\.css)\z})
+      return nil unless match
+
+      filename = match[1]
+      path = repo_root.join("app", "assets", "tailwind", "themes", filename)
+      return nil unless path.file?
+
+      {
+        content_type: "text/css; charset=utf-8",
+        path: -> { path }
+      }
+    end
+
+    def palette_icon_markup
+      <<~SVG.chomp
+        <svg class="share-view__toolbar-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+        </svg>
+      SVG
+    end
+
+    def language_icon_markup
+      <<~SVG.chomp
+        <svg class="share-view__toolbar-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+        </svg>
+      SVG
+    end
+
+    def share_icon_markup
+      <<~SVG.chomp
+        <svg class="share-view__toolbar-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C9.886 12.511 11.36 12 13 12c1.64 0 3.114.511 4.316 1.342m-8.632 0A8.966 8.966 0 004 21h18a8.966 8.966 0 00-4.684-7.658m-8.632 0a5.002 5.002 0 118.632 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+      SVG
+    end
+
+    def display_icon_markup
+      <<~SVG.chomp
+        <svg class="share-view__toolbar-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h10M4 18h7" />
+        </svg>
+      SVG
+    end
+
+    def caret_icon_markup
+      <<~SVG.chomp
+        <svg class="share-view__toolbar-caret" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+        </svg>
+      SVG
     end
   end
 end

@@ -84,25 +84,32 @@ module SharePublishers
       payload.merge(
         path: path,
         note_identifier: payload[:note_identifier].presence || path,
-        title: title
+        title: title,
+        expires_at: payload[:expires_at].presence || requested_expires_at
       )
     end
 
     def remote_request_payload(payload)
       assets = upload_assets_enabled? ? Array(payload[:assets]) : []
+      upload_references = upload_references_for(assets)
 
       {
+        snapshot_version: payload[:snapshot_version],
+        shell_version: payload[:shell_version],
         source: payload[:source],
         note_identifier: payload[:note_identifier],
         path: payload[:path],
         title: payload[:title],
-        html_fragment: rewrite_fragment_for_remote(payload[:html_fragment], Array(payload[:asset_manifest]), assets),
+        html_fragment: rewrite_images_for_remote(payload[:html_fragment], upload_references, fragment: true),
+        snapshot_document_html: rewrite_images_for_remote(payload[:snapshot_document_html], upload_references),
+        shell_payload: payload[:shell_payload],
         plain_text: payload[:plain_text],
         theme_id: payload[:theme_id],
         locale: payload[:locale],
         content_hash: payload[:content_hash],
         asset_manifest: payload[:asset_manifest],
         assets: assets,
+        expires_at: payload[:expires_at],
         instance_name: config.get("share_remote_instance_name")
       }.compact
     end
@@ -124,6 +131,7 @@ module SharePublishers
           locale: payload[:locale],
           theme_id: payload[:theme_id],
           asset_manifest: payload[:asset_manifest],
+          expires_at: remote_share[:expires_at].presence || payload[:expires_at],
           capabilities: client.last_capabilities || {}
         }
       )
@@ -131,25 +139,34 @@ module SharePublishers
       metadata
     end
 
-    def rewrite_fragment_for_remote(fragment_html, asset_manifest, assets)
-      return fragment_html if assets.blank?
+    def rewrite_images_for_remote(html, upload_references, fragment: false)
+      return html if html.blank?
+      return html if upload_references.blank?
 
-      upload_references = assets.each_with_object({}) do |asset, references|
-        references[asset[:source_url]] = asset[:upload_reference] if asset[:upload_reference].present?
-      end
-      return fragment_html if upload_references.blank?
-
-      fragment = Nokogiri::HTML::DocumentFragment.parse(fragment_html.to_s)
-      fragment.css("img").each do |image|
+      document = fragment ? Nokogiri::HTML::DocumentFragment.parse(html.to_s) : Nokogiri::HTML.parse(html.to_s)
+      document.css("img").each do |image|
         upload_reference = upload_references[image["src"].to_s.strip]
         image["src"] = "asset://#{upload_reference}" if upload_reference.present?
       end
 
-      fragment.to_html
+      document.to_html
     end
 
     def upload_assets_enabled?
       config.get("share_remote_upload_assets") != false
+    end
+
+    def upload_references_for(assets)
+      assets.each_with_object({}) do |asset, references|
+        references[asset[:source_url]] = asset[:upload_reference] if asset[:upload_reference].present?
+      end
+    end
+
+    def requested_expires_at
+      expiration_days = config.get("share_remote_expiration_days").to_i
+      return nil unless expiration_days.positive?
+
+      expiration_days.days.from_now.iso8601
     end
   end
 end

@@ -97,6 +97,7 @@ class ConfigTest < ActiveSupport::TestCase
     assert_includes content, "# Remote Share API"
     assert_includes content, "# share_backend = local"
     assert_includes content, "# share_remote_api_host = shares.example.com"
+    assert_includes content, "# share_remote_expiration_days = 30"
     assert_includes content, "# share_remote_api_token = your-remote-api-token"
     assert_includes content, "# AWS S3"
     assert_includes content, "# YouTube API"
@@ -127,6 +128,7 @@ class ConfigTest < ActiveSupport::TestCase
     assert_equal 10, config.get(:share_remote_timeout_seconds)
     assert_equal true, config.get(:share_remote_verify_tls)
     assert_equal true, config.get(:share_remote_upload_assets)
+    assert_equal 30, config.get(:share_remote_expiration_days)
     assert_nil config.get(:theme)
   end
 
@@ -147,6 +149,7 @@ class ConfigTest < ActiveSupport::TestCase
       share_remote_timeout_seconds = 30
       share_remote_verify_tls = false
       share_remote_upload_assets = false
+      share_remote_expiration_days = 14
     CONFIG
 
     config = Config.new(base_path: @test_dir)
@@ -164,6 +167,7 @@ class ConfigTest < ActiveSupport::TestCase
     assert_equal 30, config.get(:share_remote_timeout_seconds)
     assert_equal false, config.get(:share_remote_verify_tls)
     assert_equal false, config.get(:share_remote_upload_assets)
+    assert_equal 14, config.get(:share_remote_expiration_days)
   end
 
   test "reads boolean values correctly" do
@@ -255,7 +259,14 @@ class ConfigTest < ActiveSupport::TestCase
   test "update saves multiple values" do
     config = Config.new(base_path: @test_dir)
 
-    config.update(theme: "dark", editor_font_size: 18, preview_font_family: "mono", preview_width: 58, active_mode: "reading")
+    config.update(
+      theme: "dark",
+      editor_font_size: 18,
+      preview_font_family: "mono",
+      preview_width: 58,
+      active_mode: "reading",
+      share_remote_expiration_days: 21
+    )
 
     config2 = Config.new(base_path: @test_dir)
     assert_equal "dark", config2.get(:theme)
@@ -263,6 +274,7 @@ class ConfigTest < ActiveSupport::TestCase
     assert_equal "mono", config2.get(:preview_font_family)
     assert_equal 58, config2.get(:preview_width)
     assert_equal "reading", config2.get(:active_mode)
+    assert_equal 21, config2.get(:share_remote_expiration_days)
   end
 
   test "update replaces commented line with actual value" do
@@ -738,6 +750,7 @@ class ConfigTest < ActiveSupport::TestCase
     assert_includes content, "# Remote Share API"
     assert_includes content, "share_backend"
     assert_includes content, "share_remote_api_host"
+    assert_includes content, "share_remote_expiration_days"
     assert_includes content, "# AI/LLM"
     assert_includes content, "ollama_api_base"
     assert_includes content, "anthropic_api_key"
@@ -763,6 +776,31 @@ class ConfigTest < ActiveSupport::TestCase
     assert_includes content, "theme = tokyo-night"
     assert_includes content, "# My custom comment about images"
     assert_includes content, "images_path = /my/images"
+  end
+
+  test "upgrade adds remote share expiration line to an existing remote share section" do
+    config_with_remote_share_section = <<~CONFIG
+      # FrankMD Configuration
+      theme = dark
+
+      # Remote Share API
+      share_backend = remote
+      share_remote_api_host = shares.example.com
+      share_remote_instance_name = home-vps
+      share_remote_api_token = token-123
+    CONFIG
+
+    @test_dir.join(".fed").write(config_with_remote_share_section)
+
+    config = Config.new(base_path: @test_dir)
+    content = @test_dir.join(".fed").read
+
+    assert_equal "remote", config.get(:share_backend)
+    assert_equal "shares.example.com", config.get(:share_remote_api_host)
+    assert_equal "home-vps", config.get(:share_remote_instance_name)
+    assert_equal 30, config.get(:share_remote_expiration_days)
+    assert_includes content, "# share_remote_expiration_days = 30"
+    assert_equal 1, content.scan(/share_remote_expiration_days/).length
   end
 
   test "upgrade does not duplicate existing AI section" do

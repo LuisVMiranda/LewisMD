@@ -1,0 +1,72 @@
+<div class="share-view__toolbar-actions">
+  <div
+    class="share-view__menu-anchor"
+    data-controller="theme"
+    data-theme-initial-value="<%= initial_theme %>"
+    data-theme-persist-value="false"
+    data-theme-query-param-value="true"
+    data-theme-allow-omarchy-value="false"
+  >
+    <button
+      type="button"
+      data-action="click->theme#toggle"
+      class="share-view__toolbar-button"
+      title="<%= t("header.change_theme") %>"
+    >
+      <svg class="share-view__toolbar-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+      </svg>
+      <span class="share-view__toolbar-label" data-theme-target="currentTheme">Light</span>
+      <svg class="share-view__toolbar-caret" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+      </svg>
+    </button>
+    <div
+      class="share-view__picker-menu hidden"
+      data-theme-target="menu"
+    ></div>
+  </div>
+
+  <div
+    class="share-view__menu-anchor"
+    data-controller="locale"
+    data-locale-initial-value="<%= locale %>"
+    data-locale-persist-value="false"
+  >
+    <button
+      type="button"
+      data-action="click->locale#toggle"
+      class="share-view__toolbar-button"
+      title="<%= t("header.change_language") %>"
+    >
+      <svg class="share-view__toolbar-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+      </svg>
+      <span class="share-view__toolbar-label" data-locale-target="currentLocale"><%= locale_names.fetch(locale.to_s, "English") %></span>
+      <svg class="share-view__toolbar-caret" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+      </svg>
+    </button>
+    <div
+      class="share-view__picker-menu hidden"
+      data-locale-target="menu"
+    ></div>
+  </div>
+
+  <%= render "shares/reader_export_menu" %>
+
+  <button
+    type="button"
+    class="share-view__toolbar-button"
+    data-share-view-target="displayToggle"
+    data-action="share-view#toggleDisplayPanel"
+    aria-expanded="true"
+    aria-controls="share-view-display-panel"
+    title="<%= t("share_view.show_controls", default: "Show reading controls") %>"
+  >
+    <svg class="share-view__toolbar-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h10M4 18h7" />
+    </svg>
+    <span class="share-view__toolbar-label"><%= t("share_view.display", default: "Display") %></span>
+  </button>
+</div>

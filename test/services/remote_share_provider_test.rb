@@ -12,7 +12,8 @@ class RemoteShareProviderTest < ActiveSupport::TestCase
       share_remote_api_port: 443,
       share_remote_public_base: "https://shares.example.com",
       share_remote_api_token: "token-123",
-      share_remote_signing_secret: "signing-secret"
+      share_remote_signing_secret: "signing-secret",
+      share_remote_expiration_days: 14
     )
     @registry = RemoteShareRegistryService.new(base_path: @test_notes_dir)
   end
@@ -22,42 +23,51 @@ class RemoteShareProviderTest < ActiveSupport::TestCase
   end
 
   test "create_or_find publishes a remote share and persists registry metadata" do
-    client = mock("remote-share-client")
-    client.expects(:create_share).with do |payload|
-      assert_equal "Shared Note", payload[:title]
-      assert_equal 1, payload[:assets].length
-      assert_equal "asset-1", payload[:assets].first[:upload_reference]
-      assert_includes payload[:html_fragment], 'src="asset://asset-1"'
-      true
-    end.returns(
-      {
-        token: "remote-share-1234",
-        url: "https://shares.example.com/s/remote-share-1234",
+    travel_to Time.zone.parse("2026-03-25 12:00:00 UTC") do
+      client = mock("remote-share-client")
+      client.expects(:create_share).with do |payload|
+        assert_equal "Shared Note", payload[:title]
+        assert_equal 2, payload[:snapshot_version]
+        assert_equal 1, payload[:shell_version]
+        assert_equal "Shared Note", payload.dig(:shell_payload, :title)
+        assert_equal "dark", payload[:theme_id]
+        assert_equal "2026-04-08T12:00:00Z", payload[:expires_at]
+        assert_equal 1, payload[:assets].length
+        assert_equal "asset-1", payload[:assets].first[:upload_reference]
+        assert_includes payload[:html_fragment], 'src="asset://asset-1"'
+        assert_includes payload[:snapshot_document_html], 'src="asset://asset-1"'
+        true
+      end.returns(
+        {
+          token: "remote-share-1234",
+          url: "https://shares.example.com/s/remote-share-1234",
+          title: "Shared Note",
+          created_at: "2026-03-25T12:00:00Z",
+          updated_at: "2026-03-25T12:00:00Z"
+        }
+      )
+      client.stubs(:last_capabilities).returns({ "api_version" => "1", "feature_flags" => { "full_share_shell" => true } })
+
+      provider = SharePublishers::RemoteShareProvider.new(
+        base_path: @test_notes_dir,
+        config: @config,
+        registry: @registry,
+        client: client
+      )
+
+      share = provider.create_or_find(
+        path: "shared-note.md",
         title: "Shared Note",
-        created_at: "2026-03-25T12:00:00Z",
-        updated_at: "2026-03-25T12:00:00Z"
-      }
-    )
-    client.stubs(:last_capabilities).returns({ "api_version" => "1" })
+        snapshot_html: "<html><body>Ignored</body></html>",
+        share_payload: share_payload
+      )
 
-    provider = SharePublishers::RemoteShareProvider.new(
-      base_path: @test_notes_dir,
-      config: @config,
-      registry: @registry,
-      client: client
-    )
-
-    share = provider.create_or_find(
-      path: "shared-note.md",
-      title: "Shared Note",
-      snapshot_html: "<html><body>Ignored</body></html>",
-      share_payload: share_payload
-    )
-
-    assert_equal true, share[:created]
-    assert_equal "remote-share-1234", share[:token]
-    assert_equal false, share[:stale]
-    assert_equal "https://shares.example.com/s/remote-share-1234", @registry.active_share_for("shared-note.md")[:url]
+      assert_equal true, share[:created]
+      assert_equal "remote-share-1234", share[:token]
+      assert_equal false, share[:stale]
+      assert_equal "2026-04-08T12:00:00Z", share[:expires_at]
+      assert_equal "https://shares.example.com/s/remote-share-1234", @registry.active_share_for("shared-note.md")[:url]
+    end
   end
 
   test "create_or_find reuses an existing remote registry entry" do
@@ -81,6 +91,46 @@ class RemoteShareProviderTest < ActiveSupport::TestCase
 
     assert_equal false, share[:created]
     assert_equal "remote-share-1234", share[:token]
+  end
+
+  test "create_or_find republishes when the stored remote share has expired" do
+    @registry.save(existing_share_metadata.merge(expires_at: "2026-03-25T11:59:00Z"))
+
+    travel_to Time.zone.parse("2026-03-25 12:00:00 UTC") do
+      client = mock("remote-share-client")
+      client.expects(:create_share).with do |payload|
+        assert_equal "2026-04-08T12:00:00Z", payload[:expires_at]
+        true
+      end.returns(
+        {
+          token: "remote-share-5678",
+          url: "https://shares.example.com/s/remote-share-5678",
+          title: "Shared Note",
+          created_at: "2026-03-25T12:00:00Z",
+          updated_at: "2026-03-25T12:00:00Z",
+          expires_at: "2026-04-08T12:00:00Z"
+        }
+      )
+      client.stubs(:last_capabilities).returns({ "api_version" => "1", "feature_flags" => { "full_share_shell" => true } })
+
+      provider = SharePublishers::RemoteShareProvider.new(
+        base_path: @test_notes_dir,
+        config: @config,
+        registry: @registry,
+        client: client
+      )
+
+      share = provider.create_or_find(
+        path: "shared-note.md",
+        title: "Shared Note",
+        snapshot_html: "<html><body>Ignored</body></html>",
+        share_payload: share_payload
+      )
+
+      assert_equal true, share[:created]
+      assert_equal "remote-share-5678", share[:token]
+      assert_equal "remote-share-5678", @registry.active_share_for("shared-note.md")[:token]
+    end
   end
 
   test "refresh marks the remote share stale when the remote API fails" do
@@ -143,6 +193,19 @@ class RemoteShareProviderTest < ActiveSupport::TestCase
       theme_id: "dark",
       locale: "en",
       content_hash: "abc123",
+      snapshot_version: 2,
+      shell_version: 1,
+      snapshot_document_html: '<!DOCTYPE html><html lang="en" data-theme="dark"><head><style>.export-shell { padding: 1rem; }</style></head><body><main class="export-shell"><article class="export-article"><p><img src="data:image/png;base64,aGVsbG8=" alt="Inline image"></p></article></main></body></html>',
+      shell_payload: {
+        title: "Shared Note",
+        locale: "en",
+        theme_id: "dark",
+        display: {
+          default_zoom: 100,
+          default_width: 72,
+          font_family: "default"
+        }
+      },
       asset_manifest: [
         {
           source_url: "data:image/png;base64,aGVsbG8=",
@@ -184,6 +247,7 @@ class RemoteShareProviderTest < ActiveSupport::TestCase
       locale: "en",
       theme_id: "dark",
       asset_manifest: [],
+      expires_at: "2026-04-08T12:00:00Z",
       capabilities: { "api_version" => "1" }
     }
   end

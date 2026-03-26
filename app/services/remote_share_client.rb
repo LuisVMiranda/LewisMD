@@ -173,7 +173,8 @@ class RemoteShareClient
       url: parsed["public_url"].presence || parsed["url"].presence || derive_public_url(token),
       title: parsed["title"],
       created_at: parsed["created_at"],
-      updated_at: parsed["updated_at"]
+      updated_at: parsed["updated_at"],
+      expires_at: parsed["expires_at"]
     }
   end
 

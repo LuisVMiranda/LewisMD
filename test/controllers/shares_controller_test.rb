@@ -101,7 +101,23 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
   test "create returns the remote public url when remote publishing is configured" do
     configure_remote_share_backend
     stub_remote_capabilities
-    stub_remote_create
+    stub_request(:post, "https://shares.example.com/api/v1/shares")
+      .with do |request|
+        body = JSON.parse(request.body)
+        body["snapshot_document_html"].include?("export-article") &&
+          body["shell_payload"]["title"] == "Shared Note" &&
+          body["expires_at"].present?
+      end
+      .to_return(
+        status: 201,
+        body: {
+          token: "remote-share-1234",
+          public_url: "https://shares.example.com/s/remote-share-1234",
+          title: "Shared Note",
+          created_at: "2026-03-25T12:00:00Z",
+          updated_at: "2026-03-25T12:00:00Z"
+        }.to_json
+      )
 
     post shares_url,
       params: {
@@ -117,6 +133,7 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
     assert_equal "remote-share-1234", data["token"]
     assert_equal "https://shares.example.com/s/remote-share-1234", data["url"]
     assert_equal true, data["created"]
+    assert data["expires_at"].present?
   end
 
   test "lookup returns active share metadata for a note path" do
@@ -329,7 +346,8 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
       share_remote_api_port: 443,
       share_remote_public_base: "https://shares.example.com",
       share_remote_api_token: "token-123",
-      share_remote_signing_secret: "signing-secret"
+      share_remote_signing_secret: "signing-secret",
+      share_remote_expiration_days: 14
     )
     WebMock.disable_net_connect!(allow_localhost: true)
   end

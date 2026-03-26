@@ -1,0 +1,62 @@
+<div
+  id="share-view-display-panel"
+  class="share-view__display-panel"
+  data-share-view-target="displayPanel"
+  aria-label="<%= t("share_view.display_controls", default: "Reading controls") %>"
+>
+  <div class="share-view__group">
+    <span class="share-view__group-label"><%= t("share_view.zoom", default: "Zoom") %></span>
+    <button
+      type="button"
+      class="share-view__button"
+      title="<%= t("share_view.zoom_out", default: "Zoom out") %>"
+      data-action="share-view#zoomOut"
+    >
+      -
+    </button>
+    <output class="share-view__value" data-share-view-target="zoomValue">100%</output>
+    <button
+      type="button"
+      class="share-view__button"
+      title="<%= t("share_view.zoom_in", default: "Zoom in") %>"
+      data-action="share-view#zoomIn"
+    >
+      +
+    </button>
+  </div>
+
+  <div class="share-view__group">
+    <span class="share-view__group-label"><%= t("share_view.width", default: "Width") %></span>
+    <button
+      type="button"
+      class="share-view__button"
+      title="<%= t("share_view.width_narrower", default: "Make text column narrower") %>"
+      data-action="share-view#decreaseWidth"
+    >
+      -
+    </button>
+    <output class="share-view__value" data-share-view-target="widthValue">72ch</output>
+    <button
+      type="button"
+      class="share-view__button"
+      title="<%= t("share_view.width_wider", default: "Make text column wider") %>"
+      data-action="share-view#increaseWidth"
+    >
+      +
+    </button>
+  </div>
+
+  <label class="share-view__group share-view__font-group">
+    <span class="share-view__group-label"><%= t("share_view.font_family", default: "Font") %></span>
+    <select
+      class="share-view__select"
+      data-action="change->share-view#changeFontFamily"
+      data-share-view-target="fontSelect"
+    >
+      <option value="default"><%= t("share_view.font_default", default: "Default") %></option>
+      <option value="sans"><%= t("share_view.font_sans", default: "Sans") %></option>
+      <option value="serif"><%= t("share_view.font_serif", default: "Serif") %></option>
+      <option value="mono"><%= t("share_view.font_mono", default: "Mono") %></option>
+    </select>
+  </label>
+</div>

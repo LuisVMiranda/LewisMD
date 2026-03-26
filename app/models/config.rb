@@ -4,7 +4,7 @@
 # Provides defaults from ENV variables that can be overridden per-folder.
 class Config
   CONFIG_FILE = ".fed"
-  CONFIG_VERSION = 5  # Increment when adding new settings
+  CONFIG_VERSION = 6  # Increment when adding new settings
 
   # All configurable options with their defaults and types
   SCHEMA = {
@@ -37,6 +37,7 @@ class Config
     "share_remote_verify_tls" => { default: true, type: :boolean, env: nil },
     "share_remote_upload_assets" => { default: true, type: :boolean, env: nil },
     "share_remote_instance_name" => { default: nil, type: :string, env: nil },
+    "share_remote_expiration_days" => { default: 30, type: :integer, env: nil },
     "share_remote_healthchecks_ping_url" => { default: nil, type: :string, env: nil },
     "share_remote_alert_webhook_url" => { default: nil, type: :string, env: nil },
     "share_remote_api_token" => { default: nil, type: :string, env: nil },
@@ -204,6 +205,8 @@ class Config
         "# share_remote_verify_tls = true",
         "# share_remote_upload_assets = true",
         "# share_remote_instance_name = my-vps",
+        "# Automatically expire remote shares after this many days.",
+        "# share_remote_expiration_days = 30",
         "# share_remote_healthchecks_ping_url = https://hc-ping.com/your-uuid",
         "# share_remote_alert_webhook_url = https://hooks.example.com/lewismd",
         "# share_remote_api_token = your-remote-api-token",
@@ -643,6 +646,7 @@ class Config
       share_remote_verify_tls
       share_remote_upload_assets
       share_remote_instance_name
+      share_remote_expiration_days
       share_remote_healthchecks_ping_url
       share_remote_alert_webhook_url
       share_remote_api_token
@@ -662,6 +666,18 @@ class Config
       new_lines << "" if new_lines.last&.strip&.present?
       new_lines.concat(section_lines("# Remote Share API"))
       changed = true
+    else
+      changed = ensure_setting_lines_present!(
+        existing_lines: existing_lines,
+        new_lines: new_lines,
+        marker: "# Remote Share API",
+        key: "share_remote_expiration_days",
+        lines_to_insert: [
+          "# Automatically expire remote shares after this many days.",
+          "# share_remote_expiration_days = 30"
+        ],
+        after_key: "share_remote_instance_name"
+      ) || changed
     end
 
     unless section_present?(existing_lines, "# AI/LLM", ai_keys)
@@ -686,6 +702,40 @@ class Config
 
   def section_lines(marker)
     TEMPLATE_SECTIONS.find { |section| section[:marker] == marker }&.fetch(:lines, []) || []
+  end
+
+  def ensure_setting_lines_present!(existing_lines:, new_lines:, marker:, key:, lines_to_insert:, after_key: nil)
+    return false if setting_present?(existing_lines, key)
+
+    marker_index = new_lines.index { |line| line.include?(marker) }
+    return false unless marker_index
+
+    section_end_index = next_section_index(new_lines, marker_index)
+    insertion_index = insertion_index_for_setting(new_lines, marker_index, section_end_index, after_key)
+    new_lines.insert(insertion_index, *lines_to_insert)
+    true
+  end
+
+  def setting_present?(lines, key)
+    lines.any? { |line| line =~ /^#?\s*#{Regexp.escape(key)}\s*=/i }
+  end
+
+  def next_section_index(lines, marker_index)
+    next_marker_index = lines[(marker_index + 1)..]&.find_index do |line|
+      TEMPLATE_SECTIONS.any? { |section| line.include?(section[:marker]) }
+    end
+
+    next_marker_index ? marker_index + 1 + next_marker_index : lines.length
+  end
+
+  def insertion_index_for_setting(lines, marker_index, section_end_index, after_key)
+    return section_end_index unless after_key.present?
+
+    anchor_relative_index = lines[(marker_index + 1)...section_end_index]&.find_index do |line|
+      line =~ /^#?\s*#{Regexp.escape(after_key)}\s*=/i
+    end
+
+    anchor_relative_index ? marker_index + 2 + anchor_relative_index : section_end_index
   end
 
   def generate_template_lines

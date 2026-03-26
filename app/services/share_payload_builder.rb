@@ -6,6 +6,9 @@ require "digest"
 require "uri"
 
 class SharePayloadBuilder
+  SNAPSHOT_VERSION = 2
+  SHELL_VERSION = 1
+
   ALLOWED_TAGS = %w[
     a
     blockquote
@@ -62,6 +65,18 @@ class SharePayloadBuilder
     "image/png" => "png",
     "image/webp" => "webp"
   }.freeze
+  LIGHT_THEME_IDS = %w[
+    light
+    solarized-light
+    catppuccin-latte
+    rose-pine
+    flexoki-light
+  ].freeze
+  DEFAULT_SHELL_DISPLAY = {
+    default_zoom: 100,
+    default_width: 72,
+    font_family: "default"
+  }.freeze
 
   def initialize(sanitizer: Rails::HTML5::SafeListSanitizer.new)
     @sanitizer = sanitizer
@@ -76,18 +91,36 @@ class SharePayloadBuilder
     raise ShareService::InvalidShareError, "Share content is empty after sanitization" unless renderable_fragment?(sanitized_fragment)
 
     normalized_fragment_html = sanitized_fragment.to_html
+    normalized_note_title = normalized_title(title, document, normalized_path)
+    locale = extract_locale(document)
+    theme_id = extract_theme_id(document)
+    snapshot_document_html = build_snapshot_document(
+      document: document,
+      title: normalized_note_title,
+      locale: locale,
+      theme_id: theme_id,
+      fragment_html: normalized_fragment_html
+    )
     asset_manifest, assets = build_assets(sanitized_fragment)
 
     {
+      snapshot_version: SNAPSHOT_VERSION,
+      shell_version: SHELL_VERSION,
       source: "preview",
       path: normalized_path,
       note_identifier: normalized_path,
-      title: normalized_title(title, document, normalized_path),
+      title: normalized_note_title,
       html_fragment: normalized_fragment_html,
+      snapshot_document_html: snapshot_document_html,
+      shell_payload: build_shell_payload(
+        title: normalized_note_title,
+        locale: locale,
+        theme_id: theme_id
+      ),
       plain_text: normalize_plain_text(sanitized_fragment.text),
-      theme_id: extract_theme_id(document),
-      locale: extract_locale(document),
-      content_hash: Digest::SHA256.hexdigest(normalized_fragment_html),
+      theme_id: theme_id,
+      locale: locale,
+      content_hash: Digest::SHA256.hexdigest(snapshot_document_html),
       asset_manifest: asset_manifest,
       assets: assets
     }
@@ -184,6 +217,13 @@ class SharePayloadBuilder
     document.at_css("html")&.[]("lang").to_s.strip.presence || I18n.default_locale.to_s
   end
 
+  def extract_color_scheme(document, theme_id)
+    declared = document.at_css('meta[name="color-scheme"]')&.[]("content").to_s.strip.downcase
+    return declared if %w[light dark].include?(declared)
+
+    LIGHT_THEME_IDS.include?(theme_id) ? "light" : "dark"
+  end
+
   def normalize_plain_text(text)
     text.to_s
       .tr("\u00A0", " ")
@@ -192,6 +232,57 @@ class SharePayloadBuilder
       .map { |line| line.strip }
       .reject(&:blank?)
       .join("\n")
+  end
+
+  def build_snapshot_document(document:, title:, locale:, theme_id:, fragment_html:)
+    color_scheme = extract_color_scheme(document, theme_id)
+    style_blocks = extract_style_blocks(document)
+
+    head_parts = [
+      '<meta charset="utf-8">',
+      '<meta name="viewport" content="width=device-width, initial-scale=1">',
+      %(<meta name="color-scheme" content="#{CGI.escapeHTML(color_scheme)}">),
+      %(<title>#{CGI.escapeHTML(title)}</title>)
+    ]
+    head_parts.concat(style_blocks.map { |css| wrap_style_block(css) })
+
+    <<~HTML.chomp
+      <!DOCTYPE html>
+      <html lang="#{CGI.escapeHTML(locale)}"#{theme_attribute(theme_id)}>
+      <head>
+        #{head_parts.join("\n    ")}
+      </head>
+      <body>
+        <main class="export-shell">
+          <article class="export-article">
+            #{fragment_html}
+          </article>
+        </main>
+      </body>
+      </html>
+    HTML
+  end
+
+  def build_shell_payload(title:, locale:, theme_id:)
+    {
+      title: title,
+      locale: locale,
+      theme_id: theme_id,
+      display: DEFAULT_SHELL_DISPLAY.dup
+    }
+  end
+
+  def extract_style_blocks(document)
+    document.css("head style").map { |node| node.text.to_s }.reject(&:blank?)
+  end
+
+  def wrap_style_block(css_text)
+    escaped = css_text.to_s.gsub(%r{</style}i, '<\/style')
+    "<style>\n#{escaped}\n</style>"
+  end
+
+  def theme_attribute(theme_id)
+    theme_id.present? ? %( data-theme="#{CGI.escapeHTML(theme_id)}") : ""
   end
 
   def build_assets(fragment)

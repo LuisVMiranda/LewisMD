@@ -21,6 +21,7 @@ module ShareAPI
     SNAPSHOTS_DIR = "snapshots"
     ASSETS_DIR = "assets"
     NONCES_DIR = "nonces"
+    MAINTENANCE_DIR = "maintenance"
     TOKEN_PATTERN = /\A[a-zA-Z0-9\-_]{8,}\z/
     ALLOWED_ASSET_MIME_TYPES = %w[
       image/avif
@@ -38,8 +39,9 @@ module ShareAPI
       FileUtils.mkdir_p(storage_root)
     end
 
-    def upsert_share(identity_key:, share:, fragment_html:, assets: [])
+    def upsert_share(identity_key:, share:, fragment_html:, snapshot_document_html: nil, assets: [])
       validate_identity_key!(identity_key)
+      share = normalize_share(share)
       validate_share!(share)
       prepared_assets = prepare_assets(assets)
 
@@ -49,6 +51,11 @@ module ShareAPI
       resolved_fragment_html = resolve_fragment_assets(
         token: token,
         fragment_html: fragment_html,
+        prepared_assets: prepared_assets
+      )
+      resolved_snapshot_document_html = resolve_snapshot_document_assets(
+        token: token,
+        snapshot_document_html: snapshot_document_html,
         prepared_assets: prepared_assets
       )
 
@@ -62,6 +69,7 @@ module ShareAPI
 
       promote_assets(token: token, prepared_assets: prepared_assets)
       write_fragment(token, resolved_fragment_html)
+      write_snapshot_document(token, resolved_snapshot_document_html)
       write_share_metadata(persisted_share)
       write_identity_index(identity_key, token)
       cleanup_orphan_assets(token: token, keep_names: prepared_assets.map { |asset| asset[:stored_name] })
@@ -69,13 +77,19 @@ module ShareAPI
       [ existing_share.nil?, persisted_share ]
     end
 
-    def update_share(token:, share:, fragment_html:, assets: [])
+    def update_share(token:, share:, fragment_html:, snapshot_document_html: nil, assets: [])
       validate_token!(token)
+      share = normalize_share(share)
       existing_share = fetch_share(token)
       prepared_assets = prepare_assets(assets)
       resolved_fragment_html = resolve_fragment_assets(
         token: token,
         fragment_html: fragment_html,
+        prepared_assets: prepared_assets
+      )
+      resolved_snapshot_document_html = resolve_snapshot_document_assets(
+        token: token,
+        snapshot_document_html: snapshot_document_html,
         prepared_assets: prepared_assets
       )
 
@@ -87,6 +101,7 @@ module ShareAPI
 
       promote_assets(token: token, prepared_assets: prepared_assets)
       write_fragment(token, resolved_fragment_html)
+      write_snapshot_document(token, resolved_snapshot_document_html)
       write_share_metadata(persisted_share)
       write_identity_index(existing_share.fetch("identity_key"), token)
       cleanup_orphan_assets(token: token, keep_names: prepared_assets.map { |asset| asset[:stored_name] })
@@ -94,24 +109,31 @@ module ShareAPI
       persisted_share
     end
 
-    def fetch_share(token)
+    def fetch_share(token, allow_expired: false)
       validate_token!(token)
       file = share_file(token)
       raise NotFoundError unless file.file?
 
-      JSON.parse(file.read)
+      share = JSON.parse(file.read)
+      if !allow_expired && expired_share?(share)
+        purge_share(share)
+        raise NotFoundError
+      end
+
+      share
     rescue JSON::ParserError
       raise NotFoundError
     end
 
-    def find_share_by_identity(identity_key)
+    def find_share_by_identity(identity_key, allow_expired: false)
       validate_identity_key!(identity_key)
       file = identity_index_file(identity_key)
       return nil unless file.file?
 
       payload = JSON.parse(file.read)
-      fetch_share(payload.fetch("token"))
+      fetch_share(payload.fetch("token"), allow_expired: allow_expired)
     rescue JSON::ParserError, KeyError, NotFoundError
+      file.delete if file&.file?
       nil
     end
 
@@ -123,13 +145,36 @@ module ShareAPI
       file.read
     end
 
+    def read_snapshot_document(token)
+      validate_token!(token)
+      file = snapshot_document_file(token)
+      raise NotFoundError unless file.file?
+
+      file.read
+    end
+
     def delete_share(token:)
-      share = fetch_share(token)
-      share_file(token).delete if share_file(token).exist?
-      fragment_file(token).delete if fragment_file(token).exist?
-      FileUtils.rm_rf(asset_dir(token)) if asset_dir(token).exist?
-      identity_index_file(share.fetch("identity_key")).delete if identity_index_file(share.fetch("identity_key")).exist?
+      share = fetch_share(token, allow_expired: true)
+      purge_share(share)
       share
+    end
+
+    def sweep_expired_shares!(now: Time.now.utc)
+      removed_tokens = []
+
+      Dir.glob(shares_dir.join("*.json")).sort.each do |share_path|
+        file = Pathname.new(share_path)
+        share = JSON.parse(file.read)
+        next unless expired_share?(share, now: now)
+
+        removed_tokens << share.fetch("token")
+        purge_share(share)
+      rescue JSON::ParserError, KeyError
+        file.delete if file.file?
+      end
+
+      prune_orphan_identity_indexes!
+      removed_tokens
     end
 
     def asset_path(token:, asset_name:)
@@ -161,6 +206,18 @@ module ShareAPI
       end
     end
 
+    def write_sweeper_report!(checked_at:, status:, removed_tokens:, error: nil)
+      payload = {
+        checked_at: checked_at,
+        status: status,
+        removed_count: Array(removed_tokens).length,
+        removed_tokens: Array(removed_tokens)
+      }
+      payload[:error] = error.to_s unless error.to_s.strip.empty?
+
+      write_json(sweeper_report_file, payload)
+    end
+
     private
 
     attr_reader :storage_path, :max_asset_bytes, :max_asset_count
@@ -189,16 +246,28 @@ module ShareAPI
       @nonces_dir ||= storage_root.join(NONCES_DIR)
     end
 
+    def maintenance_dir
+      @maintenance_dir ||= storage_root.join(MAINTENANCE_DIR)
+    end
+
     def share_file(token)
       shares_dir.join("#{token}.json")
     end
 
     def fragment_file(token)
-      snapshots_dir.join(token, "index.html")
+      snapshot_dir(token).join("index.html")
+    end
+
+    def snapshot_document_file(token)
+      snapshot_dir(token).join("document.html")
     end
 
     def asset_dir(token)
       assets_dir.join(token)
+    end
+
+    def snapshot_dir(token)
+      snapshots_dir.join(token)
     end
 
     def identity_index_file(identity_key)
@@ -207,6 +276,10 @@ module ShareAPI
 
     def nonce_file(request_id)
       nonces_dir.join("#{Digest::SHA256.hexdigest(request_id)}.json")
+    end
+
+    def sweeper_report_file
+      maintenance_dir.join("sweeper-state.json")
     end
 
     def write_share_metadata(share)
@@ -221,6 +294,14 @@ module ShareAPI
       path = fragment_file(token)
       FileUtils.mkdir_p(path.dirname)
       atomic_write(path, fragment_html)
+    end
+
+    def write_snapshot_document(token, snapshot_document_html)
+      return if snapshot_document_html.to_s.strip.empty?
+
+      path = snapshot_document_file(token)
+      FileUtils.mkdir_p(path.dirname)
+      atomic_write(path, snapshot_document_html)
     end
 
     def write_json(path, payload)
@@ -262,6 +343,20 @@ module ShareAPI
       raise ValidationError, "title is required" if share["title"].to_s.strip.empty?
       raise ValidationError, "path is required" if share["path"].to_s.strip.empty?
       raise ValidationError, "content_hash is required" if share["content_hash"].to_s.strip.empty?
+    end
+
+    def normalize_share(share)
+      normalized_share = share.dup
+      normalized_share["expires_at"] = normalized_timestamp_or_nil(normalized_share["expires_at"])
+      normalized_share
+    end
+
+    def normalized_timestamp_or_nil(value)
+      return nil if value.to_s.strip.empty?
+
+      Time.iso8601(value.to_s).utc.iso8601
+    rescue ArgumentError
+      raise ValidationError, "expires_at must be an ISO8601 timestamp"
     end
 
     def prepare_assets(assets)
@@ -344,6 +439,34 @@ module ShareAPI
       fragment.to_html
     end
 
+    def resolve_snapshot_document_assets(token:, snapshot_document_html:, prepared_assets:)
+      return nil if snapshot_document_html.to_s.strip.empty?
+
+      replacements = prepared_assets.each_with_object({}) do |asset, map|
+        map[asset[:upload_reference]] = "/assets/#{token}/#{asset[:stored_name]}"
+      end
+      return snapshot_document_html if replacements.empty?
+
+      document = Nokogiri::HTML.parse(snapshot_document_html.to_s)
+      document.css("img").each do |image|
+        src = image["src"].to_s.strip
+        upload_reference =
+          if src.start_with?("asset://")
+            src.delete_prefix("asset://")
+          elsif src.start_with?(ShareAPI::ASSET_PLACEHOLDER_PREFIX)
+            src.delete_prefix(ShareAPI::ASSET_PLACEHOLDER_PREFIX)
+          end
+        next if upload_reference.to_s.strip.empty?
+
+        resolved_url = replacements[upload_reference]
+        raise ValidationError, "Asset reference #{upload_reference} was not uploaded" if resolved_url.nil?
+
+        image["src"] = resolved_url
+      end
+
+      document.to_html
+    end
+
     def promote_assets(token:, prepared_assets:)
       target_dir = asset_dir(token)
       FileUtils.mkdir_p(target_dir)
@@ -385,6 +508,39 @@ module ShareAPI
           "public_url" => resolved[:public_url],
           "stored_name" => resolved[:stored_name]
         )
+      end
+    end
+
+    def expired_share?(share, now: Time.now.utc)
+      expires_at = share["expires_at"].to_s.strip
+      return false if expires_at.empty?
+
+      Time.iso8601(expires_at) <= now.utc
+    rescue ArgumentError
+      false
+    end
+
+    def purge_share(share)
+      token = share.fetch("token")
+      share_file(token).delete if share_file(token).exist?
+      FileUtils.rm_rf(snapshot_dir(token)) if snapshot_dir(token).exist?
+      FileUtils.rm_rf(asset_dir(token)) if asset_dir(token).exist?
+
+      identity_key = share["identity_key"].to_s
+      unless identity_key.empty?
+        index_file = identity_index_file(identity_key)
+        index_file.delete if index_file.exist?
+      end
+    end
+
+    def prune_orphan_identity_indexes!
+      Dir.glob(path_index_dir.join("*.json")).sort.each do |file_path|
+        file = Pathname.new(file_path)
+        payload = JSON.parse(file.read)
+        token = payload.fetch("token")
+        file.delete unless share_file(token).file?
+      rescue JSON::ParserError, KeyError
+        file.delete if file.file?
       end
     end
   end

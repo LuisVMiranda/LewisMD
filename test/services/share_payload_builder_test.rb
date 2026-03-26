@@ -21,7 +21,14 @@ class SharePayloadBuilderTest < ActiveSupport::TestCase
       document_html: <<~HTML
         <!DOCTYPE html>
         <html lang="pt-BR" data-theme="nord">
-          <head><title>Ignored Document Title</title></head>
+          <head>
+            <title>Ignored Document Title</title>
+            <meta name="color-scheme" content="dark">
+            <style>
+              .export-shell { padding: 3rem 1.5rem; }
+              .export-article { max-width: 72ch; }
+            </style>
+          </head>
           <body>
             <main class="export-shell">
               <article class="export-article">
@@ -41,12 +48,20 @@ class SharePayloadBuilderTest < ActiveSupport::TestCase
     )
 
     assert_equal "preview", payload[:source]
+    assert_equal 2, payload[:snapshot_version]
+    assert_equal 1, payload[:shell_version]
     assert_equal "shared-note.md", payload[:path]
     assert_equal "shared-note.md", payload[:note_identifier]
     assert_equal "Shared Note", payload[:title]
     assert_equal "pt-BR", payload[:locale]
     assert_equal "nord", payload[:theme_id]
     assert_equal 64, payload[:content_hash].length
+    assert_equal "Shared Note", payload.dig(:shell_payload, :title)
+    assert_equal "pt-BR", payload.dig(:shell_payload, :locale)
+    assert_equal "nord", payload.dig(:shell_payload, :theme_id)
+    assert_equal 100, payload.dig(:shell_payload, :display, :default_zoom)
+    assert_equal 72, payload.dig(:shell_payload, :display, :default_width)
+    assert_equal "default", payload.dig(:shell_payload, :display, :font_family)
 
     assert_includes payload[:html_fragment], "<h1>Shared</h1>"
     assert_includes payload[:html_fragment], "<strong>world</strong>"
@@ -59,6 +74,18 @@ class SharePayloadBuilderTest < ActiveSupport::TestCase
     refute_includes payload[:html_fragment], "onerror="
     refute_includes payload[:html_fragment], "javascript:"
     assert_equal "Shared\nHello world.\nBad link\nGood link\nCell", payload[:plain_text]
+    assert_includes payload[:snapshot_document_html], "<!DOCTYPE html>"
+    assert_includes payload[:snapshot_document_html], '<html lang="pt-BR" data-theme="nord">'
+    assert_includes payload[:snapshot_document_html], '<meta name="color-scheme" content="dark">'
+    assert_includes payload[:snapshot_document_html], "<style>"
+    assert_includes payload[:snapshot_document_html], ".export-shell"
+    assert_includes payload[:snapshot_document_html], '<main class="export-shell">'
+    assert_includes payload[:snapshot_document_html], '<article class="export-article">'
+    assert_includes payload[:snapshot_document_html], "<strong>world</strong>"
+    refute_includes payload[:snapshot_document_html], "<script"
+    refute_includes payload[:snapshot_document_html], "<iframe"
+    refute_includes payload[:snapshot_document_html], "onclick="
+    refute_includes payload[:snapshot_document_html], "onerror="
 
     assert_equal 1, payload[:asset_manifest].length
     asset = payload[:asset_manifest].first

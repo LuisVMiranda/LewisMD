@@ -25,7 +25,7 @@ class RemoteShareClientTest < ActiveSupport::TestCase
 
   test "fetch_capabilities caches the capabilities payload" do
     stub_request(:get, "https://shares.example.com/api/v1/capabilities")
-      .to_return(status: 200, body: { api_version: "1", asset_uploads: true }.to_json)
+      .to_return(status: 200, body: { api_version: "1", feature_flags: { asset_uploads: true, full_share_shell: true } }.to_json)
 
     capabilities = @client.fetch_capabilities
 
@@ -45,7 +45,9 @@ class RemoteShareClientTest < ActiveSupport::TestCase
           request.headers["X-Lewismd-Signature"].present? &&
           request.headers["X-Lewismd-Request-Id"].present? &&
           request.headers["X-Lewismd-Timestamp"].present? &&
-          body["title"] == "Shared Note"
+          body["title"] == "Shared Note" &&
+          body["snapshot_document_html"].include?("export-article") &&
+          body["expires_at"] == "2026-04-08T12:00:00Z"
       end
       .to_return(
         status: 201,
@@ -58,7 +60,13 @@ class RemoteShareClientTest < ActiveSupport::TestCase
         }.to_json
       )
 
-    share = @client.create_share(title: "Shared Note", html_fragment: "<p>Hello</p>")
+    share = @client.create_share(
+      title: "Shared Note",
+      html_fragment: "<p>Hello</p>",
+      snapshot_document_html: "<!DOCTYPE html><html><body><main class=\"export-shell\"><article class=\"export-article\"><p>Hello</p></article></main></body></html>",
+      shell_payload: { title: "Shared Note", locale: "en", theme_id: "dark" },
+      expires_at: "2026-04-08T12:00:00Z"
+    )
 
     assert_equal "remote-share-1234", share[:token]
     assert_equal "https://shares.example.com/s/remote-share-1234", share[:url]
@@ -81,7 +89,11 @@ class RemoteShareClientTest < ActiveSupport::TestCase
 
     share = @client.update_share(
       token: "remote-share-1234",
-      payload: { title: "Shared Note", html_fragment: "<p>Hello</p>" }
+      payload: {
+        title: "Shared Note",
+        html_fragment: "<p>Hello</p>",
+        snapshot_document_html: "<!DOCTYPE html><html><body><article class=\"export-article\"><p>Hello</p></article></body></html>"
+      }
     )
 
     assert_equal "https://shares.example.com/s/remote-share-1234", share[:url]

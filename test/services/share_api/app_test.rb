@@ -45,10 +45,52 @@ class ShareApiAppTest < ActiveSupport::TestCase
     payload = JSON.parse(last_response.body)
     assert_equal "1", payload["api_version"]
     assert_equal true, payload.dig("feature_flags", "asset_uploads")
+    assert_equal true, payload.dig("feature_flags", "full_share_shell")
+  end
+
+  test "reader bundle assets are served as static files" do
+    get "/reader/assets/remote_reader_bundle.js"
+
+    assert_equal 200, last_response.status
+    assert_equal "text/javascript", last_response.media_type
+    assert_includes last_response.body, "LewisMDRemoteReader"
+
+    get "/reader/assets/share_view.css"
+
+    assert_equal 200, last_response.status
+    assert_equal "text/css", last_response.media_type
+    assert_includes last_response.body, ".share-view__toolbar"
+
+    get "/reader/assets/themes/dark.css"
+
+    assert_equal 200, last_response.status
+    assert_equal "text/css", last_response.media_type
+    assert_includes last_response.body, '[data-theme="dark"]'
   end
 
   test "post creates a share, sanitizes the fragment, and serves it publicly" do
-    body = JSON.generate(valid_payload.merge("html_fragment" => "<h1>Shared Note</h1><script>alert(1)</script>"))
+    body = JSON.generate(
+      valid_payload.merge(
+        "html_fragment" => "<h1>Shared Note</h1><script>alert(1)</script>",
+        "snapshot_document_html" => <<~HTML
+          <!doctype html>
+          <html lang="en" data-theme="dark">
+            <head>
+              <style>
+                .export-shell { padding: 3rem; }
+              </style>
+            </head>
+            <body>
+              <main class="export-shell">
+                <article class="export-article">
+                  <h1>Shared Note</h1><script>alert(1)</script>
+                </article>
+              </main>
+            </body>
+          </html>
+        HTML
+      )
+    )
 
     post "/api/v1/shares", body, signed_headers(method: "POST", path: "/api/v1/shares", body: body)
 
@@ -62,14 +104,83 @@ class ShareApiAppTest < ActiveSupport::TestCase
     assert_equal 200, last_response.status
     assert_equal "text/html", last_response.media_type
     assert_equal "DENY", last_response.headers["X-Frame-Options"]
+    assert_equal "no-store", last_response.headers["Cache-Control"]
     assert_equal "nosniff", last_response.headers["X-Content-Type-Options"]
     assert_equal "no-referrer", last_response.headers["Referrer-Policy"]
     assert_equal "noindex, nofollow, noarchive", last_response.headers["X-Robots-Tag"]
     assert_includes last_response.headers["Content-Security-Policy"], "default-src 'none'"
-    assert_includes last_response.headers["Content-Security-Policy"], "script-src 'none'"
-    assert_includes last_response.body, "<header>"
-    assert_includes last_response.body, "LewisMD Share"
-    assert_includes last_response.body, "Read-only snapshot"
+    assert_includes last_response.headers["Content-Security-Policy"], "script-src 'self'"
+    assert_includes last_response.headers["Content-Security-Policy"], "frame-src 'self'"
+    assert_includes last_response.headers["Content-Security-Policy"], "style-src 'self' 'unsafe-inline'"
+    assert_includes last_response.body, 'class="share-view share-view--remote"'
+    assert_includes last_response.body, '<p class="share-view__eyebrow">Shared note</p>'
+    assert_includes last_response.body, '<h1 class="share-view__title">Shared Note</h1>'
+    assert_includes last_response.body, 'data-role="theme-toggle"'
+    assert_includes last_response.body, 'data-role="locale-toggle"'
+    assert_includes last_response.body, 'data-role="export-toggle"'
+    assert_includes last_response.body, 'data-role="display-toggle"'
+    assert_includes last_response.body, "remote_reader_bundle.css"
+    assert_includes last_response.body, "remote_reader_bundle.js"
+    assert_includes last_response.body, %(src="https://shares.example.com/snapshots/#{payload["token"]}")
+    refute_includes last_response.body, "<script>alert(1)</script>"
+  end
+
+  test "public share shell honors theme and locale query params" do
+    payload = create_share!
+
+    get "/s/#{payload["token"]}?theme=light&locale=pt-BR"
+
+    assert_equal 200, last_response.status
+    assert_includes last_response.body, '<html lang="pt-BR" data-theme="light">'
+    assert_includes last_response.body, '<span class="share-view__toolbar-label" data-role="theme-current-label">Light</span>'
+    assert_includes last_response.body, '<span class="share-view__toolbar-label" data-role="locale-current-label">Português (Brasil)</span>'
+    assert_includes last_response.body, 'data-default-zoom="100"'
+    assert_includes last_response.body, 'data-default-width="72"'
+    assert_includes last_response.body, 'data-default-font-family="default"'
+  end
+
+  test "post stores a snapshot document and serves it from the snapshot route" do
+    body = JSON.generate(
+      valid_payload.merge(
+        "html_fragment" => "<h1>Shared Note</h1><script>alert(1)</script>",
+        "snapshot_document_html" => <<~HTML
+          <!doctype html>
+          <html lang="pt-BR" data-theme="dark">
+            <head>
+              <meta name="color-scheme" content="dark">
+              <style>
+                .export-shell { padding: 3rem 1.5rem; }
+                .export-article { max-width: 72ch; }
+              </style>
+            </head>
+            <body>
+              <main class="export-shell">
+                <article class="export-article">
+                  <h1>Shared Note</h1><script>alert(1)</script>
+                </article>
+              </main>
+            </body>
+          </html>
+        HTML
+      )
+    )
+
+    post "/api/v1/shares", body, signed_headers(method: "POST", path: "/api/v1/shares", body: body)
+    assert_equal 201, last_response.status
+
+    payload = JSON.parse(last_response.body)
+
+    get "/snapshots/#{payload["token"]}"
+
+    assert_equal 200, last_response.status
+    assert_equal "text/html", last_response.media_type
+    assert_equal "SAMEORIGIN", last_response.headers["X-Frame-Options"]
+    assert_equal "no-store", last_response.headers["Cache-Control"]
+    assert_includes last_response.headers["Content-Security-Policy"], "style-src 'unsafe-inline'"
+    assert_includes last_response.headers["Content-Security-Policy"], "frame-ancestors 'self'"
+    assert_includes last_response.body, '<html lang="en" data-theme="dark">'
+    assert_includes last_response.body, '<main class="export-shell">'
+    assert_includes last_response.body, '<article class="export-article">'
     assert_includes last_response.body, "<h1>Shared Note</h1>"
     refute_includes last_response.body, "<script>"
   end
@@ -96,15 +207,57 @@ class ShareApiAppTest < ActiveSupport::TestCase
     assert_equal 200, last_response.status
     assert_equal "Updated Title", JSON.parse(last_response.body)["title"]
 
-    get "/s/#{token}"
+    get "/snapshots/#{token}"
 
     assert_includes last_response.body, "Version Two"
+  end
+
+  test "different notes receive different public tokens and remain accessible simultaneously" do
+    first_body = JSON.generate(valid_payload)
+    second_body = JSON.generate(
+      valid_payload.merge(
+        "note_identifier" => "notes/second-note.md",
+        "path" => "notes/second-note.md",
+        "title" => "Second Shared Note",
+        "html_fragment" => "<p>Hello from the second note</p>",
+        "snapshot_document_html" => '<!doctype html><html lang="en" data-theme="light"><head><style>.export-shell { padding: 1rem; }</style></head><body><main class="export-shell"><article class="export-article"><p>Hello from the second note</p></article></main></body></html>',
+        "shell_payload" => {
+          "title" => "Second Shared Note",
+          "locale" => "en",
+          "theme_id" => "light",
+          "display" => {
+            "default_zoom" => 100,
+            "default_width" => 72,
+            "font_family" => "default"
+          }
+        },
+        "theme_id" => "light",
+        "content_hash" => "hash-2"
+      )
+    )
+
+    post "/api/v1/shares", first_body, signed_headers(method: "POST", path: "/api/v1/shares", body: first_body)
+    first_payload = JSON.parse(last_response.body)
+
+    post "/api/v1/shares", second_body, signed_headers(method: "POST", path: "/api/v1/shares", body: second_body)
+    second_payload = JSON.parse(last_response.body)
+
+    refute_equal first_payload["token"], second_payload["token"]
+
+    get "/s/#{first_payload["token"]}"
+    assert_equal 200, last_response.status
+    assert_includes last_response.body, "Shared Note"
+
+    get "/s/#{second_payload["token"]}"
+    assert_equal 200, last_response.status
+    assert_includes last_response.body, "Second Shared Note"
   end
 
   test "post stores uploaded image assets and serves them publicly" do
     body = JSON.generate(
       valid_payload.merge(
         "html_fragment" => '<p><img src="asset://asset-1" alt="Inline image"></p>',
+        "snapshot_document_html" => '<!doctype html><html lang="en" data-theme="dark"><head><style>.export-shell { padding: 1rem; }</style></head><body><main class="export-shell"><article class="export-article"><p><img src="asset://asset-1" alt="Inline image"></p></article></main></body></html>',
         "asset_manifest" => [
           {
             "source_url" => "data:image/png;base64,aGVsbG8=",
@@ -136,7 +289,7 @@ class ShareApiAppTest < ActiveSupport::TestCase
     assert_equal 201, last_response.status
     payload = JSON.parse(last_response.body)
 
-    get "/s/#{payload["token"]}"
+    get "/snapshots/#{payload["token"]}"
 
     assert_equal 200, last_response.status
     asset_path = last_response.body[%r{/assets/#{payload["token"]}/[^"]+}]
@@ -183,7 +336,7 @@ class ShareApiAppTest < ActiveSupport::TestCase
     post "/api/v1/shares", create_body, signed_headers(method: "POST", path: "/api/v1/shares", body: create_body)
     created = JSON.parse(last_response.body)
 
-    get "/s/#{created["token"]}"
+    get "/snapshots/#{created["token"]}"
     first_asset_path = last_response.body[%r{/assets/#{created["token"]}/[^"]+}]
     assert first_asset_path.present?
 
@@ -225,7 +378,7 @@ class ShareApiAppTest < ActiveSupport::TestCase
     get first_asset_path
     assert_equal 404, last_response.status
 
-    get "/s/#{created["token"]}"
+    get "/snapshots/#{created["token"]}"
     second_asset_path = last_response.body[%r{/assets/#{created["token"]}/[^"]+}]
     assert second_asset_path.present?
 
@@ -282,6 +435,10 @@ class ShareApiAppTest < ActiveSupport::TestCase
     get "/s/#{token}"
 
     assert_equal 404, last_response.status
+
+    get "/snapshots/#{token}"
+
+    assert_equal 404, last_response.status
   end
 
   test "public not found pages are uniform for invalid, missing, and revoked share tokens" do
@@ -320,6 +477,132 @@ class ShareApiAppTest < ActiveSupport::TestCase
     assert_equal "nosniff", last_response.headers["X-Content-Type-Options"]
     assert_equal "same-origin", last_response.headers["Cross-Origin-Resource-Policy"]
     assert_equal "Not found", last_response.body
+    assert_equal "no-store", last_response.headers["Cache-Control"]
+  end
+
+  test "legacy shares without a stored snapshot document fall back to a generated snapshot page" do
+    legacy_body = JSON.generate(
+      valid_payload.except("snapshot_document_html", "shell_payload", "snapshot_version", "shell_version")
+        .merge("html_fragment" => "<p>Legacy fragment</p>")
+    )
+
+    post "/api/v1/shares", legacy_body, signed_headers(method: "POST", path: "/api/v1/shares", body: legacy_body)
+    assert_equal 201, last_response.status
+
+    payload = JSON.parse(last_response.body)
+
+    get "/snapshots/#{payload["token"]}"
+
+    assert_equal 200, last_response.status
+    assert_includes last_response.body, '<main class="export-shell">'
+    assert_includes last_response.body, "<p>Legacy fragment</p>"
+  end
+
+  test "refreshing a legacy share migrates it to the full snapshot package format" do
+    legacy_body = JSON.generate(
+      valid_payload.except("snapshot_document_html", "shell_payload", "snapshot_version", "shell_version")
+        .merge("html_fragment" => "<p>Legacy fragment</p>")
+    )
+
+    post "/api/v1/shares", legacy_body, signed_headers(method: "POST", path: "/api/v1/shares", body: legacy_body)
+    assert_equal 201, last_response.status
+
+    created = JSON.parse(last_response.body)
+    refresh_body = JSON.generate(
+      valid_payload.merge(
+        "title" => "Migrated Share",
+        "content_hash" => "hash-migrated",
+        "theme_id" => "light",
+        "locale" => "pt-BR",
+        "html_fragment" => "<p>Migrated package</p>",
+        "snapshot_document_html" => '<!doctype html><html lang="pt-BR" data-theme="light"><head><meta name="color-scheme" content="light"><style>.export-shell { padding: 2rem; }</style></head><body><main class="export-shell"><article class="export-article"><p>Migrated package</p></article></main></body></html>',
+        "shell_payload" => {
+          "title" => "Migrated Share",
+          "locale" => "pt-BR",
+          "theme_id" => "light",
+          "display" => {
+            "default_zoom" => 100,
+            "default_width" => 72,
+            "font_family" => "default"
+          }
+        }
+      )
+    )
+
+    put "/api/v1/shares/#{created["token"]}", refresh_body, signed_headers(method: "PUT", path: "/api/v1/shares/#{created["token"]}", body: refresh_body)
+
+    assert_equal 200, last_response.status
+    assert_equal "Migrated Share", JSON.parse(last_response.body)["title"]
+
+    get "/snapshots/#{created["token"]}"
+
+    assert_equal 200, last_response.status
+    assert_includes last_response.body, '<html lang="pt-BR" data-theme="light">'
+    assert_includes last_response.body, "<p>Migrated package</p>"
+    refute_includes last_response.body, "<p>Legacy fragment</p>"
+  end
+
+  test "expired shares return 404 immediately and are pruned from storage" do
+    travel_to Time.zone.parse("2026-03-25 12:00:00 UTC")
+
+    body = JSON.generate(
+      valid_payload.merge(
+        "expires_at" => "2026-03-25T12:01:00Z",
+        "html_fragment" => '<p><img src="asset://asset-1" alt="Inline image"></p>',
+        "snapshot_document_html" => '<!doctype html><html lang="en" data-theme="dark"><head><style>.export-shell { padding: 1rem; }</style></head><body><main class="export-shell"><article class="export-article"><p><img src="asset://asset-1" alt="Inline image"></p></article></main></body></html>',
+        "asset_manifest" => [
+          {
+            "source_url" => "data:image/png;base64,aGVsbG8=",
+            "source_type" => "data_uri",
+            "filename" => "embedded-asset.png",
+            "mime_type" => "image/png",
+            "byte_size" => 5,
+            "sha256" => Digest::SHA256.hexdigest("hello"),
+            "upload_reference" => "asset-1"
+          }
+        ],
+        "assets" => [
+          {
+            "source_url" => "data:image/png;base64,aGVsbG8=",
+            "source_type" => "data_uri",
+            "upload_reference" => "asset-1",
+            "filename" => "embedded-asset.png",
+            "mime_type" => "image/png",
+            "byte_size" => 5,
+            "sha256" => Digest::SHA256.hexdigest("hello"),
+            "content_base64" => Base64.strict_encode64("hello")
+          }
+        ]
+      )
+    )
+
+    post "/api/v1/shares", body, signed_headers(method: "POST", path: "/api/v1/shares", body: body)
+    assert_equal 201, last_response.status
+
+    payload = JSON.parse(last_response.body)
+    token = payload["token"]
+    identity_digest = Digest::SHA256.hexdigest("local-machine:notes/shared-note.md")
+
+    travel 2.minutes
+
+    get "/s/#{token}"
+    assert_equal 404, last_response.status
+    assert_equal "no-store", last_response.headers["Cache-Control"]
+
+    get "/snapshots/#{token}"
+    assert_equal 404, last_response.status
+    assert_equal "no-store", last_response.headers["Cache-Control"]
+
+    get "/assets/#{token}/#{Digest::SHA256.hexdigest("hello")}-embedded-asset.png"
+    assert_equal 404, last_response.status
+    assert_equal "no-store", last_response.headers["Cache-Control"]
+
+    refute @storage_path.join("shares", "#{token}.json").exist?
+    refute @storage_path.join("snapshots", token).exist?
+    refute @storage_path.join("assets", token).exist?
+    refute @storage_path.join("path-index", "#{identity_digest}.json").exist?
+  ensure
+    travel_back
   end
 
   test "reused request ids are rejected" do
@@ -347,14 +630,28 @@ class ShareApiAppTest < ActiveSupport::TestCase
   def valid_payload
     {
       "source" => "preview",
+      "snapshot_version" => 2,
+      "shell_version" => 1,
       "note_identifier" => "notes/shared-note.md",
       "path" => "notes/shared-note.md",
       "title" => "Shared Note",
       "html_fragment" => "<p>Hello from LewisMD</p>",
+      "snapshot_document_html" => '<!doctype html><html lang="en" data-theme="dark"><head><style>.export-shell { padding: 1rem; }</style></head><body><main class="export-shell"><article class="export-article"><p>Hello from LewisMD</p></article></main></body></html>',
+      "shell_payload" => {
+        "title" => "Shared Note",
+        "locale" => "en",
+        "theme_id" => "dark",
+        "display" => {
+          "default_zoom" => 100,
+          "default_width" => 72,
+          "font_family" => "default"
+        }
+      },
       "plain_text" => "Hello from LewisMD",
       "theme_id" => "dark",
       "locale" => "en",
       "content_hash" => "hash-1",
+      "expires_at" => "2026-04-08T12:00:00Z",
       "asset_manifest" => [],
       "instance_name" => "local-machine"
     }

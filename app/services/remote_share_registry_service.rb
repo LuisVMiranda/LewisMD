@@ -18,7 +18,15 @@ class RemoteShareRegistryService
     file = metadata_file(normalized_path)
     return nil unless file.file?
 
-    parse_metadata_file(file)
+    metadata = parse_metadata_file(file)
+    return nil unless metadata
+
+    if expired_share?(metadata)
+      file.delete if file.exist?
+      return nil
+    end
+
+    metadata
   end
 
   def save(metadata)
@@ -38,6 +46,7 @@ class RemoteShareRegistryService
       locale: metadata[:locale],
       theme_id: metadata[:theme_id],
       asset_manifest: metadata[:asset_manifest] || [],
+      expires_at: metadata[:expires_at],
       capabilities: metadata[:capabilities] || {}
     }
 
@@ -103,6 +112,7 @@ class RemoteShareRegistryService
       locale: payload[:locale],
       theme_id: payload[:theme_id],
       asset_manifest: Array(payload[:asset_manifest]),
+      expires_at: payload[:expires_at],
       capabilities: payload[:capabilities].is_a?(Hash) ? payload[:capabilities] : {}
     }
   rescue JSON::ParserError
@@ -132,5 +142,14 @@ class RemoteShareRegistryService
     def cast(value)
       ActiveModel::Type::Boolean.new.cast(value)
     end
+  end
+
+  def expired_share?(metadata)
+    expires_at = metadata[:expires_at].to_s.strip
+    return false if expires_at.blank?
+
+    Time.iso8601(expires_at) <= Time.current
+  rescue ArgumentError
+    false
   end
 end
