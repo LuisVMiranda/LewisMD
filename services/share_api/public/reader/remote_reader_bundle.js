@@ -211,6 +211,8 @@ export class RemoteShareReader {
     this.hideToolbarLabel = element.dataset.hideToolbarLabel || window.t("share_view.hide_toolbar")
     this.displayPanelExpanded = !this.displayPanel?.classList.contains("hidden")
     this.toolbarCollapsed = element.dataset.toolbarCollapsed === "true"
+    this.toolbarHintActive = element.dataset.toolbarHint !== "false"
+    this.toolbarHintTimeout = null
     this.exportGroupExpanded = false
     this.baseFontSize = null
     this.outlineEntries = []
@@ -234,6 +236,7 @@ export class RemoteShareReader {
     this.applyToolbarState()
     this.applyDisplayPanelState()
     this.applyOutlineState()
+    this.startToolbarHint()
 
     if (this.frame?.contentDocument?.readyState === "complete") {
       this.onFrameLoad()
@@ -259,6 +262,7 @@ export class RemoteShareReader {
     if (this.compactToolbarQuery?.removeEventListener && this.boundCompactToolbarChange) {
       this.compactToolbarQuery.removeEventListener("change", this.boundCompactToolbarChange)
     }
+    this.clearToolbarHintTimeout()
     this.element.querySelector('[data-role="zoom-in"]')?.removeEventListener("click", this.boundZoomIn)
     this.element.querySelector('[data-role="zoom-out"]')?.removeEventListener("click", this.boundZoomOut)
     this.element.querySelector('[data-role="width-increase"]')?.removeEventListener("click", this.boundWidthIncrease)
@@ -621,6 +625,7 @@ export class RemoteShareReader {
   toggleToolbar() {
     if (!this.isCompactToolbarMode()) return
 
+    this.dismissToolbarHint()
     this.toolbarCollapsed = !this.toolbarCollapsed
     if (this.toolbarCollapsed) this.closeMenus()
     this.applyToolbarState()
@@ -795,10 +800,14 @@ export class RemoteShareReader {
 
   applyToolbarState() {
     const compactToolbarMode = this.isCompactToolbarMode()
-    if (!compactToolbarMode) this.toolbarCollapsed = false
+    if (!compactToolbarMode) {
+      this.toolbarCollapsed = false
+      this.dismissToolbarHint()
+    }
 
     const collapsed = compactToolbarMode && this.toolbarCollapsed
     this.element.dataset.toolbarCollapsed = String(collapsed)
+    this.element.dataset.toolbarHint = String(collapsed && this.toolbarHintActive)
     this.toolbar?.setAttribute("aria-hidden", String(collapsed))
 
     if (this.toolbarToggle) {
@@ -808,6 +817,34 @@ export class RemoteShareReader {
       this.toolbarToggle.setAttribute("title", toggleLabel)
       this.toolbarToggle.setAttribute("aria-label", toggleLabel)
     }
+  }
+
+  startToolbarHint() {
+    if (!this.isCompactToolbarMode() || !this.toolbarCollapsed || !this.toolbarHintActive) {
+      this.dismissToolbarHint()
+      return
+    }
+
+    this.element.dataset.toolbarHint = "true"
+    this.clearToolbarHintTimeout()
+    this.toolbarHintTimeout = window.setTimeout(() => {
+      this.toolbarHintActive = false
+      this.element.dataset.toolbarHint = "false"
+      this.toolbarHintTimeout = null
+    }, 3100)
+  }
+
+  dismissToolbarHint() {
+    this.clearToolbarHintTimeout()
+    this.toolbarHintActive = false
+    this.element.dataset.toolbarHint = "false"
+  }
+
+  clearToolbarHintTimeout() {
+    if (!this.toolbarHintTimeout) return
+
+    window.clearTimeout(this.toolbarHintTimeout)
+    this.toolbarHintTimeout = null
   }
 
   applyOutlineState() {

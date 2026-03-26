@@ -375,16 +375,17 @@ module ShareAPI
               data-hide-controls-label="#{CGI.escapeHTML(hide_controls_label)}"
               data-show-toolbar-label="#{CGI.escapeHTML(show_toolbar_label)}"
               data-hide-toolbar-label="#{CGI.escapeHTML(hide_toolbar_label)}"
-              data-toolbar-collapsed="false"
+              data-toolbar-collapsed="true"
+              data-toolbar-hint="true"
             >
               <button
                 type="button"
                 class="share-view__toolbar-handle"
                 data-role="toolbar-toggle"
-                aria-expanded="true"
+                aria-expanded="false"
                 aria-controls="share-view-toolbar"
-                title="#{CGI.escapeHTML(hide_toolbar_label)}"
-                aria-label="#{CGI.escapeHTML(hide_toolbar_label)}"
+                title="#{CGI.escapeHTML(show_toolbar_label)}"
+                aria-label="#{CGI.escapeHTML(show_toolbar_label)}"
               >
                 #{caret_icon_markup}
               </button>
