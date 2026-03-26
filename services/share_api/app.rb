@@ -379,28 +379,44 @@ module ShareAPI
                 <aside
                   class="share-view__outline-shell hidden"
                   data-role="outline-section"
+                  data-collapsed="false"
                   aria-label="Note outline"
                 >
                   <div class="share-view__outline-card outline-panel">
                     <div class="share-view__outline-header">
                       <h2 class="share-view__outline-title">Outline</h2>
+                      <button
+                        type="button"
+                        class="share-view__outline-toggle share-view__button"
+                        data-role="outline-toggle"
+                        aria-expanded="true"
+                        aria-controls="share-view-outline-body"
+                        title="Collapse outline"
+                        aria-label="Collapse outline"
+                      >
+                        #{caret_icon_markup}
+                      </button>
                     </div>
-                    <div class="outline-panel__scroll">
-                      <div class="outline-list" data-role="outline-list"></div>
-                      <p class="outline-empty hidden" data-role="outline-empty">This shared note does not include headings yet.</p>
+                    <div
+                      id="share-view-outline-body"
+                      class="share-view__outline-body"
+                      data-role="outline-body"
+                    >
+                      <div class="outline-panel__scroll">
+                        <div class="outline-list" data-role="outline-list"></div>
+                        <p class="outline-empty hidden" data-role="outline-empty">This shared note does not include headings yet.</p>
+                      </div>
                     </div>
                   </div>
                 </aside>
 
-                <div class="share-view__frame-shell">
-                  <iframe
-                    src="#{snapshot_url}"
-                    class="share-view__frame"
-                    title="Shared note preview"
-                    loading="eager"
-                    data-role="frame"
-                  ></iframe>
-                </div>
+                <iframe
+                  src="#{snapshot_url}"
+                  class="share-view__frame"
+                  title="Shared note preview"
+                  loading="eager"
+                  data-role="frame"
+                ></iframe>
               </main>
             </div>
           </body>

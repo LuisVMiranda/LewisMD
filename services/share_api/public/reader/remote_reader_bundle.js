@@ -159,6 +159,8 @@ export class RemoteShareReader {
     this.outlineSection = element.querySelector('[data-role="outline-section"]')
     this.outlineList = element.querySelector('[data-role="outline-list"]')
     this.outlineEmpty = element.querySelector('[data-role="outline-empty"]')
+    this.outlineBody = element.querySelector('[data-role="outline-body"]')
+    this.outlineToggle = element.querySelector('[data-role="outline-toggle"]')
     this.themeButton = element.querySelector('[data-role="theme-toggle"]')
     this.themeMenu = element.querySelector('[data-role="theme-menu"]')
     this.themeCurrentLabel = element.querySelector('[data-role="theme-current-label"]')
@@ -188,6 +190,7 @@ export class RemoteShareReader {
     this.activeOutlineId = null
     this.outlineSyncQueued = false
     this.frameScrollTarget = null
+    this.outlineCollapsed = false
   }
 
   connect() {
@@ -199,6 +202,7 @@ export class RemoteShareReader {
     this.attachEventListeners()
     this.updateDisplays()
     this.applyDisplayPanelState()
+    this.applyOutlineState()
 
     if (this.frame?.contentDocument?.readyState === "complete") {
       this.onFrameLoad()
@@ -217,6 +221,7 @@ export class RemoteShareReader {
     this.exportMenu?.removeEventListener("click", this.boundExportMenuClick)
     this.displayToggle?.removeEventListener("click", this.boundDisplayToggle)
     this.outlineList?.removeEventListener("click", this.boundOutlineClick)
+    this.outlineToggle?.removeEventListener("click", this.boundOutlineToggle)
     this.element.querySelector('[data-role="zoom-in"]')?.removeEventListener("click", this.boundZoomIn)
     this.element.querySelector('[data-role="zoom-out"]')?.removeEventListener("click", this.boundZoomOut)
     this.element.querySelector('[data-role="width-increase"]')?.removeEventListener("click", this.boundWidthIncrease)
@@ -237,6 +242,7 @@ export class RemoteShareReader {
     this.boundExportMenuClick = (event) => this.onExportMenuClick(event)
     this.boundDisplayToggle = () => this.toggleDisplayPanel()
     this.boundOutlineClick = (event) => this.onOutlineClick(event)
+    this.boundOutlineToggle = () => this.toggleOutline()
     this.boundZoomIn = () => this.zoomIn()
     this.boundZoomOut = () => this.zoomOut()
     this.boundWidthIncrease = () => this.increaseWidth()
@@ -254,6 +260,7 @@ export class RemoteShareReader {
     this.exportMenu?.addEventListener("click", this.boundExportMenuClick)
     this.displayToggle?.addEventListener("click", this.boundDisplayToggle)
     this.outlineList?.addEventListener("click", this.boundOutlineClick)
+    this.outlineToggle?.addEventListener("click", this.boundOutlineToggle)
     this.element.querySelector('[data-role="zoom-in"]')?.addEventListener("click", this.boundZoomIn)
     this.element.querySelector('[data-role="zoom-out"]')?.addEventListener("click", this.boundZoomOut)
     this.element.querySelector('[data-role="width-increase"]')?.addEventListener("click", this.boundWidthIncrease)
@@ -434,7 +441,6 @@ export class RemoteShareReader {
 
     const hasOutline = this.outlineEntries.length > 0
     this.outlineSection.classList.toggle("hidden", !hasOutline)
-    this.element.classList.toggle("share-view--outline-visible", hasOutline)
     this.outlineEmpty?.classList.toggle("hidden", hasOutline)
     this.activeOutlineId = null
 
@@ -455,6 +461,7 @@ export class RemoteShareReader {
     })
 
     this.outlineList.appendChild(fragment)
+    this.applyOutlineState()
   }
 
   attachFrameScroll() {
@@ -522,6 +529,11 @@ export class RemoteShareReader {
     })
 
     this.setActiveOutlineId(entry.id, { scrollList: false })
+  }
+
+  toggleOutline() {
+    this.outlineCollapsed = !this.outlineCollapsed
+    this.applyOutlineState()
   }
 
   zoomIn() {
@@ -718,6 +730,24 @@ export class RemoteShareReader {
       const toggleLabel = this.displayPanelExpanded ? this.hideControlsLabel : this.showControlsLabel
       this.displayToggle.setAttribute("title", toggleLabel)
       this.displayToggle.setAttribute("aria-label", toggleLabel)
+    }
+  }
+
+  applyOutlineState() {
+    if (!this.outlineSection) return
+
+    const hasOutline = this.outlineEntries.length > 0
+    this.outlineSection.classList.toggle("hidden", !hasOutline)
+    if (!hasOutline) return
+
+    this.outlineSection.dataset.collapsed = String(this.outlineCollapsed)
+    this.outlineBody?.classList.toggle("hidden", this.outlineCollapsed)
+
+    if (this.outlineToggle) {
+      const toggleLabel = this.outlineCollapsed ? "Expand outline" : "Collapse outline"
+      this.outlineToggle.setAttribute("aria-expanded", String(!this.outlineCollapsed))
+      this.outlineToggle.setAttribute("title", toggleLabel)
+      this.outlineToggle.setAttribute("aria-label", toggleLabel)
     }
   }
 
