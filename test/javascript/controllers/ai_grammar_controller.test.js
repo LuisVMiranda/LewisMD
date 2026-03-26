@@ -29,7 +29,9 @@ describe("AiGrammarController", () => {
         "dialogs.ai_diff.run_again": "Run again",
         "dialogs.ai_diff.saved_choice": "Saved for future grammar checks: %{label}",
         "dialogs.ai_diff.default_choice": "Using your default AI option: %{label}",
+        "dialogs.ai_diff.invalid_saved_choice": "Your saved AI choice is no longer available. Using your default AI option: %{label}",
         "dialogs.ai_diff.selected_choice": "Selected for this grammar check: %{label}",
+        "dialogs.ai_diff.using_default_setup": "Couldn't load AI choices. This grammar check will use your default AI setup.",
         "dialogs.ai_diff.preference_save_failed": "Couldn't save this AI choice. It will be used for this grammar check only."
       }
 
@@ -121,6 +123,10 @@ describe("AiGrammarController", () => {
         model: "gpt-4o-mini",
         label: "OpenAI · gpt-4o-mini",
         provider_label: "OpenAI"
+      },
+      selection_states: {
+        grammar: { feature: "grammar", configured: false, valid: false, invalid: false },
+        custom_prompt: { feature: "custom_prompt", configured: false, valid: false, invalid: false }
       },
       saved_selections: {
         grammar: null,
@@ -281,6 +287,94 @@ describe("AiGrammarController", () => {
     const requestBody = JSON.parse(global.fetch.mock.calls[2][1].body)
     expect(requestBody.provider).toBe("anthropic")
     expect(requestBody.model).toBe("claude-sonnet-4-20250514")
+  })
+
+  it("falls back to the default ai setup when loading choices fails", async () => {
+    global.fetch = vi.fn()
+      .mockRejectedValueOnce(new Error("config unavailable"))
+      .mockResolvedValueOnce(response({
+        original: "Hello wrold",
+        corrected: "Hello world",
+        provider: "openai",
+        model: "gpt-4o-mini"
+      }))
+
+    await controller.open("/path/to/file.md")
+
+    expect(appController.showTemporaryMessage).toHaveBeenCalledWith(
+      "Couldn't load AI choices. This grammar check will use your default AI setup.",
+      3500,
+      true
+    )
+    expect(global.fetch).toHaveBeenCalledTimes(2)
+    expect(global.fetch.mock.calls[1][0]).toBe("/ai/fix_grammar")
+    expect(JSON.parse(global.fetch.mock.calls[1][1].body)).toEqual({
+      path: "/path/to/file.md"
+    })
+    expect(controller.providerBadgeTarget.textContent).toBe("openai: gpt-4o-mini")
+  })
+
+  it("falls back to the default option when the saved grammar choice is no longer available", async () => {
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce(response(aiConfigResponse({
+        selection_states: {
+          grammar: {
+            feature: "grammar",
+            configured: true,
+            valid: false,
+            invalid: true,
+            provider: "anthropic",
+            model: "claude-opus-old"
+          },
+          custom_prompt: { feature: "custom_prompt", configured: false, valid: false, invalid: false }
+        }
+      })))
+      .mockResolvedValueOnce(response({
+        selection: {
+          provider: "openai",
+          model: "gpt-4o-mini",
+          label: "OpenAI Â· gpt-4o-mini",
+          provider_label: "OpenAI"
+        },
+        saved_selections: {
+          grammar: {
+            provider: "openai",
+            model: "gpt-4o-mini",
+            label: "OpenAI Â· gpt-4o-mini",
+            provider_label: "OpenAI"
+          },
+          custom_prompt: null
+        },
+        selection_states: {
+          grammar: { feature: "grammar", configured: true, valid: true, invalid: false },
+          custom_prompt: { feature: "custom_prompt", configured: false, valid: false, invalid: false }
+        }
+      }))
+      .mockResolvedValueOnce(response({
+        original: "Hello wrold",
+        corrected: "Hello world",
+        provider: "openai",
+        model: "gpt-4o-mini"
+      }))
+
+    await controller.open("/path/to/file.md")
+
+    expect(appController.showTemporaryMessage.mock.calls[0][0]).toContain(
+      "Your saved AI choice is no longer available. Using your default AI option:"
+    )
+    expect(appController.showTemporaryMessage.mock.calls[0][0]).toContain("gpt-4o-mini")
+    expect(appController.showTemporaryMessage.mock.calls[0][1]).toBe(4000)
+    expect(appController.showTemporaryMessage.mock.calls[0][2]).toBe(true)
+    expect(global.fetch).toHaveBeenCalledTimes(3)
+    expect(global.fetch.mock.calls[1][0]).toBe("/ai/preferences")
+    expect(global.fetch.mock.calls[2][0]).toBe("/ai/fix_grammar")
+    expect(JSON.parse(global.fetch.mock.calls[2][1].body)).toEqual({
+      path: "/path/to/file.md",
+      provider: "openai",
+      model: "gpt-4o-mini"
+    })
+    expect(controller.optionStatusTarget.textContent).toContain("Saved for future grammar checks:")
+    expect(controller.optionStatusTarget.textContent).toContain("gpt-4o-mini")
   })
 
   it("hides grammar selection controls when showing a custom prompt response", () => {

@@ -455,7 +455,9 @@ ko:
       run_again: 다시 실행
       saved_choice: '앞으로의 문법 검사에 저장됨: %{label}'
       default_choice: '기본 AI 옵션 사용 중: %{label}'
+      invalid_saved_choice: '저장된 AI 선택을 더 이상 사용할 수 없습니다. 기본 AI 옵션을 사용합니다: %{label}'
       selected_choice: '이번 문법 검사에 선택됨: %{label}'
+      using_default_setup: AI 옵션을 불러오지 못했습니다. 이번 문법 검사는 기본 AI 설정을 사용합니다.
       preference_save_failed: 이 AI 선택을 저장할 수 없었습니다. 이번 문법 검사에만 사용됩니다.
       original: 원본
       deletions_hint: "(삭제는 빨간색)"
@@ -532,6 +534,7 @@ ko:
       loading_options: 사용 가능한 AI 옵션을 불러오는 중...
       saved_choice: '향후 맞춤 프롬프트용으로 저장됨: %{label}'
       default_choice: '기본 AI 옵션 사용 중: %{label}'
+      invalid_saved_choice: '저장된 AI 선택을 더 이상 사용할 수 없습니다. 기본 AI 옵션을 사용합니다: %{label}'
       selected_choice: '이 프롬프트에 선택됨: %{label}'
       using_default_setup: AI 옵션을 불러오지 못했습니다. 이 프롬프트는 기본 AI 설정을 사용합니다.
       no_available_options: 현재 사용할 수 있는 구성된 AI 옵션이 없습니다.

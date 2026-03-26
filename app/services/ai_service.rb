@@ -66,6 +66,10 @@ class AiService
       config_instance.ai_saved_selections
     end
 
+    def selection_states
+      config_instance.ai_saved_selection_states
+    end
+
     def save_selection(feature:, provider:, model:)
       cfg = config_instance
       return { error: "Unsupported AI feature." } unless cfg.ai_feature_selection_supported?(feature)
@@ -73,7 +77,11 @@ class AiService
       selection = cfg.save_ai_feature_selection(feature, provider: provider, model: model)
       return { error: "That AI option is no longer available." } unless selection
 
-      { selection: selection, saved_selections: cfg.ai_saved_selections }
+      {
+        selection: selection,
+        saved_selections: cfg.ai_saved_selections,
+        selection_states: cfg.ai_saved_selection_states
+      }
     end
 
     def fix_grammar(text, provider: nil, model: nil)
@@ -142,7 +150,8 @@ class AiService
         available_options: available_options,
         default_option: current_selection,
         current_selection: current_selection,
-        saved_selections: saved_selections
+        saved_selections: saved_selections,
+        selection_states: selection_states
       }
     end
 

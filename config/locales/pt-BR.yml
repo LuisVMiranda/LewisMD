@@ -459,7 +459,9 @@ pt-BR:
       run_again: Executar novamente
       saved_choice: 'Salvo para futuras verificações gramaticais: %{label}'
       default_choice: 'Usando sua opção de IA padrão: %{label}'
+      invalid_saved_choice: 'Sua escolha salva de IA não está mais disponível. Usando sua opção de IA padrão: %{label}'
       selected_choice: 'Selecionado para esta verificação gramatical: %{label}'
+      using_default_setup: Não foi possível carregar as opções de IA. Esta verificação gramatical usará sua configuração padrão de IA.
       preference_save_failed: Não foi possível salvar esta escolha de IA. Ela será usada apenas nesta verificação gramatical.
       original: Original
       deletions_hint: "(exclusões em vermelho)"
@@ -536,6 +538,7 @@ pt-BR:
       loading_options: Carregando opções de IA disponíveis...
       saved_choice: 'Salvo para futuros prompts personalizados: %{label}'
       default_choice: 'Usando sua opção padrão de IA: %{label}'
+      invalid_saved_choice: 'Sua escolha salva de IA não está mais disponível. Usando sua opção padrão de IA: %{label}'
       selected_choice: 'Selecionado para este prompt: %{label}'
       using_default_setup: Não foi possível carregar as opções de IA. Este prompt usará sua configuração padrão de IA.
       no_available_options: Nenhuma opção de IA configurada está disponível no momento.

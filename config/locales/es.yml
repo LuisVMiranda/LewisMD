@@ -455,7 +455,9 @@ es:
       run_again: Ejecutar de nuevo
       saved_choice: 'Guardado para futuras revisiones gramaticales: %{label}'
       default_choice: 'Usando tu opción de IA predeterminada: %{label}'
+      invalid_saved_choice: 'Tu elección guardada de IA ya no está disponible. Usando tu opción de IA predeterminada: %{label}'
       selected_choice: 'Seleccionado para esta revisión gramatical: %{label}'
+      using_default_setup: No se pudieron cargar las opciones de IA. Esta revisión gramatical usará tu configuración predeterminada de IA.
       preference_save_failed: No se pudo guardar esta opción de IA. Se usará solo para esta revisión gramatical.
       original: Original
       deletions_hint: "(eliminaciones en rojo)"
@@ -532,6 +534,7 @@ es:
       loading_options: Cargando opciones de IA disponibles...
       saved_choice: 'Guardado para futuros prompts personalizados: %{label}'
       default_choice: 'Usando tu opción predeterminada de IA: %{label}'
+      invalid_saved_choice: 'Tu elección guardada de IA ya no está disponible. Usando tu opción predeterminada de IA: %{label}'
       selected_choice: 'Seleccionado para este prompt: %{label}'
       using_default_setup: No se pudieron cargar las opciones de IA. Este prompt usará tu configuración predeterminada de IA.
       no_available_options: No hay opciones de IA configuradas disponibles en este momento.

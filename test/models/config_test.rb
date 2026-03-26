@@ -724,6 +724,24 @@ class ConfigTest < ActiveSupport::TestCase
     assert_nil config.ai_saved_selections["grammar"]
   end
 
+  test "ai_feature_selection_state marks stale saved choices as invalid" do
+    @test_dir.join(".fed").write(<<~CONFIG)
+      ai_grammar_provider = openai
+      ai_grammar_model = gpt-4o-mini
+    CONFIG
+
+    config = Config.new(base_path: @test_dir)
+    state = config.ai_feature_selection_state("grammar")
+
+    assert_equal "grammar", state["feature"]
+    assert_equal true, state["configured"]
+    assert_equal false, state["valid"]
+    assert_equal true, state["invalid"]
+    assert_equal "openai", state["provider"]
+    assert_equal "gpt-4o-mini", state["model"]
+    assert_equal true, config.ai_saved_selection_states["grammar"]["invalid"]
+  end
+
   test "save_ai_feature_selection rejects unsupported features and invalid option pairs" do
     ENV["OPENAI_API_KEY"] = "sk-test"
 

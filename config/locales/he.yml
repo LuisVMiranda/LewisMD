@@ -452,7 +452,9 @@ he:
       run_again: הפעל שוב
       saved_choice: 'נשמר לבדיקות דקדוק עתידיות: %{label}'
       default_choice: 'משתמש באפשרות ה-AI ברירת המחדל שלך: %{label}'
+      invalid_saved_choice: 'בחירת ה-AI השמורה שלך כבר לא זמינה. משתמש באפשרות ברירת המחדל שלך ל-AI: %{label}'
       selected_choice: 'נבחר לבדיקה הזו: %{label}'
+      using_default_setup: לא ניתן היה לטעון את אפשרויות ה-AI. בדיקת הדקדוק הזו תשתמש בהגדרת ברירת המחדל שלך.
       preference_save_failed: לא ניתן היה לשמור את בחירת ה-AI הזו. היא תשמש רק לבדיקה הזו.
       original: מקורי
       deletions_hint: "(מחיקות באדום)"
@@ -506,6 +508,7 @@ he:
       loading_options: טוען אפשרויות AI זמינות...
       saved_choice: 'נשמר עבור פרומפטים מותאמים אישית בעתיד: %{label}'
       default_choice: 'משתמש באפשרות ברירת המחדל שלך ל-AI: %{label}'
+      invalid_saved_choice: 'בחירת ה-AI השמורה שלך כבר לא זמינה. משתמש באפשרות ברירת המחדל שלך ל-AI: %{label}'
       selected_choice: 'נבחר עבור הפרומפט הזה: %{label}'
       using_default_setup: לא ניתן היה לטעון את אפשרויות ה-AI. הפרומפט הזה ישתמש בהגדרת ברירת המחדל שלך ל-AI.
       no_available_options: אין כרגע אפשרויות AI מוגדרות זמינות.

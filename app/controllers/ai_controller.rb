@@ -102,6 +102,7 @@ class AiController < ApplicationController
         feature: feature,
         selection: result[:selection],
         saved_selections: result[:saved_selections],
+        selection_states: result[:selection_states],
         message: t("success.settings_saved")
       }
     end

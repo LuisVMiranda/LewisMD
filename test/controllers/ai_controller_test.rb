@@ -160,6 +160,8 @@ class AiControllerTest < ActionDispatch::IntegrationTest
     assert_equal "gpt-4-turbo", data["current_selection"]["model"]
     assert_equal "global_override", data["current_selection"]["model_source"]
     assert_equal({ "grammar" => nil, "custom_prompt" => nil }, data["saved_selections"])
+    assert_equal false, data["selection_states"]["grammar"]["invalid"]
+    assert_equal false, data["selection_states"]["custom_prompt"]["invalid"]
   end
 
   test "config returns saved ai selections when present" do
@@ -178,6 +180,25 @@ class AiControllerTest < ActionDispatch::IntegrationTest
     assert_equal "claude-sonnet-4-20250514", data["saved_selections"]["grammar"]["model"]
     assert_equal "openai", data["saved_selections"]["custom_prompt"]["provider"]
     assert_equal "gpt-4o-mini", data["saved_selections"]["custom_prompt"]["model"]
+  end
+
+  test "config reports invalid saved ai selections that no longer match the available options" do
+    ENV["OPENAI_API_KEY"] = "sk-test"
+    notes_path = Pathname.new(ENV.fetch("NOTES_PATH"))
+    notes_path.join(".fed").write(<<~CONFIG)
+      ai_custom_prompt_provider = openai
+      ai_custom_prompt_model = gpt-4-turbo
+    CONFIG
+
+    get "/ai/config", as: :json
+    assert_response :success
+
+    data = JSON.parse(response.body)
+    assert_nil data["saved_selections"]["custom_prompt"]
+    assert_equal true, data["selection_states"]["custom_prompt"]["configured"]
+    assert_equal true, data["selection_states"]["custom_prompt"]["invalid"]
+    assert_equal "openai", data["selection_states"]["custom_prompt"]["provider"]
+    assert_equal "gpt-4-turbo", data["selection_states"]["custom_prompt"]["model"]
   end
 
   # Fix grammar endpoint tests
@@ -356,6 +377,7 @@ class AiControllerTest < ActionDispatch::IntegrationTest
     assert_equal "anthropic", data["selection"]["provider"]
     assert_equal "saved_preference", data["selection"]["model_source"]
     assert_equal "anthropic", data["saved_selections"]["grammar"]["provider"]
+    assert_equal false, data["selection_states"]["grammar"]["invalid"]
     assert data["message"].present?
 
     reloaded = Config.new

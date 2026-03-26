@@ -455,7 +455,9 @@ ja:
       run_again: もう一度実行
       saved_choice: '今後の文法チェック用に保存済み: %{label}'
       default_choice: '既定のAIオプションを使用中: %{label}'
+      invalid_saved_choice: '保存済みのAI選択は現在利用できません。既定のAIオプションを使用します: %{label}'
       selected_choice: '今回の文法チェックで選択中: %{label}'
+      using_default_setup: AIオプションを読み込めませんでした。この文法チェックでは既定のAI設定を使用します。
       preference_save_failed: このAIの選択は保存できませんでした。今回の文法チェックにのみ使用されます。
       original: オリジナル
       deletions_hint: "（削除は赤）"
@@ -532,6 +534,7 @@ ja:
       loading_options: 利用可能なAIオプションを読み込み中...
       saved_choice: '今後のカスタムプロンプト用に保存済み: %{label}'
       default_choice: '既定のAIオプションを使用中: %{label}'
+      invalid_saved_choice: '保存済みのAI選択は現在利用できません。既定のAIオプションを使用します: %{label}'
       selected_choice: 'このプロンプトで選択中: %{label}'
       using_default_setup: AIオプションを読み込めませんでした。このプロンプトでは既定のAI設定を使用します。
       no_available_options: 現在利用できる設定済みのAIオプションはありません。

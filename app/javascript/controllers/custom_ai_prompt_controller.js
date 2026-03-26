@@ -10,6 +10,8 @@ export default class extends Controller {
     this.defaultOption = null
     this.savedOption = null
     this.currentOption = null
+    this.selectionStates = { grammar: null, custom_prompt: null }
+    this.invalidSavedSelection = false
     this.aiConfigLoaded = false
     this.aiConfigLoadFailed = false
   }
@@ -170,6 +172,8 @@ export default class extends Controller {
       const data = await response.json
       this.aiOptions = Array.isArray(data.available_options) ? data.available_options : []
       this.savedOption = data.saved_selections?.custom_prompt || null
+      this.selectionStates = data.selection_states || { grammar: null, custom_prompt: null }
+      this.invalidSavedSelection = Boolean(this.selectionStates.custom_prompt?.invalid)
       this.defaultOption = data.default_option || data.current_selection || this.aiOptions[0] || null
       this.currentOption = this.findMatchingOption(this.savedOption) ||
         this.findMatchingOption(this.defaultOption) ||
@@ -182,6 +186,8 @@ export default class extends Controller {
       this.savedOption = null
       this.defaultOption = null
       this.currentOption = null
+      this.selectionStates = { grammar: null, custom_prompt: null }
+      this.invalidSavedSelection = false
       this.aiConfigLoaded = false
       this.aiConfigLoadFailed = true
     }
@@ -251,7 +257,9 @@ export default class extends Controller {
     this.providerBadgeTarget.textContent = this.currentOption.label
     this.providerBadgeTarget.classList.remove("hidden")
 
-    if (this.savedOptionKey() === this.optionKey(this.currentOption)) {
+    if (this.invalidSavedSelection) {
+      this.optionStatusTarget.textContent = window.t("dialogs.custom_ai.invalid_saved_choice", { label: this.currentOption.label })
+    } else if (this.savedOptionKey() === this.optionKey(this.currentOption)) {
       this.optionStatusTarget.textContent = window.t("dialogs.custom_ai.saved_choice", { label: this.currentOption.label })
     } else if (this.defaultOption && this.optionKey(this.defaultOption) === this.optionKey(this.currentOption)) {
       this.optionStatusTarget.textContent = window.t("dialogs.custom_ai.default_choice", { label: this.currentOption.label })
@@ -314,6 +322,8 @@ export default class extends Controller {
       if (!response.ok || data.error) return false
 
       this.savedOption = data.selection || aiOption
+      this.selectionStates = data.selection_states || this.selectionStates
+      this.invalidSavedSelection = false
       this.currentOption = this.readSelectedOption() || aiOption
       this.renderOptionStatus()
       return true

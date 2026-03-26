@@ -34,7 +34,10 @@ export default class extends Controller {
     this.availableOptions = []
     this.defaultOption = null
     this.savedSelections = { grammar: null, custom_prompt: null }
+    this.selectionStates = { grammar: null, custom_prompt: null }
     this.currentOption = null
+    this.aiConfigLoadFailed = false
+    this.invalidSavedSelection = false
 
     this.checkAiAvailability()
   }
@@ -42,6 +45,7 @@ export default class extends Controller {
   async checkAiAvailability() {
     try {
       const response = await get("/ai/config", { responseKind: "json" })
+      this.aiConfigLoadFailed = false
       if (response.ok) {
         const data = await response.json
         this.aiEnabled = data.enabled
@@ -50,6 +54,8 @@ export default class extends Controller {
         this.availableOptions = Array.isArray(data.available_options) ? data.available_options : []
         this.defaultOption = data.default_option || data.current_selection || this.availableOptions[0] || null
         this.savedSelections = data.saved_selections || { grammar: null, custom_prompt: null }
+        this.selectionStates = data.selection_states || { grammar: null, custom_prompt: null }
+        this.invalidSavedSelection = Boolean(this.selectionState("grammar")?.invalid)
         this.currentOption = this.findMatchingOption(this.savedSelections.grammar) ||
           this.findMatchingOption(this.defaultOption) ||
           this.availableOptions[0] ||
@@ -57,13 +63,16 @@ export default class extends Controller {
       }
     } catch (e) {
       console.debug("AI config check failed:", e)
+      this.aiConfigLoadFailed = true
       this.aiEnabled = false
       this.aiProvider = null
       this.aiModel = null
       this.availableOptions = []
       this.defaultOption = null
       this.savedSelections = { grammar: null, custom_prompt: null }
+      this.selectionStates = { grammar: null, custom_prompt: null }
       this.currentOption = null
+      this.invalidSavedSelection = false
     }
   }
 
@@ -76,6 +85,22 @@ export default class extends Controller {
 
     await this.checkAiAvailability()
 
+    if (!filePath) {
+      alert(window.t("errors.no_file_open"))
+      return
+    }
+
+    this.currentFilePath = filePath
+
+    if (this.aiConfigLoadFailed) {
+      this.hideSelectionControls()
+      this.configNoticeTarget.classList.add("hidden")
+      this.diffContentTarget.classList.add("hidden")
+      this.getAppController()?.showTemporaryMessage(window.t("dialogs.ai_diff.using_default_setup"), 3500, true)
+      await this.runGrammarCheck(null, { persistSelection: false })
+      return
+    }
+
     // If AI is not configured, show the config notice
     if (!this.aiEnabled) {
       this.hideSelectionControls()
@@ -85,16 +110,18 @@ export default class extends Controller {
       return
     }
 
-    if (!filePath) {
-      alert(window.t("errors.no_file_open"))
-      return
-    }
-
-    this.currentFilePath = filePath
     this.currentOption = this.findMatchingOption(this.savedSelections.grammar) ||
       this.findMatchingOption(this.defaultOption) ||
       this.availableOptions[0] ||
       null
+
+    if (this.invalidSavedSelection && this.currentOption) {
+      this.getAppController()?.showTemporaryMessage(
+        window.t("dialogs.ai_diff.invalid_saved_choice", { label: this.currentOption.label }),
+        4000,
+        true
+      )
+    }
 
     if (this.shouldPromptForSelection()) {
       this.showSelectionChooser()
@@ -105,7 +132,7 @@ export default class extends Controller {
   }
 
   shouldPromptForSelection() {
-    return this.availableOptions.length > 1 && !this.savedSelections?.grammar
+    return this.availableOptions.length > 1 && !this.savedSelections?.grammar && !this.invalidSavedSelection
   }
 
   showSelectionChooser() {
@@ -385,6 +412,10 @@ export default class extends Controller {
     return this.availableOptions.find((candidate) => this.optionKey(candidate) === this.optionKey(option)) || null
   }
 
+  selectionState(feature) {
+    return this.selectionStates?.[feature] || null
+  }
+
   readSelectedOption() {
     if (!this.hasOptionSelectTarget) return null
 
@@ -409,7 +440,9 @@ export default class extends Controller {
     const savedKey = this.optionKey(this.savedSelections.grammar)
     const defaultKey = this.optionKey(this.defaultOption)
 
-    if (savedKey && savedKey === currentKey) {
+    if (this.invalidSavedSelection) {
+      this.optionStatusTarget.textContent = window.t("dialogs.ai_diff.invalid_saved_choice", { label: this.currentOption.label })
+    } else if (savedKey && savedKey === currentKey) {
       this.optionStatusTarget.textContent = window.t("dialogs.ai_diff.saved_choice", { label: this.currentOption.label })
     } else if (defaultKey && defaultKey === currentKey) {
       this.optionStatusTarget.textContent = window.t("dialogs.ai_diff.default_choice", { label: this.currentOption.label })
@@ -432,6 +465,8 @@ export default class extends Controller {
       if (!response.ok || data.error) return false
 
       this.savedSelections = data.saved_selections || this.savedSelections
+      this.selectionStates = data.selection_states || this.selectionStates
+      this.invalidSavedSelection = false
       this.currentOption = this.findMatchingOption(data.selection) || selection
       this.renderOptionStatus()
       return true

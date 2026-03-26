@@ -542,6 +542,32 @@ class Config
     end
   end
 
+  def ai_feature_selection_state(feature)
+    feature = feature.to_s
+    metadata = AI_FEATURE_SELECTIONS[feature]
+    return nil unless metadata
+
+    provider = get(metadata[:provider_key])
+    model = get(metadata[:model_key])
+    selection = ai_feature_selection(feature)
+    configured = provider.present? || model.present?
+
+    {
+      "feature" => feature,
+      "configured" => configured,
+      "valid" => selection.present?,
+      "invalid" => configured && selection.nil?,
+      "provider" => provider.presence,
+      "model" => model.presence
+    }.compact
+  end
+
+  def ai_saved_selection_states
+    AI_FEATURE_SELECTIONS.keys.each_with_object({}) do |feature, states|
+      states[feature] = ai_feature_selection_state(feature)
+    end
+  end
+
   def save_ai_feature_selection(feature, provider:, model:)
     feature = feature.to_s
     metadata = AI_FEATURE_SELECTIONS[feature]

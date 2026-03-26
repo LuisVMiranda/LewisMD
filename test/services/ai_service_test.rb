@@ -231,6 +231,7 @@ class AiServiceTest < ActiveSupport::TestCase
     assert_includes info.keys, :available_options
     assert_includes info.keys, :default_option
     assert_includes info.keys, :current_selection
+    assert_includes info.keys, :selection_states
 
     assert info[:enabled]
     assert_equal "openai", info[:provider]  # openai has highest priority
@@ -242,6 +243,26 @@ class AiServiceTest < ActiveSupport::TestCase
     assert_equal "openai", info[:current_selection]["provider"]
     assert_equal "gpt-4o-mini", info[:current_selection]["model"]
     assert_equal({ "grammar" => nil, "custom_prompt" => nil }, info[:saved_selections])
+    assert_equal false, info[:selection_states]["grammar"]["invalid"]
+    assert_equal false, info[:selection_states]["custom_prompt"]["invalid"]
+  end
+
+  test "provider_info exposes invalid saved selection states when configured choices disappear" do
+    ENV["OPENAI_API_KEY"] = "sk-test"
+    ENV["ANTHROPIC_API_KEY"] = "sk-ant-test"
+    notes_path = Pathname.new(ENV.fetch("NOTES_PATH"))
+    notes_path.join(".fed").write(<<~CONFIG)
+      ai_grammar_provider = openai
+      ai_grammar_model = gpt-4-turbo
+    CONFIG
+
+    info = AiService.provider_info
+
+    assert_nil info[:saved_selections]["grammar"]
+    assert_equal true, info[:selection_states]["grammar"]["configured"]
+    assert_equal true, info[:selection_states]["grammar"]["invalid"]
+    assert_equal "openai", info[:selection_states]["grammar"]["provider"]
+    assert_equal "gpt-4-turbo", info[:selection_states]["grammar"]["model"]
   end
 
   test "available_providers returns all configured providers" do
@@ -289,6 +310,7 @@ class AiServiceTest < ActiveSupport::TestCase
     assert_equal "saved_preference", result[:selection]["model_source"]
     assert_equal "anthropic", result[:saved_selections]["grammar"]["provider"]
     assert_nil result[:saved_selections]["custom_prompt"]
+    assert_equal false, result[:selection_states]["grammar"]["invalid"]
   end
 
   test "save_selection rejects unsupported features" do

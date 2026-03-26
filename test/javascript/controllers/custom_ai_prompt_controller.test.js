@@ -27,6 +27,7 @@ describe("CustomAiPromptController", () => {
         "dialogs.custom_ai.loading_options": "Loading available AI options...",
         "dialogs.custom_ai.saved_choice": "Saved for future custom prompts: %{label}",
         "dialogs.custom_ai.default_choice": "Using your default AI option: %{label}",
+        "dialogs.custom_ai.invalid_saved_choice": "Your saved AI choice is no longer available. Using your default AI option: %{label}",
         "dialogs.custom_ai.selected_choice": "Selected for this prompt: %{label}",
         "dialogs.custom_ai.using_default_setup": "Couldn't load AI choices. This prompt will use your default AI setup.",
         "dialogs.custom_ai.no_available_options": "No configured AI options are available right now.",
@@ -110,6 +111,10 @@ describe("CustomAiPromptController", () => {
         model: "gpt-4o-mini",
         label: "OpenAI · gpt-4o-mini",
         provider_label: "OpenAI"
+      },
+      selection_states: {
+        grammar: { feature: "grammar", configured: false, valid: false, invalid: false },
+        custom_prompt: { feature: "custom_prompt", configured: false, valid: false, invalid: false }
       },
       saved_selections: {
         grammar: null,
@@ -239,5 +244,67 @@ describe("CustomAiPromptController", () => {
     const requestBody = JSON.parse(global.fetch.mock.calls[2][1].body)
     expect(requestBody.provider).toBe("anthropic")
     expect(requestBody.model).toBe("claude-sonnet-4-20250514")
+  })
+
+  it("falls back to the default ai setup when loading choices fails", async () => {
+    controller.getGrammarController = vi.fn(() => ({
+      dispatch: vi.fn(),
+      hasProcessingOverlayTarget: true,
+      processingOverlayTarget: document.createElement("div"),
+      hasProcessingProviderTarget: true,
+      processingProviderTarget: document.createElement("span"),
+      openWithCustomResponse: vi.fn(),
+      cleanup: vi.fn()
+    }))
+
+    global.fetch = vi.fn()
+      .mockRejectedValueOnce(new Error("config unavailable"))
+      .mockResolvedValueOnce(response({
+        original: "",
+        corrected: "Fallback output.",
+        provider: "openai",
+        model: "gpt-4o-mini"
+      }))
+
+    await controller.openModal()
+
+    expect(controller.optionSelectTarget.disabled).toBe(true)
+    expect(controller.optionStatusTarget.textContent).toBe(
+      "Couldn't load AI choices. This prompt will use your default AI setup."
+    )
+
+    controller.promptInputTarget.value = "Keep going"
+    await controller.generate()
+
+    expect(global.fetch).toHaveBeenCalledTimes(2)
+    const requestBody = JSON.parse(global.fetch.mock.calls[1][1].body)
+    expect(requestBody).toEqual({
+      selected_text: "",
+      prompt: "Keep going"
+    })
+  })
+
+  it("falls back to the default option when the saved custom prompt choice is no longer available", async () => {
+    global.fetch = vi.fn().mockResolvedValueOnce(response(aiConfigResponse({
+      selection_states: {
+        grammar: { feature: "grammar", configured: false, valid: false, invalid: false },
+        custom_prompt: {
+          feature: "custom_prompt",
+          configured: true,
+          valid: false,
+          invalid: true,
+          provider: "anthropic",
+          model: "claude-opus-old"
+        }
+      }
+    })))
+
+    await controller.openModal()
+
+    expect(controller.optionSelectTarget.value).toBe("openai::gpt-4o-mini")
+    expect(controller.optionStatusTarget.textContent).toContain(
+      "Your saved AI choice is no longer available. Using your default AI option:"
+    )
+    expect(controller.optionStatusTarget.textContent).toContain("gpt-4o-mini")
   })
 })
