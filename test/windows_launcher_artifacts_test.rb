@@ -9,34 +9,32 @@ class WindowsLauncherArtifactsTest < ActiveSupport::TestCase
     assert_includes defaults, 'ProgressFile = "tmp/windows-launcher/launcher-progress.json"'
   end
 
-  test "windows splash helper uses an hta shell with launcher progress polling" do
-    splash_script = Rails.root.join("script", "windows", "show_lewismd_splash.hta").read
+  test "windows splash helper uses a native borderless form with launcher progress polling" do
+    splash_script = Rails.root.join("script", "windows", "show_lewismd_splash.cs").read
 
-    assert_includes splash_script, "<HTA:APPLICATION"
-    assert_includes splash_script, 'APPLICATIONNAME="LewisMDSplash"'
-    assert_includes splash_script, 'SHOWINTASKBAR="no"'
-    assert_includes splash_script, "Scripting.FileSystemObject"
-    assert_includes splash_script, "launcher-progress.json"
-    assert_includes splash_script, "var scriptRoot = fso.GetParentFolderName(scriptDir);"
-    assert_includes splash_script, "return fso.GetParentFolderName(scriptRoot);"
-    assert_includes splash_script, "Date.UTC("
-    assert_includes splash_script, "timezoneToken = match[8] || \"\";"
-    assert_includes splash_script, "window.resizeTo"
-    assert_includes splash_script, "window.moveTo"
-    assert_includes splash_script, "shell.AppActivate(document.title)"
-    assert_includes splash_script, "window.setInterval(pollProgress, 250)"
+    assert_includes splash_script, "FormBorderStyle = FormBorderStyle.None"
+    assert_includes splash_script, "ShowInTaskbar = false"
+    assert_includes splash_script, "TopMost = true"
+    assert_includes splash_script, "DataContractJsonSerializer"
+    assert_includes splash_script, "FileShare.ReadWrite"
+    assert_includes splash_script, "DateTimeOffset.TryParse"
+    assert_includes splash_script, "spinner.StopAnimation();"
+    assert_includes splash_script, "SetForegroundWindow"
+    assert_includes splash_script, "Application.Run(new SplashForm("
     assert_includes splash_script, "LewisMD couldn't finish starting"
     assert_includes splash_script, "Open the visible launcher for details:"
-    assert_includes splash_script, "<title>LewisMD Launching</title>"
   end
 
   test "hidden launcher starts the splash helper before launching the app" do
     hidden_launcher = Rails.root.join("script", "windows", "Launch_LewisMD.vbs").read
 
-    assert_includes hidden_launcher, "show_lewismd_splash.hta"
+    assert_includes hidden_launcher, "show_lewismd_splash.cs"
+    assert_includes hidden_launcher, "LewisMDSplash.exe"
     assert_includes hidden_launcher, "launcher-progress.json"
     assert_includes hidden_launcher, "splashCommand"
-    assert_includes hidden_launcher, "mshta.exe"
+    assert_includes hidden_launcher, "ResolveCscPath()"
+    assert_includes hidden_launcher, "EnsureSplashExecutable()"
+    assert_includes hidden_launcher, "/target:winexe"
     assert_includes hidden_launcher, "splashWindowStyle = 1"
     assert_includes hidden_launcher, "shell.Run splashCommand, splashWindowStyle, False"
     assert_includes hidden_launcher, "WriteProgressErrorPayload"
@@ -47,8 +45,9 @@ class WindowsLauncherArtifactsTest < ActiveSupport::TestCase
   test "windows launcher readme documents the splash helper contract" do
     readme = Rails.root.join("script", "windows", "README.md").read
 
-    assert_includes readme, "show_lewismd_splash.hta"
+    assert_includes readme, "show_lewismd_splash.cs"
     assert_includes readme, "launcher-progress.json"
-    assert_includes readme, "mshta.exe"
+    assert_includes readme, "csc.exe"
+    assert_includes readme, "LewisMDSplash.exe"
   end
 end

@@ -14,7 +14,7 @@ Phase 10 now includes the validation and closeout pass for the launcher workspac
 - [start_lewismd.bat](/C:/Users/Admin/Documents/GitHub/LewisMD/script/windows/start_lewismd.bat)
 - [launch_lewismd.ps1](/C:/Users/Admin/Documents/GitHub/LewisMD/script/windows/launch_lewismd.ps1)
 - [Launch_LewisMD.vbs](/C:/Users/Admin/Documents/GitHub/LewisMD/script/windows/Launch_LewisMD.vbs)
-- [show_lewismd_splash.hta](/C:/Users/Admin/Documents/GitHub/LewisMD/script/windows/show_lewismd_splash.hta)
+- [show_lewismd_splash.cs](/C:/Users/Admin/Documents/GitHub/LewisMD/script/windows/show_lewismd_splash.cs)
 - [stop_lewismd.bat](/C:/Users/Admin/Documents/GitHub/LewisMD/script/windows/stop_lewismd.bat)
 
 Bootstrap prepares the runtime, the visible launcher verifies that runtime, and
@@ -47,8 +47,8 @@ so future scripts can import one small source of truth.
   - main orchestrator for PID tracking, readiness polling, and cleanup
 - `Launch_LewisMD.vbs`
   - hidden wrapper for a polished double-click launch
-- `show_lewismd_splash.hta`
-  - native Windows splash helper that reads launcher progress state
+- `show_lewismd_splash.cs`
+  - native Windows splash helper source used to build a borderless splash executable
 - `stop_lewismd.bat`
   - manual cleanup helper if a prior launch leaves stale state behind
 
@@ -163,7 +163,8 @@ script\windows\Launch_LewisMD.vbs
 What it does:
 
 - starts the native splash helper first so hidden launches still show progress
-- launches the splash helper through `mshta.exe`, avoiding both a browser tab and the blank PowerShell console window
+- compiles `show_lewismd_splash.cs` into `tmp/windows-launcher/LewisMDSplash.exe` when needed using `csc.exe`
+- launches the compiled splash executable without a browser tab or PowerShell console host
 - runs `start_lewismd.bat` with the console hidden
 - skips the visible launcher's extra bootstrap validation because the
   PowerShell orchestrator still validates the runtime itself
@@ -198,20 +199,21 @@ file directly, so the shortcut is the correct shell-level workaround.
 The native Windows splash helper now lives in:
 
 ```text
-script\windows\show_lewismd_splash.hta
+script\windows\show_lewismd_splash.cs
 ```
 
 What it does:
 
-- loads a small HTA window using the checked-in LewisMD icon
+- builds a native borderless Windows form with the checked-in LewisMD icon
 - polls `tmp/windows-launcher/launcher-progress.json`
 - ignores stale progress left behind by an older launcher session
-- uses HTA single-instance behavior so repeated hidden launches do not stack splash windows
+- reads the progress file with .NET JSON parsing and shared file access
 - shows the current launcher message and percent complete
-- explicitly re-activates the splash window while LewisMD starts so it stays easy to spot above other windows
+- explicitly promotes the splash window while LewisMD starts so it stays easy to spot above other windows
 - fades away automatically once the launcher reports `ready` / `running`
 - stays open with a readable message when launcher state becomes `error`
 - surfaces a close button and visible-launcher/log guidance on failures and timeouts
+- reuses `tmp/windows-launcher/LewisMDSplash.exe` between launches until the source changes
 
 ## Stop helper behavior
 
