@@ -15,6 +15,36 @@
 <%= render "shared/dialog_close_button", action: "click->ai-grammar#close", size: "h-5 w-5", padding: "p-2", hover_bg: "hover:bg-[var(--theme-bg-secondary)]" %>
       </div>
 
+      <div class="hidden px-6 py-4 border-b border-[var(--theme-border)] bg-[var(--theme-bg-secondary)]" data-ai-grammar-target="selectionControls">
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div class="flex-1 min-w-0">
+            <p data-ai-grammar-target="selectionPrompt" class="text-sm text-[var(--theme-text-secondary)] mb-3"></p>
+            <label for="ai_grammar_provider_option" class="block text-xs font-medium uppercase tracking-wide text-[var(--theme-text-muted)] mb-2">
+              <%= t('dialogs.ai_diff.provider_label') %>
+            </label>
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <select
+                id="ai_grammar_provider_option"
+                data-ai-grammar-target="optionSelect"
+                data-action="change->ai-grammar#onOptionChanged"
+                class="w-full sm:flex-1 text-sm bg-[var(--theme-bg-primary)] text-[var(--theme-text-primary)] rounded border border-[var(--theme-border)] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[var(--theme-accent)]"
+              >
+                <option value=""><%= t('dialogs.ai_diff.provider_label') %></option>
+              </select>
+              <button
+                type="button"
+                data-action="click->ai-grammar#runSelectedOption"
+                data-ai-grammar-target="runButton"
+                class="px-4 py-2 rounded-md bg-[var(--theme-accent)] text-[var(--theme-accent-text)] hover:bg-[var(--theme-accent-hover)]"
+              >
+                <%= t('dialogs.ai_diff.run_check') %>
+              </button>
+            </div>
+            <p data-ai-grammar-target="optionStatus" class="mt-2 text-xs text-[var(--theme-text-muted)]"></p>
+          </div>
+        </div>
+      </div>
+
       <!-- Configuration Required Notice (shown when AI not configured) -->
       <div class="hidden p-6 overflow-y-auto" data-ai-grammar-target="configNotice">
         <div class="p-6 bg-[var(--theme-bg-tertiary)] rounded-lg">

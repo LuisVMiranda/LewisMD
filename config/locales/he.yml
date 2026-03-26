@@ -445,6 +445,15 @@ he:
       openai_description: 'השתמש במודלי GPT:'
       provider_selection: בחירת ספק
       provider_override: 'עקוף זיהוי אוטומטי:'
+      provider_label: ספק / מודל AI
+      chooser_prompt: בחר באיזו אפשרות AI תרצה להשתמש לבדיקת הדקדוק. LewisMD יזכור את הבחירה שלך לפעם הבאה.
+      rerun_prompt: רוצה להשוות אפשרות AI אחרת? בחר אותה כאן והרץ שוב את בדיקת הדקדוק.
+      run_check: הפעל בדיקת דקדוק
+      run_again: הפעל שוב
+      saved_choice: 'נשמר לבדיקות דקדוק עתידיות: %{label}'
+      default_choice: 'משתמש באפשרות ה-AI ברירת המחדל שלך: %{label}'
+      selected_choice: 'נבחר לבדיקה הזו: %{label}'
+      preference_save_failed: לא ניתן היה לשמור את בחירת ה-AI הזו. היא תשמש רק לבדיקה הזו.
       original: מקורי
       deletions_hint: "(מחיקות באדום)"
       corrected: מתוקן

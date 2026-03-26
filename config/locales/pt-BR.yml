@@ -452,6 +452,15 @@ pt-BR:
       openai_description: 'Use modelos GPT:'
       provider_selection: Seleção de Provedor
       provider_override: 'Sobrescrever auto-detecção:'
+      provider_label: Provedor / modelo de IA
+      chooser_prompt: Escolha qual opção de IA você quer usar na verificação gramatical. O LewisMD vai lembrar sua escolha da próxima vez.
+      rerun_prompt: Quer comparar com outra opção de IA? Escolha aqui e execute a verificação gramatical novamente.
+      run_check: Executar verificação gramatical
+      run_again: Executar novamente
+      saved_choice: 'Salvo para futuras verificações gramaticais: %{label}'
+      default_choice: 'Usando sua opção de IA padrão: %{label}'
+      selected_choice: 'Selecionado para esta verificação gramatical: %{label}'
+      preference_save_failed: Não foi possível salvar esta escolha de IA. Ela será usada apenas nesta verificação gramatical.
       original: Original
       deletions_hint: "(exclusões em vermelho)"
       corrected: Corrigido

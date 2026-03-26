@@ -448,6 +448,15 @@ es:
       openai_description: 'Usa modelos GPT:'
       provider_selection: Selección de Proveedor
       provider_override: 'Anular detección automática:'
+      provider_label: Proveedor / modelo de IA
+      chooser_prompt: Elige qué opción de IA quieres usar para la revisión gramatical. LewisMD recordará tu elección la próxima vez.
+      rerun_prompt: '¿Quieres comparar otra opción de IA? Elígela aquí y vuelve a ejecutar la revisión gramatical.'
+      run_check: Ejecutar revisión gramatical
+      run_again: Ejecutar de nuevo
+      saved_choice: 'Guardado para futuras revisiones gramaticales: %{label}'
+      default_choice: 'Usando tu opción de IA predeterminada: %{label}'
+      selected_choice: 'Seleccionado para esta revisión gramatical: %{label}'
+      preference_save_failed: No se pudo guardar esta opción de IA. Se usará solo para esta revisión gramatical.
       original: Original
       deletions_hint: "(eliminaciones en rojo)"
       corrected: Corregido

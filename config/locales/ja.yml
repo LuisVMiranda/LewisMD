@@ -448,6 +448,15 @@ ja:
       openai_description: GPTモデルを使用：
       provider_selection: プロバイダー選択
       provider_override: 自動検出を上書き：
+      provider_label: AIプロバイダー / モデル
+      chooser_prompt: 文法チェックに使いたいAIオプションを選んでください。LewisMDは次回のためにこの選択を記憶します。
+      rerun_prompt: 別のAIオプションと比較したいですか？ ここで選んで、文法チェックをもう一度実行できます。
+      run_check: 文法チェックを実行
+      run_again: もう一度実行
+      saved_choice: '今後の文法チェック用に保存済み: %{label}'
+      default_choice: '既定のAIオプションを使用中: %{label}'
+      selected_choice: '今回の文法チェックで選択中: %{label}'
+      preference_save_failed: このAIの選択は保存できませんでした。今回の文法チェックにのみ使用されます。
       original: オリジナル
       deletions_hint: "（削除は赤）"
       corrected: 修正後

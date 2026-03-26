@@ -448,6 +448,15 @@ ko:
       openai_description: 'GPT 모델 사용:'
       provider_selection: 제공자 선택
       provider_override: '자동 감지 재정의:'
+      provider_label: AI 제공자 / 모델
+      chooser_prompt: 문법 검사에 사용할 AI 옵션을 선택하세요. LewisMD가 다음에도 이 선택을 기억합니다.
+      rerun_prompt: 다른 AI 옵션과 비교하고 싶나요? 여기에서 선택하고 문법 검사를 다시 실행하세요.
+      run_check: 문법 검사 실행
+      run_again: 다시 실행
+      saved_choice: '앞으로의 문법 검사에 저장됨: %{label}'
+      default_choice: '기본 AI 옵션 사용 중: %{label}'
+      selected_choice: '이번 문법 검사에 선택됨: %{label}'
+      preference_save_failed: 이 AI 선택을 저장할 수 없었습니다. 이번 문법 검사에만 사용됩니다.
       original: 원본
       deletions_hint: "(삭제는 빨간색)"
       corrected: 수정됨
