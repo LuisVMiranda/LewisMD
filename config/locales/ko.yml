@@ -167,6 +167,8 @@ ko:
     display_controls: 읽기 컨트롤
     show_controls: 읽기 컨트롤 표시
     hide_controls: 읽기 컨트롤 숨기기
+    show_toolbar: 도구 모음 표시
+    hide_toolbar: 도구 모음 숨기기
     collapse_outline: 개요 접기
     expand_outline: 개요 펼치기
     zoom: 확대

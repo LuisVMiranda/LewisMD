@@ -164,6 +164,8 @@ he:
     display_controls: בקרי קריאה
     show_controls: הצג בקרי קריאה
     hide_controls: הסתר בקרי קריאה
+    show_toolbar: הצג סרגל
+    hide_toolbar: הסתר סרגל
     collapse_outline: כווץ מתאר
     expand_outline: הרחב מתאר
     zoom: זום

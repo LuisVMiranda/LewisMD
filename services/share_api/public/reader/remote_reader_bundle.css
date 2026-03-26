@@ -243,6 +243,56 @@ html.dark .dark\:text-red-400 {
   backdrop-filter: blur(12px);
 }
 
+.share-view--remote {
+  position: relative;
+}
+
+.share-view__toolbar-handle {
+  position: absolute;
+  top: 0.85rem;
+  right: 0.85rem;
+  z-index: 45;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  min-height: 2rem;
+  padding: 0;
+  border: 1px solid var(--theme-border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--theme-bg-primary) 88%, transparent);
+  color: var(--theme-text-secondary);
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--theme-shadow, #020617) 14%, transparent);
+  backdrop-filter: blur(14px);
+  transition: transform 0.2s ease, background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.2s ease;
+}
+
+.share-view__toolbar-handle:hover {
+  background: color-mix(in srgb, var(--theme-bg-secondary) 94%, transparent);
+  border-color: var(--theme-accent);
+  color: var(--theme-text-primary);
+}
+
+.share-view__toolbar-handle:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--theme-accent) 70%, transparent);
+  outline-offset: 2px;
+}
+
+.share-view__toolbar-handle .share-view__toolbar-caret {
+  margin: 0;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.share-view[data-toolbar-collapsed="false"] .share-view__toolbar-handle .share-view__toolbar-caret {
+  transform: rotate(180deg);
+}
+
+.share-view--remote .share-view__toolbar {
+  transition: max-height 0.2s ease, padding 0.2s ease, gap 0.2s ease, opacity 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
 .share-view--remote .share-view__content {
   position: relative;
   padding: 0;
@@ -358,6 +408,24 @@ html.dark .dark\:text-red-400 {
 
   .share-view__outline-menu-anchor {
     display: block;
+  }
+}
+
+@media (max-width: 1023px) {
+  .share-view__toolbar-handle {
+    display: inline-flex;
+  }
+
+  .share-view[data-toolbar-collapsed="true"] .share-view__toolbar {
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    border-bottom-color: transparent;
+    gap: 0;
+    opacity: 0;
+    overflow: hidden;
+    pointer-events: none;
+    transform: translateY(-0.75rem);
   }
 }
 

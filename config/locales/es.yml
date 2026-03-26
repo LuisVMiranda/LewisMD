@@ -167,6 +167,8 @@ es:
     display_controls: Controles de lectura
     show_controls: Mostrar controles de lectura
     hide_controls: Ocultar controles de lectura
+    show_toolbar: Mostrar barra
+    hide_toolbar: Ocultar barra
     collapse_outline: Contraer esquema
     expand_outline: Expandir esquema
     zoom: Zoom

@@ -167,6 +167,8 @@ pt-PT:
     display_controls: Controlos de leitura
     show_controls: Mostrar controlos de leitura
     hide_controls: Ocultar controlos de leitura
+    show_toolbar: Mostrar barra
+    hide_toolbar: Ocultar barra
     collapse_outline: Recolher estrutura
     expand_outline: Expandir estrutura
     zoom: Zoom

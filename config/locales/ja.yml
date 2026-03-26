@@ -167,6 +167,8 @@ ja:
     display_controls: 閲覧コントロール
     show_controls: 閲覧コントロールを表示
     hide_controls: 閲覧コントロールを隠す
+    show_toolbar: ツールバーを表示
+    hide_toolbar: ツールバーを隠す
     collapse_outline: アウトラインを折りたたむ
     expand_outline: アウトラインを展開
     zoom: ズーム

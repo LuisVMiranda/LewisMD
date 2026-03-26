@@ -189,6 +189,8 @@ en:
     display_controls: "Reading controls"
     show_controls: "Show reading controls"
     hide_controls: "Hide reading controls"
+    show_toolbar: "Show toolbar"
+    hide_toolbar: "Hide toolbar"
     collapse_outline: "Collapse outline"
     expand_outline: "Expand outline"
     zoom: "Zoom"

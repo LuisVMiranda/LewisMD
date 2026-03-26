@@ -64,10 +64,13 @@ class ShareApiAppTest < ActiveSupport::TestCase
     assert_includes last_response.body, ".share-view__outline-card"
     assert_includes last_response.body, ".share-view__outline-menu-anchor"
     assert_includes last_response.body, ".share-view__outline-menu"
+    assert_includes last_response.body, ".share-view__toolbar-handle"
     assert_includes last_response.body, "@media (max-width: 1100px)"
+    assert_includes last_response.body, "@media (max-width: 1023px)"
     assert_includes last_response.body, "top: 30px;"
     assert_includes last_response.body, "left: 30px;"
     assert_includes last_response.body, "justify-content: center;"
+    assert_includes last_response.body, 'data-toolbar-collapsed="true"'
     assert_includes last_response.body, "display: none !important;"
     assert_includes last_response.body, "box-sizing: border-box"
 
@@ -153,8 +156,11 @@ class ShareApiAppTest < ActiveSupport::TestCase
     assert_includes last_response.headers["Content-Security-Policy"], "frame-src 'self'"
     assert_includes last_response.headers["Content-Security-Policy"], "style-src 'self' 'unsafe-inline'"
     assert_includes last_response.body, 'class="share-view share-view--remote"'
+    assert_includes last_response.body, 'data-toolbar-collapsed="false"'
     assert_includes last_response.body, '<p class="share-view__eyebrow">Shared note</p>'
     assert_includes last_response.body, '<h1 class="share-view__title">Shared Note</h1>'
+    assert_includes last_response.body, 'data-role="toolbar-toggle"'
+    assert_includes last_response.body, 'data-role="toolbar"'
     assert_includes last_response.body, 'data-role="theme-toggle"'
     assert_includes last_response.body, 'data-role="locale-toggle"'
     assert_includes last_response.body, 'data-role="export-toggle"'
@@ -176,6 +182,7 @@ class ShareApiAppTest < ActiveSupport::TestCase
     assert_includes last_response.body, 'class="share-view__display-panel hidden"'
     assert_includes last_response.body, 'class="share-view__outline-shell hidden"'
     assert_includes last_response.body, 'title="Collapse outline"'
+    assert_includes last_response.body, 'title="Hide toolbar"'
     refute_includes last_response.body, 'class="share-view__frame-shell"'
     assert_includes last_response.body, 'data-role="display-toggle"'
     assert_includes last_response.body, 'aria-expanded="false"'
@@ -197,6 +204,9 @@ class ShareApiAppTest < ActiveSupport::TestCase
     assert_includes last_response.body, 'data-translations="{&quot;header&quot;:{&quot;change_theme&quot;:&quot;Alterar Tema&quot;'
     assert_includes last_response.body, 'data-show-controls-label="Mostrar controles de leitura"'
     assert_includes last_response.body, 'data-hide-controls-label="Ocultar controles de leitura"'
+    assert_includes last_response.body, 'data-show-toolbar-label="Mostrar barra"'
+    assert_includes last_response.body, 'data-hide-toolbar-label="Ocultar barra"'
+    assert_includes last_response.body, 'title="Ocultar barra"'
     assert_includes last_response.body, 'title="Estrutura"'
     assert_includes last_response.body, '<span class="share-view__toolbar-label">Estrutura</span>'
     assert_includes last_response.body, '<h2 class="share-view__outline-title">Estrutura</h2>'

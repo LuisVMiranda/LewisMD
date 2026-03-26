@@ -336,6 +336,8 @@ module ShareAPI
       current_color_scheme = inferred_light_theme?(current_theme) ? "light" : "dark"
       show_controls_label = reader_translate(current_locale, "share_view.show_controls", default: "Show reading controls")
       hide_controls_label = reader_translate(current_locale, "share_view.hide_controls", default: "Hide reading controls")
+      show_toolbar_label = reader_translate(current_locale, "share_view.show_toolbar", default: "Show toolbar")
+      hide_toolbar_label = reader_translate(current_locale, "share_view.hide_toolbar", default: "Hide toolbar")
       shared_note_label = reader_translate(current_locale, "share_view.label", default: "Shared note")
       outline_label = reader_translate(current_locale, "sidebar.outline", default: "Outline")
       no_headings_label = reader_translate(current_locale, "sidebar.no_headings_yet", default: "No headings yet")
@@ -371,8 +373,23 @@ module ShareAPI
               data-translations="#{translations_json}"
               data-show-controls-label="#{CGI.escapeHTML(show_controls_label)}"
               data-hide-controls-label="#{CGI.escapeHTML(hide_controls_label)}"
+              data-show-toolbar-label="#{CGI.escapeHTML(show_toolbar_label)}"
+              data-hide-toolbar-label="#{CGI.escapeHTML(hide_toolbar_label)}"
+              data-toolbar-collapsed="false"
             >
-              <header class="share-view__toolbar">
+              <button
+                type="button"
+                class="share-view__toolbar-handle"
+                data-role="toolbar-toggle"
+                aria-expanded="true"
+                aria-controls="share-view-toolbar"
+                title="#{CGI.escapeHTML(hide_toolbar_label)}"
+                aria-label="#{CGI.escapeHTML(hide_toolbar_label)}"
+              >
+                #{caret_icon_markup}
+              </button>
+
+              <header id="share-view-toolbar" class="share-view__toolbar" data-role="toolbar">
                 <div class="share-view__toolbar-top">
                   <div class="share-view__identity">
                     <p class="share-view__eyebrow">#{CGI.escapeHTML(shared_note_label)}</p>

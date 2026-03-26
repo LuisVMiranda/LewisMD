@@ -204,6 +204,8 @@ class ShareApiDeploymentArtifactsTest < ActiveSupport::TestCase
         display_controls
         show_controls
         hide_controls
+        show_toolbar
+        hide_toolbar
         collapse_outline
         expand_outline
         zoom

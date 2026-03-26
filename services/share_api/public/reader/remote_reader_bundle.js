@@ -59,6 +59,8 @@ const DEFAULT_TRANSLATIONS = {
     display_controls: "Reading controls",
     show_controls: "Show reading controls",
     hide_controls: "Hide reading controls",
+    show_toolbar: "Show toolbar",
+    hide_toolbar: "Hide toolbar",
     collapse_outline: "Collapse outline",
     expand_outline: "Expand outline",
     iframe_title: "Shared note preview",
@@ -188,6 +190,8 @@ export class RemoteShareReader {
     this.localeCurrentLabel = element.querySelector('[data-role="locale-current-label"]')
     this.exportButton = element.querySelector('[data-role="export-toggle"]')
     this.exportMenu = element.querySelector('[data-role="export-menu"]')
+    this.toolbar = element.querySelector('[data-role="toolbar"]')
+    this.toolbarToggle = element.querySelector('[data-role="toolbar-toggle"]')
     this.displayPanel = element.querySelector('[data-role="display-panel"]')
     this.displayToggle = element.querySelector('[data-role="display-toggle"]')
     this.zoomValue = element.querySelector('[data-role="zoom-value"]')
@@ -203,7 +207,10 @@ export class RemoteShareReader {
     this.translations = parseTranslations(element.dataset.translations)
     this.showControlsLabel = element.dataset.showControlsLabel || window.t("share_view.show_controls")
     this.hideControlsLabel = element.dataset.hideControlsLabel || window.t("share_view.hide_controls")
+    this.showToolbarLabel = element.dataset.showToolbarLabel || window.t("share_view.show_toolbar")
+    this.hideToolbarLabel = element.dataset.hideToolbarLabel || window.t("share_view.hide_toolbar")
     this.displayPanelExpanded = !this.displayPanel?.classList.contains("hidden")
+    this.toolbarCollapsed = element.dataset.toolbarCollapsed === "true"
     this.exportGroupExpanded = false
     this.baseFontSize = null
     this.outlineEntries = []
@@ -224,6 +231,7 @@ export class RemoteShareReader {
     this.renderMenus()
     this.attachEventListeners()
     this.updateDisplays()
+    this.applyToolbarState()
     this.applyDisplayPanelState()
     this.applyOutlineState()
 
@@ -242,11 +250,15 @@ export class RemoteShareReader {
     this.localeMenu?.removeEventListener("click", this.boundLocaleMenuClick)
     this.exportButton?.removeEventListener("click", this.boundExportToggle)
     this.exportMenu?.removeEventListener("click", this.boundExportMenuClick)
+    this.toolbarToggle?.removeEventListener("click", this.boundToolbarToggle)
     this.displayToggle?.removeEventListener("click", this.boundDisplayToggle)
     this.outlineList?.removeEventListener("click", this.boundOutlineClick)
     this.outlineMenuList?.removeEventListener("click", this.boundOutlineClick)
     this.outlineToggle?.removeEventListener("click", this.boundOutlineToggle)
     this.outlineMenuButton?.removeEventListener("click", this.boundOutlineMenuToggle)
+    if (this.compactToolbarQuery?.removeEventListener && this.boundCompactToolbarChange) {
+      this.compactToolbarQuery.removeEventListener("change", this.boundCompactToolbarChange)
+    }
     this.element.querySelector('[data-role="zoom-in"]')?.removeEventListener("click", this.boundZoomIn)
     this.element.querySelector('[data-role="zoom-out"]')?.removeEventListener("click", this.boundZoomOut)
     this.element.querySelector('[data-role="width-increase"]')?.removeEventListener("click", this.boundWidthIncrease)
@@ -266,6 +278,7 @@ export class RemoteShareReader {
     this.boundExportToggle = (event) => this.toggleMenu(event, "export")
     this.boundExportMenuClick = (event) => this.onExportMenuClick(event)
     this.boundOutlineMenuToggle = (event) => this.toggleMenu(event, "outline")
+    this.boundToolbarToggle = () => this.toggleToolbar()
     this.boundDisplayToggle = () => this.toggleDisplayPanel()
     this.boundOutlineClick = (event) => this.onOutlineClick(event)
     this.boundOutlineToggle = () => this.toggleOutline()
@@ -285,6 +298,7 @@ export class RemoteShareReader {
     this.exportButton?.addEventListener("click", this.boundExportToggle)
     this.exportMenu?.addEventListener("click", this.boundExportMenuClick)
     this.outlineMenuButton?.addEventListener("click", this.boundOutlineMenuToggle)
+    this.toolbarToggle?.addEventListener("click", this.boundToolbarToggle)
     this.displayToggle?.addEventListener("click", this.boundDisplayToggle)
     this.outlineList?.addEventListener("click", this.boundOutlineClick)
     this.outlineMenuList?.addEventListener("click", this.boundOutlineClick)
@@ -294,6 +308,9 @@ export class RemoteShareReader {
     this.element.querySelector('[data-role="width-increase"]')?.addEventListener("click", this.boundWidthIncrease)
     this.element.querySelector('[data-role="width-decrease"]')?.addEventListener("click", this.boundWidthDecrease)
     this.fontSelect?.addEventListener("change", this.boundFontChange)
+    this.compactToolbarQuery = window.matchMedia?.("(max-width: 1023px)") || null
+    this.boundCompactToolbarChange = () => this.applyToolbarState()
+    this.compactToolbarQuery?.addEventListener?.("change", this.boundCompactToolbarChange)
   }
 
   renderMenus() {
@@ -601,6 +618,14 @@ export class RemoteShareReader {
     this.applyDisplayPanelState()
   }
 
+  toggleToolbar() {
+    if (!this.isCompactToolbarMode()) return
+
+    this.toolbarCollapsed = !this.toolbarCollapsed
+    if (this.toolbarCollapsed) this.closeMenus()
+    this.applyToolbarState()
+  }
+
   applySettings() {
     const article = this.articleElement
     if (article) {
@@ -768,6 +793,23 @@ export class RemoteShareReader {
     }
   }
 
+  applyToolbarState() {
+    const compactToolbarMode = this.isCompactToolbarMode()
+    if (!compactToolbarMode) this.toolbarCollapsed = false
+
+    const collapsed = compactToolbarMode && this.toolbarCollapsed
+    this.element.dataset.toolbarCollapsed = String(collapsed)
+    this.toolbar?.setAttribute("aria-hidden", String(collapsed))
+
+    if (this.toolbarToggle) {
+      const toggleLabel = collapsed ? this.showToolbarLabel : this.hideToolbarLabel
+      this.toolbarToggle.classList.toggle("hidden", !compactToolbarMode)
+      this.toolbarToggle.setAttribute("aria-expanded", String(!collapsed))
+      this.toolbarToggle.setAttribute("title", toggleLabel)
+      this.toolbarToggle.setAttribute("aria-label", toggleLabel)
+    }
+  }
+
   applyOutlineState() {
     if (!this.outlineSection) return
 
@@ -811,6 +853,12 @@ export class RemoteShareReader {
     element.textContent = message
     document.body.appendChild(element)
     window.setTimeout(() => element.remove(), duration)
+  }
+
+  isCompactToolbarMode() {
+    if (this.compactToolbarQuery) return this.compactToolbarQuery.matches
+
+    return window.innerWidth <= 1023
   }
 
   get articleElement() {
