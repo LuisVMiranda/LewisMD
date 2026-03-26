@@ -19,6 +19,8 @@ class WindowsLauncherArtifactsTest < ActiveSupport::TestCase
     assert_includes splash_script, "launcher-progress.json"
     assert_includes splash_script, "var scriptRoot = fso.GetParentFolderName(scriptDir);"
     assert_includes splash_script, "return fso.GetParentFolderName(scriptRoot);"
+    assert_includes splash_script, "Date.UTC("
+    assert_includes splash_script, "timezoneToken = match[8] || \"\";"
     assert_includes splash_script, "window.resizeTo"
     assert_includes splash_script, "window.moveTo"
     assert_includes splash_script, "shell.AppActivate(document.title)"

@@ -258,14 +258,44 @@
 
     function parseIsoTimestamp(value) {
       var match;
+      var milliseconds;
+      var timezoneToken;
+      var timezoneSign;
+      var timezoneHours;
+      var timezoneMinutes;
+      var utcMillis;
 
       if (!value || typeof value !== "string") {
         return null;
       }
 
-      match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})$/.exec(value);
+      match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,7}))?(Z|[+-]\d{2}:\d{2})?$/.exec(value);
       if (!match) {
         return null;
+      }
+
+      milliseconds = match[7] ? parseInt((match[7] + "000").substring(0, 3), 10) : 0;
+      timezoneToken = match[8] || "";
+
+      if (timezoneToken === "Z" || /^[+-]\d{2}:\d{2}$/.test(timezoneToken)) {
+        utcMillis = Date.UTC(
+          parseInt(match[1], 10),
+          parseInt(match[2], 10) - 1,
+          parseInt(match[3], 10),
+          parseInt(match[4], 10),
+          parseInt(match[5], 10),
+          parseInt(match[6], 10),
+          milliseconds
+        );
+
+        if (timezoneToken && timezoneToken !== "Z") {
+          timezoneSign = timezoneToken.charAt(0) === "-" ? -1 : 1;
+          timezoneHours = parseInt(timezoneToken.substring(1, 3), 10);
+          timezoneMinutes = parseInt(timezoneToken.substring(4, 6), 10);
+          utcMillis -= timezoneSign * ((timezoneHours * 60) + timezoneMinutes) * 60000;
+        }
+
+        return new Date(utcMillis);
       }
 
       return new Date(
@@ -274,7 +304,8 @@
         parseInt(match[3], 10),
         parseInt(match[4], 10),
         parseInt(match[5], 10),
-        parseInt(match[6], 10)
+        parseInt(match[6], 10),
+        milliseconds
       );
     }
 
