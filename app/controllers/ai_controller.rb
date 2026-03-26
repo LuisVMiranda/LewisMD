@@ -28,7 +28,14 @@ class AiController < ApplicationController
       return render json: { error: t("errors.note_is_empty") }, status: :bad_request
     end
 
-    result = AiService.fix_grammar(text)
+    selection = requested_ai_selection
+    return render_selection_error(selection) if selection[:error]
+
+    result = if selection[:provider]
+      AiService.fix_grammar(text, provider: selection[:provider], model: selection[:model])
+    else
+      AiService.fix_grammar(text)
+    end
 
     if result[:error]
       render json: { error: result[:error] }, status: :unprocessable_entity
@@ -51,7 +58,14 @@ class AiController < ApplicationController
       return render json: { error: t("errors.no_prompt_provided") }, status: :bad_request
     end
 
-    result = AiService.generate_custom_prompt(text, prompt)
+    selection = requested_ai_selection
+    return render_selection_error(selection) if selection[:error]
+
+    result = if selection[:provider]
+      AiService.generate_custom_prompt(text, prompt, provider: selection[:provider], model: selection[:model])
+    else
+      AiService.generate_custom_prompt(text, prompt)
+    end
 
     if result[:error]
       render json: { error: result[:error] }, status: :unprocessable_entity
@@ -114,5 +128,21 @@ class AiController < ApplicationController
     else
       render json: result
     end
+  end
+
+  private
+
+  def requested_ai_selection
+    provider = params[:provider].to_s
+    model = params[:model].to_s
+
+    return {} if provider.blank? && model.blank?
+    return { error: "Provider and model must be supplied together." } if provider.blank? || model.blank?
+
+    { provider: provider, model: model }
+  end
+
+  def render_selection_error(selection)
+    render json: { error: selection[:error] }, status: :bad_request
   end
 end

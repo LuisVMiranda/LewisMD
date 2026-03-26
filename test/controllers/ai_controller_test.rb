@@ -154,6 +154,8 @@ class AiControllerTest < ActionDispatch::IntegrationTest
     assert_equal %w[openai anthropic], data["available_options"].map { |option| option["provider"] }
     assert_equal "gpt-4o-mini", data["available_options"].find { |option| option["provider"] == "openai" }["model"]
     assert_equal "claude-sonnet-4-20250514", data["available_options"].find { |option| option["provider"] == "anthropic" }["model"]
+    assert_equal "openai", data["default_option"]["provider"]
+    assert_equal "gpt-4-turbo", data["default_option"]["model"]
     assert_equal "openai", data["current_selection"]["provider"]
     assert_equal "gpt-4-turbo", data["current_selection"]["model"]
     assert_equal "global_override", data["current_selection"]["model_source"]
@@ -219,6 +221,46 @@ class AiControllerTest < ActionDispatch::IntegrationTest
     assert_includes data["error"], "not configured"
   end
 
+  test "fix_grammar passes an explicit ai selection through to the service" do
+    note = Note.new(path: "test.md", content: "Hello world")
+    note.save
+
+    AiService.expects(:fix_grammar).with(
+      "Hello world",
+      provider: "anthropic",
+      model: "claude-sonnet-4-20250514"
+    ).returns({
+      corrected: "Hello, world.",
+      provider: "anthropic",
+      model: "claude-sonnet-4-20250514"
+    })
+
+    post "/ai/fix_grammar", params: {
+      path: "test.md",
+      provider: "anthropic",
+      model: "claude-sonnet-4-20250514"
+    }, as: :json
+    assert_response :success
+
+    data = JSON.parse(response.body)
+    assert_equal "anthropic", data["provider"]
+    assert_equal "claude-sonnet-4-20250514", data["model"]
+  end
+
+  test "fix_grammar returns bad request when provider selection is partial" do
+    note = Note.new(path: "test.md", content: "Hello world")
+    note.save
+
+    post "/ai/fix_grammar", params: {
+      path: "test.md",
+      provider: "openai"
+    }, as: :json
+    assert_response :bad_request
+
+    data = JSON.parse(response.body)
+    assert_equal "Provider and model must be supplied together.", data["error"]
+  end
+
   test "generate_custom allows blank selected text" do
     ENV["OPENAI_API_KEY"] = "sk-test-key"
     AiService.stubs(:generate_custom_prompt).with("", "Write an introduction").returns({
@@ -259,6 +301,43 @@ class AiControllerTest < ActionDispatch::IntegrationTest
     assert_equal "# Clean Heading\n\nBody paragraph.", data["corrected"]
     assert_equal "openai", data["provider"]
     assert_equal "gpt-4o-mini", data["model"]
+  end
+
+  test "generate_custom passes an explicit ai selection through to the service" do
+    AiService.expects(:generate_custom_prompt).with(
+      "Draft",
+      "Rewrite this cleanly",
+      provider: "anthropic",
+      model: "claude-sonnet-4-20250514"
+    ).returns({
+      corrected: "Cleaned by Claude.",
+      provider: "anthropic",
+      model: "claude-sonnet-4-20250514"
+    })
+
+    post "/ai/generate_custom", params: {
+      selected_text: "Draft",
+      prompt: "Rewrite this cleanly",
+      provider: "anthropic",
+      model: "claude-sonnet-4-20250514"
+    }, as: :json
+    assert_response :success
+
+    data = JSON.parse(response.body)
+    assert_equal "anthropic", data["provider"]
+    assert_equal "claude-sonnet-4-20250514", data["model"]
+  end
+
+  test "generate_custom returns bad request when provider selection is partial" do
+    post "/ai/generate_custom", params: {
+      selected_text: "Draft",
+      prompt: "Rewrite this cleanly",
+      provider: "openai"
+    }, as: :json
+    assert_response :bad_request
+
+    data = JSON.parse(response.body)
+    assert_equal "Provider and model must be supplied together.", data["error"]
   end
 
   test "update_preference saves a valid feature-specific ai selection" do

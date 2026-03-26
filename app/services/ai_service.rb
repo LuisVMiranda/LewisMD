@@ -76,13 +76,15 @@ class AiService
       { selection: selection, saved_selections: cfg.ai_saved_selections }
     end
 
-    def fix_grammar(text)
+    def fix_grammar(text, provider: nil, model: nil)
       return { error: "AI not configured" } unless enabled?
       return { error: "No text provided" } if text.blank?
 
-      provider = current_provider
-      model = current_model
+      selection = resolve_text_selection(provider: provider, model: model)
+      return { error: selection[:error] } if selection[:error]
 
+      provider = selection["provider"]
+      model = selection["model"]
       return { error: "No AI provider available" } unless provider && model
 
       # Debug: log what we're about to use
@@ -97,7 +99,7 @@ class AiService
       key_prefix = key_for_provider&.slice(0, 10) || "none"
       Rails.logger.info "AI request: provider=#{provider}, model=#{model}, key_prefix=#{key_prefix}..., ai_in_file=#{cfg.ai_configured_in_file?}"
 
-      configure_client
+      configure_client(provider:)
       chat = RubyLLM.chat(model: model, provider: provider.to_sym, assume_model_exists: provider == "ollama")
       chat.with_instructions(GRAMMAR_PROMPT)
       response = chat.ask(text)
@@ -108,16 +110,18 @@ class AiService
       { error: "AI processing failed: #{e.message}" }
     end
 
-    def generate_custom_prompt(text, prompt)
+    def generate_custom_prompt(text, prompt, provider: nil, model: nil)
       return { error: "AI not configured" } unless enabled?
       return { error: "No prompt provided" } if prompt.blank?
 
-      provider = current_provider
-      model = current_model
+      selection = resolve_text_selection(provider: provider, model: model)
+      return { error: selection[:error] } if selection[:error]
 
+      provider = selection["provider"]
+      model = selection["model"]
       return { error: "No AI provider available" } unless provider && model
 
-      configure_client
+      configure_client(provider:)
       chat = RubyLLM.chat(model: model, provider: provider.to_sym, assume_model_exists: provider == "ollama")
       chat.with_instructions(build_custom_prompt_instructions(prompt))
       response = chat.ask(build_custom_prompt_input(text))
@@ -136,6 +140,7 @@ class AiService
         model: current_model,
         available_providers: available_providers,
         available_options: available_options,
+        default_option: current_selection,
         current_selection: current_selection,
         saved_selections: saved_selections
       }
@@ -245,9 +250,34 @@ class AiService
       end
     end
 
-    def configure_client
+    def resolve_text_selection(provider:, model:)
+      provider = provider.to_s
+      model = model.to_s
+
+      if provider.blank? && model.blank?
+        selection = current_selection
+        return { error: "No AI provider available" } unless selection
+
+        return selection
+      end
+
+      if provider.blank? || model.blank?
+        return { error: "Provider and model must be supplied together." }
+      end
+
+      selection = available_options.find do |option|
+        option["provider"] == provider && option["model"] == model
+      end
+      return { error: "That AI option is no longer available." } unless selection
+
+      selection.merge(
+        "model_source" => "request_override",
+        "selected" => true
+      )
+    end
+
+    def configure_client(provider:)
       cfg = config_instance
-      provider = current_provider
 
       RubyLLM.configure do |config|
         # Clear ALL provider keys first to avoid cross-contamination

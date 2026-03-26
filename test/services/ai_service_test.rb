@@ -229,6 +229,7 @@ class AiServiceTest < ActiveSupport::TestCase
     assert_includes info.keys, :model
     assert_includes info.keys, :available_providers
     assert_includes info.keys, :available_options
+    assert_includes info.keys, :default_option
     assert_includes info.keys, :current_selection
 
     assert info[:enabled]
@@ -236,6 +237,8 @@ class AiServiceTest < ActiveSupport::TestCase
     assert_includes info[:available_providers], "openai"
     assert_includes info[:available_providers], "anthropic"
     assert_equal %w[openai anthropic], info[:available_options].map { |option| option["provider"] }
+    assert_equal "openai", info[:default_option]["provider"]
+    assert_equal "gpt-4o-mini", info[:default_option]["model"]
     assert_equal "openai", info[:current_selection]["provider"]
     assert_equal "gpt-4o-mini", info[:current_selection]["model"]
     assert_equal({ "grammar" => nil, "custom_prompt" => nil }, info[:saved_selections])
@@ -387,6 +390,48 @@ class AiServiceTest < ActiveSupport::TestCase
     assert_equal "gpt-4o-mini", result[:model]
   end
 
+  test "fix_grammar uses an explicit validated provider selection when supplied" do
+    ENV["OPENAI_API_KEY"] = "sk-test-key"
+    ENV["ANTHROPIC_API_KEY"] = "sk-ant-test"
+
+    mock_response = stub(content: "Fixed by explicit Claude selection.")
+    mock_chat = stub
+    mock_chat.stubs(:with_instructions).returns(mock_chat)
+    mock_chat.stubs(:ask).returns(mock_response)
+
+    RubyLLM.expects(:chat).with(
+      model: "claude-sonnet-4-20250514",
+      provider: :anthropic,
+      assume_model_exists: false
+    ).returns(mock_chat)
+
+    result = AiService.fix_grammar(
+      "This is uncorrected text",
+      provider: "anthropic",
+      model: "claude-sonnet-4-20250514"
+    )
+
+    assert_equal "Fixed by explicit Claude selection.", result[:corrected]
+    assert_equal "anthropic", result[:provider]
+    assert_equal "claude-sonnet-4-20250514", result[:model]
+  end
+
+  test "fix_grammar rejects partial provider selections" do
+    ENV["OPENAI_API_KEY"] = "sk-test-key"
+
+    result = AiService.fix_grammar("Some text", provider: "openai")
+
+    assert_equal "Provider and model must be supplied together.", result[:error]
+  end
+
+  test "fix_grammar rejects unavailable provider model pairs" do
+    ENV["OPENAI_API_KEY"] = "sk-test-key"
+
+    result = AiService.fix_grammar("Some text", provider: "openai", model: "gpt-4-turbo")
+
+    assert_equal "That AI option is no longer available.", result[:error]
+  end
+
   test "fix_grammar returns error on API failure" do
     ENV["OPENAI_API_KEY"] = "sk-test-key"
 
@@ -433,6 +478,33 @@ class AiServiceTest < ActiveSupport::TestCase
     assert_equal "Better text.", result[:corrected]
     assert_equal "openai", result[:provider]
     assert_equal "gpt-4o-mini", result[:model]
+  end
+
+  test "generate_custom_prompt uses an explicit validated provider selection when supplied" do
+    ENV["OPENAI_API_KEY"] = "sk-test-key"
+    ENV["ANTHROPIC_API_KEY"] = "sk-ant-test"
+
+    mock_response = stub(content: "Updated by Claude.")
+    mock_chat = mock
+    mock_chat.expects(:with_instructions).with(includes("Rewrite this professionally")).returns(mock_chat)
+    mock_chat.expects(:ask).with("Original draft").returns(mock_response)
+
+    RubyLLM.expects(:chat).with(
+      model: "claude-sonnet-4-20250514",
+      provider: :anthropic,
+      assume_model_exists: false
+    ).returns(mock_chat)
+
+    result = AiService.generate_custom_prompt(
+      "Original draft",
+      "Rewrite this professionally",
+      provider: "anthropic",
+      model: "claude-sonnet-4-20250514"
+    )
+
+    assert_equal "Updated by Claude.", result[:corrected]
+    assert_equal "anthropic", result[:provider]
+    assert_equal "claude-sonnet-4-20250514", result[:model]
   end
 
   # === Image generation response parsing ===
