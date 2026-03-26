@@ -1,0 +1,29 @@
+/* Solarized Dark Theme - Precision colors for machines and people */
+[data-theme="solarized-dark"] {
+  --theme-bg-primary: #002b36;
+  --theme-bg-secondary: #073642;
+  --theme-bg-tertiary: #073642;
+  --theme-bg-hover: #094959;
+  --theme-text-primary: #839496;
+  --theme-text-secondary: #93a1a1;
+  --theme-text-muted: #657b83;
+  --theme-text-faint: #586e75;
+  --theme-border: #094959;
+  --theme-accent: #268bd2;
+  --theme-accent-hover: #2aa198;
+  --theme-accent-text: #fdf6e3;
+  --theme-selection: #094959;
+  --theme-selection-text: #93a1a1;
+  --theme-scrollbar: #586e75;
+  --theme-scrollbar-hover: #657b83;
+  --theme-success: #859900;
+  --theme-warning: #cb4b16;
+  --theme-error: #dc322f;
+  --theme-code-bg: #073642;
+  --theme-heading-1: #b58900;
+  --theme-heading-2: #cb4b16;
+  --theme-heading-3: #2aa198;
+  --theme-folder-icon: #2aa198;
+  --theme-file-icon: #657b83;
+  --theme-config-icon: #b58900;
+}

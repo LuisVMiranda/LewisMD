@@ -1,0 +1,29 @@
+/* Matte Black - Sleek dark theme with warm orange accent */
+[data-theme="matte-black"] {
+  --theme-bg-primary: #121212;
+  --theme-bg-secondary: #0a0a0a;
+  --theme-bg-tertiary: #1a1a1a;
+  --theme-bg-hover: #333333;
+  --theme-text-primary: #bebebe;
+  --theme-text-secondary: #eaeaea;
+  --theme-text-muted: #8a8a8d;
+  --theme-text-faint: #666666;
+  --theme-border: #333333;
+  --theme-accent: #e68e0d;
+  --theme-accent-hover: #f59e0b;
+  --theme-accent-text: #121212;
+  --theme-selection: #333333;
+  --theme-selection-text: #bebebe;
+  --theme-scrollbar: #333333;
+  --theme-scrollbar-hover: #4d4d4d;
+  --theme-success: #ffc107;
+  --theme-warning: #ffc107;
+  --theme-error: #d35f5f;
+  --theme-code-bg: #1a1a1a;
+  --theme-heading-1: #ffffff;
+  --theme-heading-2: #e68e0d;
+  --theme-heading-3: #bebebe;
+  --theme-folder-icon: #e68e0d;
+  --theme-file-icon: #8a8a8d;
+  --theme-config-icon: #ffc107;
+}

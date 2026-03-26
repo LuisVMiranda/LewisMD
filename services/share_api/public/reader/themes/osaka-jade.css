@@ -1,0 +1,29 @@
+/* Osaka Jade - Japanese aesthetic with jade green accents */
+[data-theme="osaka-jade"] {
+  --theme-bg-primary: #111c18;
+  --theme-bg-secondary: #0d1512;
+  --theme-bg-tertiary: #1a2a24;
+  --theme-bg-hover: #23372b;
+  --theme-text-primary: #c1c497;
+  --theme-text-secondary: #f6f5dd;
+  --theme-text-muted: #53685b;
+  --theme-text-faint: #23372b;
+  --theme-border: #23372b;
+  --theme-accent: #509475;
+  --theme-accent-hover: #63b07a;
+  --theme-accent-text: #111c18;
+  --theme-selection: #c1c497;
+  --theme-selection-text: #111c18;
+  --theme-scrollbar: #23372b;
+  --theme-scrollbar-hover: #2d4435;
+  --theme-success: #549e6a;
+  --theme-warning: #e5c736;
+  --theme-error: #ff5345;
+  --theme-code-bg: #1a2a24;
+  --theme-heading-1: #509475;
+  --theme-heading-2: #2dd5b7;
+  --theme-heading-3: #acd4cf;
+  --theme-folder-icon: #509475;
+  --theme-file-icon: #53685b;
+  --theme-config-icon: #e5c736;
+}

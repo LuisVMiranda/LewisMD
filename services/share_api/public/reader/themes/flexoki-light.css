@@ -1,0 +1,29 @@
+/* Flexoki Light - Warm paper-like light theme with blue accent */
+[data-theme="flexoki-light"] {
+  --theme-bg-primary: #FFFCF0;
+  --theme-bg-secondary: #F2F0E5;
+  --theme-bg-tertiary: #E6E4D9;
+  --theme-bg-hover: #CECDC3;
+  --theme-text-primary: #100F0F;
+  --theme-text-secondary: #3D3D3D;
+  --theme-text-muted: #6F6E69;
+  --theme-text-faint: #B7B5AC;
+  --theme-border: #CECDC3;
+  --theme-accent: #205EA6;
+  --theme-accent-hover: #4385BE;
+  --theme-accent-text: #FFFCF0;
+  --theme-selection: #CECDC3;
+  --theme-selection-text: #100F0F;
+  --theme-scrollbar: #CECDC3;
+  --theme-scrollbar-hover: #B7B5AC;
+  --theme-success: #879A39;
+  --theme-warning: #D0A215;
+  --theme-error: #D14D41;
+  --theme-code-bg: #E6E4D9;
+  --theme-heading-1: #205EA6;
+  --theme-heading-2: #3AA99F;
+  --theme-heading-3: #CE5D97;
+  --theme-folder-icon: #205EA6;
+  --theme-file-icon: #6F6E69;
+  --theme-config-icon: #D0A215;
+}

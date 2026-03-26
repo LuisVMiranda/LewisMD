@@ -142,6 +142,35 @@ class ShareApiDeploymentArtifactsTest < ActiveSupport::TestCase
     refute_includes standalone_source, ".present?"
   end
 
+  test "standalone reader asset copies stay in sync with the main share ui sources" do
+    assert_equal(
+      Rails.root.join("app", "assets", "tailwind", "components", "share_view.css").read,
+      Rails.root.join("services", "share_api", "public", "reader", "share_view.css").read
+    )
+
+    %w[
+      theme_helpers.js
+      locale_helpers.js
+      translation_helpers.js
+      export_menu_helpers.js
+    ].each do |filename|
+      assert_equal(
+        Rails.root.join("app", "javascript", "lib", "share_reader", filename).read,
+        Rails.root.join("services", "share_api", "public", "reader", filename).read,
+        "#{filename} drifted from the standalone reader copy"
+      )
+    end
+
+    Dir.glob(Rails.root.join("app", "assets", "tailwind", "themes", "*.css")).each do |source_theme_path|
+      filename = File.basename(source_theme_path)
+      assert_equal(
+        Pathname.new(source_theme_path).read,
+        Rails.root.join("services", "share_api", "public", "reader", "themes", filename).read,
+        "#{filename} drifted from the standalone reader theme copy"
+      )
+    end
+  end
+
   test "readme links the optional remote share api workflow" do
     readme = Rails.root.join("README.md").read
 

@@ -1,0 +1,29 @@
+/* Nord Theme - Arctic, north-bluish color palette */
+[data-theme="nord"] {
+  --theme-bg-primary: #2e3440;
+  --theme-bg-secondary: #272c36;
+  --theme-bg-tertiary: #3b4252;
+  --theme-bg-hover: #434c5e;
+  --theme-text-primary: #eceff4;
+  --theme-text-secondary: #e5e9f0;
+  --theme-text-muted: #d8dee9;
+  --theme-text-faint: #7b88a1;
+  --theme-border: #4c566a;
+  --theme-accent: #88c0d0;
+  --theme-accent-hover: #8fbcbb;
+  --theme-accent-text: #2e3440;
+  --theme-selection: #434c5e;
+  --theme-selection-text: #eceff4;
+  --theme-scrollbar: #4c566a;
+  --theme-scrollbar-hover: #5e6779;
+  --theme-success: #a3be8c;
+  --theme-warning: #ebcb8b;
+  --theme-error: #bf616a;
+  --theme-code-bg: #3b4252;
+  --theme-heading-1: #81a1c1;
+  --theme-heading-2: #b48ead;
+  --theme-heading-3: #a3be8c;
+  --theme-folder-icon: #81a1c1;
+  --theme-file-icon: #7b88a1;
+  --theme-config-icon: #ebcb8b;
+}

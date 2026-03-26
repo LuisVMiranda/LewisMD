@@ -1,0 +1,29 @@
+/* Dark Theme */
+[data-theme="dark"] {
+  --theme-bg-primary: #18181b;
+  --theme-bg-secondary: #1f1f23;
+  --theme-bg-tertiary: #27272a;
+  --theme-bg-hover: #3f3f46;
+  --theme-text-primary: #fafafa;
+  --theme-text-secondary: #d4d4d8;
+  --theme-text-muted: #a1a1aa;
+  --theme-text-faint: #71717a;
+  --theme-border: #3f3f46;
+  --theme-accent: #3b82f6;
+  --theme-accent-hover: #60a5fa;
+  --theme-accent-text: #ffffff;
+  --theme-selection: #1e3a5f;
+  --theme-selection-text: #93c5fd;
+  --theme-scrollbar: #52525b;
+  --theme-scrollbar-hover: #71717a;
+  --theme-success: #4ade80;
+  --theme-warning: #fb923c;
+  --theme-error: #f87171;
+  --theme-code-bg: #27272a;
+  --theme-heading-1: #60a5fa;
+  --theme-heading-2: #a78bfa;
+  --theme-heading-3: #22d3ee;
+  --theme-folder-icon: #60a5fa;
+  --theme-file-icon: #a1a1aa;
+  --theme-config-icon: #fbbf24;
+}

@@ -1,0 +1,29 @@
+/* Kanagawa - Inspired by Katsushika Hokusai's The Great Wave */
+[data-theme="kanagawa"] {
+  --theme-bg-primary: #1f1f28;
+  --theme-bg-secondary: #16161d;
+  --theme-bg-tertiary: #2a2a37;
+  --theme-bg-hover: #363646;
+  --theme-text-primary: #dcd7ba;
+  --theme-text-secondary: #c8c093;
+  --theme-text-muted: #727169;
+  --theme-text-faint: #54546d;
+  --theme-border: #363646;
+  --theme-accent: #7e9cd8;
+  --theme-accent-hover: #7fb4ca;
+  --theme-accent-text: #1f1f28;
+  --theme-selection: #2d4f67;
+  --theme-selection-text: #c8c093;
+  --theme-scrollbar: #363646;
+  --theme-scrollbar-hover: #54546d;
+  --theme-success: #98bb6c;
+  --theme-warning: #e6c384;
+  --theme-error: #e82424;
+  --theme-code-bg: #2a2a37;
+  --theme-heading-1: #957fb8;
+  --theme-heading-2: #7e9cd8;
+  --theme-heading-3: #7fb4ca;
+  --theme-folder-icon: #7e9cd8;
+  --theme-file-icon: #727169;
+  --theme-config-icon: #e6c384;
+}

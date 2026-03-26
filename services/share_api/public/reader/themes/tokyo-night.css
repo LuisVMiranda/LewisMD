@@ -1,0 +1,29 @@
+/* Tokyo Night Theme - Futuristic city lights */
+[data-theme="tokyo-night"] {
+  --theme-bg-primary: #1a1b26;
+  --theme-bg-secondary: #16161e;
+  --theme-bg-tertiary: #24283b;
+  --theme-bg-hover: #343a52;
+  --theme-text-primary: #c0caf5;
+  --theme-text-secondary: #a9b1d6;
+  --theme-text-muted: #565f89;
+  --theme-text-faint: #414868;
+  --theme-border: #343a52;
+  --theme-accent: #7aa2f7;
+  --theme-accent-hover: #89b4fa;
+  --theme-accent-text: #1a1b26;
+  --theme-selection: #33467c;
+  --theme-selection-text: #c0caf5;
+  --theme-scrollbar: #414868;
+  --theme-scrollbar-hover: #565f89;
+  --theme-success: #9ece6a;
+  --theme-warning: #e0af68;
+  --theme-error: #f7768e;
+  --theme-code-bg: #24283b;
+  --theme-heading-1: #bb9af7;
+  --theme-heading-2: #7dcfff;
+  --theme-heading-3: #73daca;
+  --theme-folder-icon: #bb9af7;
+  --theme-file-icon: #565f89;
+  --theme-config-icon: #e0af68;
+}

@@ -1,0 +1,29 @@
+/* Gruvbox Theme - Retro groove color scheme */
+[data-theme="gruvbox"] {
+  --theme-bg-primary: #282828;
+  --theme-bg-secondary: #1d2021;
+  --theme-bg-tertiary: #3c3836;
+  --theme-bg-hover: #504945;
+  --theme-text-primary: #ebdbb2;
+  --theme-text-secondary: #d5c4a1;
+  --theme-text-muted: #a89984;
+  --theme-text-faint: #928374;
+  --theme-border: #504945;
+  --theme-accent: #fe8019;
+  --theme-accent-hover: #fabd2f;
+  --theme-accent-text: #282828;
+  --theme-selection: #504945;
+  --theme-selection-text: #fabd2f;
+  --theme-scrollbar: #665c54;
+  --theme-scrollbar-hover: #7c6f64;
+  --theme-success: #b8bb26;
+  --theme-warning: #fe8019;
+  --theme-error: #fb4934;
+  --theme-code-bg: #3c3836;
+  --theme-heading-1: #fabd2f;
+  --theme-heading-2: #8ec07c;
+  --theme-heading-3: #83a598;
+  --theme-folder-icon: #fe8019;
+  --theme-file-icon: #a89984;
+  --theme-config-icon: #fabd2f;
+}

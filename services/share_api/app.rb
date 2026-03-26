@@ -54,23 +54,23 @@ module ShareAPI
       },
       "/reader/assets/theme_helpers.js" => {
         content_type: "text/javascript; charset=utf-8",
-        path: -> { repo_root.join("app", "javascript", "lib", "share_reader", "theme_helpers.js") }
+        path: -> { reader_public_path("theme_helpers.js") }
       },
       "/reader/assets/locale_helpers.js" => {
         content_type: "text/javascript; charset=utf-8",
-        path: -> { repo_root.join("app", "javascript", "lib", "share_reader", "locale_helpers.js") }
+        path: -> { reader_public_path("locale_helpers.js") }
       },
       "/reader/assets/translation_helpers.js" => {
         content_type: "text/javascript; charset=utf-8",
-        path: -> { repo_root.join("app", "javascript", "lib", "share_reader", "translation_helpers.js") }
+        path: -> { reader_public_path("translation_helpers.js") }
       },
       "/reader/assets/export_menu_helpers.js" => {
         content_type: "text/javascript; charset=utf-8",
-        path: -> { repo_root.join("app", "javascript", "lib", "share_reader", "export_menu_helpers.js") }
+        path: -> { reader_public_path("export_menu_helpers.js") }
       },
       "/reader/assets/share_view.css" => {
         content_type: "text/css; charset=utf-8",
-        path: -> { repo_root.join("app", "assets", "tailwind", "components", "share_view.css") }
+        path: -> { reader_public_path("share_view.css") }
       }
     }.freeze
     PUBLIC_NOT_FOUND_HTML = <<~HTML.freeze
@@ -645,12 +645,8 @@ module ShareAPI
       ]
     end
 
-    def repo_root
-      Pathname.new(File.expand_path("../..", __dir__))
-    end
-
     def remote_reader_bundle_css_source
-      bundle_source = Pathname.new(__dir__).join("public", "reader", "remote_reader_bundle.css").read
+      bundle_source = reader_public_path("remote_reader_bundle.css").read
 
       bundle_source.sub(
         '@import "/reader/assets/share_view.css"; /* inlined by the share-api asset server */',
@@ -659,7 +655,11 @@ module ShareAPI
     end
 
     def share_view_css_source
-      repo_root.join("app", "assets", "tailwind", "components", "share_view.css").read
+      reader_public_path("share_view.css").read
+    end
+
+    def reader_public_path(*parts)
+      Pathname.new(__dir__).join("public", "reader", *parts)
     end
 
     def public_content_security_policy
@@ -854,7 +854,7 @@ module ShareAPI
       return nil unless match
 
       filename = match[1]
-      path = repo_root.join("app", "assets", "tailwind", "themes", filename)
+      path = reader_public_path("themes", filename)
       return nil unless path.file?
 
       {

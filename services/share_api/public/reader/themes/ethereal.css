@@ -1,0 +1,29 @@
+/* Ethereal - Deep space with warm peachy tones */
+[data-theme="ethereal"] {
+  --theme-bg-primary: #060b1e;
+  --theme-bg-secondary: #0a1020;
+  --theme-bg-tertiary: #101830;
+  --theme-bg-hover: #1a2545;
+  --theme-text-primary: #ffcead;
+  --theme-text-secondary: #f99957;
+  --theme-text-muted: #6d7db6;
+  --theme-text-faint: #4a5580;
+  --theme-border: #1a2545;
+  --theme-accent: #7d82d9;
+  --theme-accent-hover: #9498e5;
+  --theme-accent-text: #060b1e;
+  --theme-selection: #ffcead;
+  --theme-selection-text: #060b1e;
+  --theme-scrollbar: #1a2545;
+  --theme-scrollbar-hover: #2a3560;
+  --theme-success: #92a593;
+  --theme-warning: #e9bb4f;
+  --theme-error: #ed5b5a;
+  --theme-code-bg: #101830;
+  --theme-heading-1: #c2c4f0;
+  --theme-heading-2: #a3bfd1;
+  --theme-heading-3: #c89dc1;
+  --theme-folder-icon: #7d82d9;
+  --theme-file-icon: #6d7db6;
+  --theme-config-icon: #e9bb4f;
+}

@@ -1,0 +1,29 @@
+/* Rose Pine Dawn - Soft light theme with rose and pine tones */
+[data-theme="rose-pine"] {
+  --theme-bg-primary: #faf4ed;
+  --theme-bg-secondary: #fffaf3;
+  --theme-bg-tertiary: #f2e9e1;
+  --theme-bg-hover: #dfdad9;
+  --theme-text-primary: #575279;
+  --theme-text-secondary: #797593;
+  --theme-text-muted: #9893a5;
+  --theme-text-faint: #cecacd;
+  --theme-border: #dfdad9;
+  --theme-accent: #56949f;
+  --theme-accent-hover: #286983;
+  --theme-accent-text: #faf4ed;
+  --theme-selection: #dfdad9;
+  --theme-selection-text: #575279;
+  --theme-scrollbar: #dfdad9;
+  --theme-scrollbar-hover: #cecacd;
+  --theme-success: #286983;
+  --theme-warning: #ea9d34;
+  --theme-error: #b4637a;
+  --theme-code-bg: #f2e9e1;
+  --theme-heading-1: #907aa9;
+  --theme-heading-2: #56949f;
+  --theme-heading-3: #d7827e;
+  --theme-folder-icon: #56949f;
+  --theme-file-icon: #9893a5;
+  --theme-config-icon: #ea9d34;
+}

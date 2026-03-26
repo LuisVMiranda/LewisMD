@@ -63,6 +63,12 @@ class ShareApiAppTest < ActiveSupport::TestCase
     assert_includes last_response.body, ".share-view__frame"
     assert_includes last_response.body, "box-sizing: border-box"
 
+    get "/reader/assets/theme_helpers.js"
+
+    assert_equal 200, last_response.status
+    assert_equal "text/javascript", last_response.media_type
+    assert_includes last_response.body, "BUILTIN_THEMES"
+
     get "/reader/assets/share_view.css"
 
     assert_equal 200, last_response.status

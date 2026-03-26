@@ -1,0 +1,29 @@
+/* Hackerman Theme - Matrix-style green on black */
+[data-theme="hackerman"] {
+  --theme-bg-primary: #0a0a0a;
+  --theme-bg-secondary: #050505;
+  --theme-bg-tertiary: #111111;
+  --theme-bg-hover: #1a1a1a;
+  --theme-text-primary: #00ff00;
+  --theme-text-secondary: #00dd00;
+  --theme-text-muted: #00aa00;
+  --theme-text-faint: #007700;
+  --theme-border: #003300;
+  --theme-accent: #00ff00;
+  --theme-accent-hover: #33ff33;
+  --theme-accent-text: #000000;
+  --theme-selection: #003300;
+  --theme-selection-text: #00ff00;
+  --theme-scrollbar: #003300;
+  --theme-scrollbar-hover: #004400;
+  --theme-success: #00ff00;
+  --theme-warning: #ffff00;
+  --theme-error: #ff0000;
+  --theme-code-bg: #111111;
+  --theme-heading-1: #00ff00;
+  --theme-heading-2: #00dddd;
+  --theme-heading-3: #dddd00;
+  --theme-folder-icon: #00ff00;
+  --theme-file-icon: #00aa00;
+  --theme-config-icon: #ffff00;
+}

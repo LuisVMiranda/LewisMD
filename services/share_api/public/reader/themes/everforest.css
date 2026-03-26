@@ -1,0 +1,29 @@
+/* Everforest - Comfortable green nature-inspired theme */
+[data-theme="everforest"] {
+  --theme-bg-primary: #2d353b;
+  --theme-bg-secondary: #272e33;
+  --theme-bg-tertiary: #343f44;
+  --theme-bg-hover: #475258;
+  --theme-text-primary: #d3c6aa;
+  --theme-text-secondary: #a7c080;
+  --theme-text-muted: #7a8478;
+  --theme-text-faint: #475258;
+  --theme-border: #475258;
+  --theme-accent: #7fbbb3;
+  --theme-accent-hover: #83c092;
+  --theme-accent-text: #2d353b;
+  --theme-selection: #d3c6aa;
+  --theme-selection-text: #2d353b;
+  --theme-scrollbar: #475258;
+  --theme-scrollbar-hover: #56635a;
+  --theme-success: #a7c080;
+  --theme-warning: #dbbc7f;
+  --theme-error: #e67e80;
+  --theme-code-bg: #343f44;
+  --theme-heading-1: #a7c080;
+  --theme-heading-2: #7fbbb3;
+  --theme-heading-3: #83c092;
+  --theme-folder-icon: #7fbbb3;
+  --theme-file-icon: #7a8478;
+  --theme-config-icon: #dbbc7f;
+}
