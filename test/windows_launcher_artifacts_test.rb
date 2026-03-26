@@ -16,6 +16,9 @@ class WindowsLauncherArtifactsTest < ActiveSupport::TestCase
     assert_includes splash_script, "Read-ProgressPayload"
     assert_includes splash_script, "ProgressFile"
     assert_includes splash_script, "MinimumUpdatedAt"
+    assert_includes splash_script, "DismissButton"
+    assert_includes splash_script, "Get-ErrorHintText"
+    assert_includes splash_script, "Open the visible launcher for details:"
     assert_includes splash_script, "public\\icon.png"
     assert_includes splash_script, "[switch]$ValidateOnly"
     assert_includes splash_script, "LewisMD couldn't finish starting"
@@ -27,6 +30,8 @@ class WindowsLauncherArtifactsTest < ActiveSupport::TestCase
     assert_includes hidden_launcher, "show_lewismd_splash.ps1"
     assert_includes hidden_launcher, "launcher-progress.json"
     assert_includes hidden_launcher, "splashCommand"
+    assert_includes hidden_launcher, "WriteProgressErrorPayload"
+    assert_includes hidden_launcher, "IsoTimestamp"
     assert_includes hidden_launcher, "WScript.Sleep 150"
   end
 

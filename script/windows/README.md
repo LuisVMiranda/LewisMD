@@ -168,6 +168,7 @@ What it does:
   PowerShell orchestrator still validates the runtime itself
 - passes `--no-pause-on-error` so hidden failures do not leave an invisible paused window behind
 - waits for the launcher/app session to end
+- writes a friendly splash error payload if hidden startup fails before the app opens
 - shows a simple message box if startup fails
 - points the user back to the visible launcher and the launcher log path
 - can create a desktop shortcut with the LewisMD icon via `--install-shortcut`
@@ -207,6 +208,7 @@ What it does:
 - shows the current launcher message and percent complete
 - fades away automatically once the launcher reports `ready` / `running`
 - stays open with a readable message when launcher state becomes `error`
+- surfaces a close button and visible-launcher/log guidance on failures and timeouts
 
 For a non-interactive validation pass, run:
 

@@ -62,6 +62,8 @@ function Resolve-Config {
     RepoRoot = $repoRoot
     ProgressFile = $resolvedProgressFile
     IconPath = $resolvedIconPath
+    VisibleLauncherScript = Resolve-LauncherPath -PathValue "script\windows\start_lewismd.bat" -RepoRoot $repoRoot
+    LauncherLogFile = Resolve-LauncherPath -PathValue "tmp\windows-launcher\launcher.log" -RepoRoot $repoRoot
     PollIntervalMilliseconds = [Math]::Max(100, $PollIntervalMilliseconds)
     StartupTimeoutSeconds = [Math]::Max(15, $StartupTimeoutSeconds)
   }
@@ -178,6 +180,22 @@ function Start-FadeClose {
   $Window.BeginAnimation([System.Windows.Window]::OpacityProperty, $fadeAnimation)
 }
 
+function Get-ErrorHintText {
+  param(
+    [string]$Step,
+    [object]$Config
+  )
+
+  $visibleLauncher = $Config.VisibleLauncherScript
+  $launcherLog = $Config.LauncherLogFile
+
+  if ($Step -eq "timeout") {
+    return "LewisMD may still finish opening, but if it keeps stalling, run the visible launcher for details:`n$visibleLauncher`n`nLauncher log:`n$launcherLog"
+  }
+
+  return "Open the visible launcher for details:`n$visibleLauncher`n`nLauncher log:`n$launcherLog"
+}
+
 $resolvedConfig = Resolve-Config
 $fallbackPayload = Get-DefaultProgressPayload
 
@@ -265,6 +283,16 @@ $xaml = @"
                    HorizontalAlignment="Center"
                    MaxWidth="360"
                    TextWrapping="Wrap"/>
+
+        <TextBlock x:Name="HintText"
+                   Visibility="Collapsed"
+                   FontSize="12"
+                   Foreground="#F2FFFFFF"
+                   TextAlignment="Center"
+                   HorizontalAlignment="Center"
+                   MaxWidth="420"
+                   Margin="0,14,0,0"
+                   TextWrapping="Wrap"/>
       </StackPanel>
 
       <StackPanel Grid.Row="1" Margin="0,16,0,0">
@@ -290,6 +318,18 @@ $xaml = @"
                      Foreground="#FFFFFFFF"
                      HorizontalAlignment="Right"/>
         </DockPanel>
+        <Button x:Name="DismissButton"
+                Visibility="Collapsed"
+                Content="Close"
+                Width="124"
+                Height="34"
+                HorizontalAlignment="Center"
+                Margin="0,16,0,0"
+                Cursor="Hand"
+                Background="#1F000000"
+                Foreground="White"
+                BorderBrush="#40FFFFFF"
+                BorderThickness="1"/>
       </StackPanel>
     </Grid>
   </Border>
@@ -303,11 +343,13 @@ $window = [System.Windows.Markup.XamlReader]::Load($xmlReader)
 $logoImage = $window.FindName("LogoImage")
 $statusText = $window.FindName("StatusText")
 $detailText = $window.FindName("DetailText")
+$hintText = $window.FindName("HintText")
 $progressBar = $window.FindName("ProgressBar")
 $percentText = $window.FindName("PercentText")
 $stepText = $window.FindName("StepText")
 $spinnerArc = $window.FindName("SpinnerArc")
 $spinnerRotate = $window.FindName("SpinnerRotate")
+$dismissButton = $window.FindName("DismissButton")
 
 $logoBitmap = Load-BitmapImage -Path $resolvedConfig.IconPath
 if ($null -ne $logoBitmap) {
@@ -345,9 +387,14 @@ function Update-WindowFromPayload {
     Stop-SpinnerAnimation -RotateTransform $spinnerRotate
     $spinnerArc.Stroke = [System.Windows.Media.Brushes]::MistyRose
     $progressBar.Foreground = [System.Windows.Media.Brushes]::MistyRose
+    $hintText.Text = Get-ErrorHintText -Step $Payload.step -Config $resolvedConfig
+    $hintText.Visibility = [System.Windows.Visibility]::Visible
+    $dismissButton.Visibility = [System.Windows.Visibility]::Visible
   } else {
     $spinnerArc.Stroke = [System.Windows.Media.Brushes]::White
     $progressBar.Foreground = [System.Windows.Media.Brushes]::White
+    $hintText.Visibility = [System.Windows.Visibility]::Collapsed
+    $dismissButton.Visibility = [System.Windows.Visibility]::Collapsed
   }
 }
 
@@ -393,6 +440,10 @@ $timer.Add_Tick({
 
 $window.Add_SourceInitialized({
   Start-SpinnerAnimation -RotateTransform $spinnerRotate
+})
+
+$dismissButton.Add_Click({
+  Start-FadeClose -Window $window
 })
 
 $window.Add_Closed({

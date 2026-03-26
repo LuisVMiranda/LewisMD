@@ -84,6 +84,8 @@ End If
 exitCode = shell.Run(command, 0, True)
 
 If exitCode <> 0 Then
+  Call WriteProgressErrorPayload("LewisMD could not start in hidden mode. Open the visible launcher for setup help or detailed diagnostics.", "wrapper")
+  WScript.Sleep 350
   MsgBox _
     "LewisMD could not start in hidden mode." & vbCrLf & vbCrLf & _
     "Run the visible launcher once to complete first-run setup or see details:" & vbCrLf & startScript & vbCrLf & vbCrLf & _
@@ -94,6 +96,39 @@ If exitCode <> 0 Then
 End If
 
 WScript.Quit exitCode
+
+Sub WriteProgressErrorPayload(message, stepName)
+  Dim stateFolder, stream, payload
+
+  stateFolder = fso.GetParentFolderName(progressFile)
+  If Not fso.FolderExists(stateFolder) Then
+    fso.CreateFolder(stateFolder)
+  End If
+
+  payload = "{""mode"":""launch"",""state"":""error"",""percent"":100,""message"":""" & EscapeJsonString(message) & """,""step"":""" & EscapeJsonString(stepName) & """,""updatedAt"":""" & IsoTimestamp(Now) & """}"
+
+  Set stream = fso.CreateTextFile(progressFile, True, True)
+  stream.Write payload
+  stream.Close
+End Sub
+
+Function EscapeJsonString(value)
+  value = Replace(value, "\", "\\")
+  value = Replace(value, """", "\""")
+  value = Replace(value, vbCrLf, "\n")
+  value = Replace(value, vbCr, "\n")
+  value = Replace(value, vbLf, "\n")
+  EscapeJsonString = value
+End Function
+
+Function Pad2(numberValue)
+  Pad2 = Right("0" & CStr(numberValue), 2)
+End Function
+
+Function IsoTimestamp(dateValue)
+  IsoTimestamp = Year(dateValue) & "-" & Pad2(Month(dateValue)) & "-" & Pad2(Day(dateValue)) & "T" & _
+    Pad2(Hour(dateValue)) & ":" & Pad2(Minute(dateValue)) & ":" & Pad2(Second(dateValue))
+End Function
 
 Sub CreateDesktopShortcut()
   Dim shortcut
