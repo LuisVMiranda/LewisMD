@@ -164,6 +164,7 @@ What it does:
 
 - starts the native splash helper first so hidden launches still show progress
 - launches the splash helper in an STA PowerShell host so the WPF window can render reliably
+- lets the splash script hide its own console window after the splash renders, instead of starting the whole host hidden
 - runs `start_lewismd.bat` with the console hidden
 - skips the visible launcher's extra bootstrap validation because the
   PowerShell orchestrator still validates the runtime itself

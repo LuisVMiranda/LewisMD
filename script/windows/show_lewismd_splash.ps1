@@ -13,6 +13,19 @@ $ErrorActionPreference = "Stop"
 Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName PresentationCore
 Add-Type -AssemblyName WindowsBase
+Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+
+public static class LewisMDSplashNativeMethods
+{
+    [DllImport("kernel32.dll")]
+    public static extern IntPtr GetConsoleWindow();
+
+    [DllImport("user32.dll")]
+    public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+}
+"@
 
 function Resolve-ScriptPath {
   param([string]$RelativePath)
@@ -188,6 +201,16 @@ function Start-FadeClose {
   })
 
   $Window.BeginAnimation([System.Windows.Window]::OpacityProperty, $fadeAnimation)
+}
+
+function Hide-ConsoleWindow {
+  param([IntPtr]$ConsoleHandle)
+
+  if ($ConsoleHandle -eq [IntPtr]::Zero) {
+    return
+  }
+
+  [LewisMDSplashNativeMethods]::ShowWindow($ConsoleHandle, 0) | Out-Null
 }
 
 function Promote-SplashWindow {
@@ -401,6 +424,7 @@ if (-not $script:SplashMutexHandle) {
 }
 
 $script:SplashClosing = $false
+$script:ConsoleWindowHandle = [LewisMDSplashNativeMethods]::GetConsoleWindow()
 $launchStartedAt = Get-Date
 $readyObservedAt = $null
 $lastPayload = [pscustomobject]$fallbackPayload
@@ -484,6 +508,7 @@ $window.Add_SourceInitialized({
 
 $window.Add_ContentRendered({
   Promote-SplashWindow -Window $window
+  Hide-ConsoleWindow -ConsoleHandle $script:ConsoleWindowHandle
 })
 
 $dismissButton.Add_Click({
