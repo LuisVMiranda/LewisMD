@@ -19,6 +19,7 @@ Dim shell, fso
 Dim scriptDir, repoRoot, startScript, splashScript, launcherLog, railsLog, progressFile, iconPath, shortcutPath
 Dim command, splashCommand, powershellExe
 Dim exitCode, argument, dryRun, installShortcut
+Dim hiddenWindowStyle, splashWindowStyle
 
 Set shell = CreateObject("WScript.Shell")
 Set fso = CreateObject("Scripting.FileSystemObject")
@@ -33,6 +34,8 @@ progressFile = fso.GetAbsolutePathName(fso.BuildPath(repoRoot, "tmp\windows-laun
 iconPath = fso.GetAbsolutePathName(fso.BuildPath(repoRoot, "public\icon.ico"))
 shortcutPath = fso.BuildPath(shell.SpecialFolders("Desktop"), "LewisMD.lnk")
 powershellExe = shell.ExpandEnvironmentStrings("%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe")
+hiddenWindowStyle = 0
+splashWindowStyle = 1
 
 dryRun = False
 installShortcut = False
@@ -75,13 +78,15 @@ End If
 ' Start the splash helper first so hidden launches still give the user immediate
 ' feedback while the PowerShell orchestrator boots Rails and opens the browser.
 If fso.FileExists(splashScript) Then
-  shell.Run splashCommand, 0, False
+  ' Let the WPF splash window render normally while PowerShell still keeps its
+  ' own console hidden via -WindowStyle Hidden.
+  shell.Run splashCommand, splashWindowStyle, False
   WScript.Sleep 150
 End If
 
 ' Window style 0 = hidden. WaitOnReturn=True keeps the wrapper alive until the
 ' visible launcher (and therefore the app session) exits.
-exitCode = shell.Run(command, 0, True)
+exitCode = shell.Run(command, hiddenWindowStyle, True)
 
 If exitCode <> 0 Then
   Call WriteProgressErrorPayload("LewisMD could not start in hidden mode. Open the visible launcher for setup help or detailed diagnostics.", "wrapper")

@@ -33,6 +33,8 @@ class WindowsLauncherArtifactsTest < ActiveSupport::TestCase
     assert_includes hidden_launcher, "show_lewismd_splash.ps1"
     assert_includes hidden_launcher, "launcher-progress.json"
     assert_includes hidden_launcher, "splashCommand"
+    assert_includes hidden_launcher, "splashWindowStyle = 1"
+    assert_includes hidden_launcher, "shell.Run splashCommand, splashWindowStyle, False"
     assert_includes hidden_launcher, "WriteProgressErrorPayload"
     assert_includes hidden_launcher, "IsoTimestamp"
     assert_includes hidden_launcher, "WScript.Sleep 150"
