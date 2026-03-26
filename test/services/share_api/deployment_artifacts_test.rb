@@ -76,10 +76,13 @@ class ShareApiDeploymentArtifactsTest < ActiveSupport::TestCase
   test "backup script writes a tar archive and checksum with optional edge assets" do
     script = deployment_file("backup_share_api.sh")
 
+    assert_includes script, 'TEMP_DIR=""'
+    assert_includes script, "cleanup_temp_dir()"
+    assert_includes script, "trap cleanup_temp_dir EXIT"
     assert_includes script, 'archive_name="lewismd-share-backup-${timestamp}.tar.gz"'
     assert_includes script, "sha256sum"
-    assert_includes script, 'copy_if_present "$STORAGE_HOST_PATH" "$temp_dir/host-data/storage"'
-    assert_includes script, 'copy_if_present "$CADDY_DATA_PATH" "$temp_dir/host-data/caddy-data"'
+    assert_includes script, 'copy_if_present "$STORAGE_HOST_PATH" "$TEMP_DIR/host-data/storage"'
+    assert_includes script, 'copy_if_present "$CADDY_DATA_PATH" "$TEMP_DIR/host-data/caddy-data"'
     assert_includes script, 'copy_if_present "$RUNTIME_DIR/nginx-lewismd-share.conf"'
     assert_includes script, "edge_mode=$EDGE_MODE"
   end

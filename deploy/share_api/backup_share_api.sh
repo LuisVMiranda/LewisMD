@@ -25,6 +25,7 @@ CADDY_CONFIG_PATH=""
 INSTANCE_NAME="remote-share-vps"
 PUBLIC_BASE=""
 EDGE_MODE="managed_caddy"
+TEMP_DIR=""
 
 usage() {
   cat <<'EOF'
@@ -50,6 +51,11 @@ run_root() {
   else
     "$@"
   fi
+}
+
+cleanup_temp_dir() {
+  [[ -n "$TEMP_DIR" ]] || return 0
+  run_root rm -rf "$TEMP_DIR"
 }
 
 parse_args() {
@@ -137,7 +143,7 @@ main() {
   detect_privilege_mode
   load_env_file
 
-  local timestamp archive_name archive_path checksum_path temp_dir checked_at
+  local timestamp archive_name archive_path checksum_path checked_at
   timestamp="$(date +%Y%m%d-%H%M%S)"
   archive_name="lewismd-share-backup-${timestamp}.tar.gz"
   archive_path="$OUTPUT_DIR/$archive_name"
@@ -145,27 +151,27 @@ main() {
   checked_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
   run_root mkdir -p "$OUTPUT_DIR"
-  temp_dir="$(mktemp -d)"
-  trap 'run_root rm -rf "$temp_dir"' EXIT
+  TEMP_DIR="$(mktemp -d)"
+  trap cleanup_temp_dir EXIT
 
-  run_root mkdir -p "$temp_dir/runtime"
-  run_root mkdir -p "$temp_dir/host-data"
+  run_root mkdir -p "$TEMP_DIR/runtime"
+  run_root mkdir -p "$TEMP_DIR/host-data"
 
-  copy_if_present "$ENV_FILE" "$temp_dir/runtime/.env"
-  copy_if_present "$RUNTIME_DIR/compose.yml" "$temp_dir/runtime/compose.yml"
-  copy_if_present "$RUNTIME_DIR/Caddyfile" "$temp_dir/runtime/Caddyfile"
-  copy_if_present "$RUNTIME_DIR/nginx-lewismd-share.conf" "$temp_dir/runtime/nginx-lewismd-share.conf"
-  copy_if_present "$RUNTIME_DIR/lewismd_remote_share_config.fed.txt" "$temp_dir/runtime/lewismd_remote_share_config.fed.txt"
-  copy_if_present "$RUNTIME_DIR/lewismd-share-monitor.service" "$temp_dir/runtime/lewismd-share-monitor.service"
-  copy_if_present "$RUNTIME_DIR/lewismd-share-monitor.timer" "$temp_dir/runtime/lewismd-share-monitor.timer"
-  copy_if_present "$RUNTIME_DIR/lewismd-share-sweeper.service" "$temp_dir/runtime/lewismd-share-sweeper.service"
-  copy_if_present "$RUNTIME_DIR/lewismd-share-sweeper.timer" "$temp_dir/runtime/lewismd-share-sweeper.timer"
+  copy_if_present "$ENV_FILE" "$TEMP_DIR/runtime/.env"
+  copy_if_present "$RUNTIME_DIR/compose.yml" "$TEMP_DIR/runtime/compose.yml"
+  copy_if_present "$RUNTIME_DIR/Caddyfile" "$TEMP_DIR/runtime/Caddyfile"
+  copy_if_present "$RUNTIME_DIR/nginx-lewismd-share.conf" "$TEMP_DIR/runtime/nginx-lewismd-share.conf"
+  copy_if_present "$RUNTIME_DIR/lewismd_remote_share_config.fed.txt" "$TEMP_DIR/runtime/lewismd_remote_share_config.fed.txt"
+  copy_if_present "$RUNTIME_DIR/lewismd-share-monitor.service" "$TEMP_DIR/runtime/lewismd-share-monitor.service"
+  copy_if_present "$RUNTIME_DIR/lewismd-share-monitor.timer" "$TEMP_DIR/runtime/lewismd-share-monitor.timer"
+  copy_if_present "$RUNTIME_DIR/lewismd-share-sweeper.service" "$TEMP_DIR/runtime/lewismd-share-sweeper.service"
+  copy_if_present "$RUNTIME_DIR/lewismd-share-sweeper.timer" "$TEMP_DIR/runtime/lewismd-share-sweeper.timer"
 
-  copy_if_present "$STORAGE_HOST_PATH" "$temp_dir/host-data/storage"
-  copy_if_present "$CADDY_DATA_PATH" "$temp_dir/host-data/caddy-data"
-  copy_if_present "$CADDY_CONFIG_PATH" "$temp_dir/host-data/caddy-config"
+  copy_if_present "$STORAGE_HOST_PATH" "$TEMP_DIR/host-data/storage"
+  copy_if_present "$CADDY_DATA_PATH" "$TEMP_DIR/host-data/caddy-data"
+  copy_if_present "$CADDY_CONFIG_PATH" "$TEMP_DIR/host-data/caddy-config"
 
-  cat >"$temp_dir/backup-metadata.txt" <<EOF
+  cat >"$TEMP_DIR/backup-metadata.txt" <<EOF
 created_at=$checked_at
 instance_name=$INSTANCE_NAME
 edge_mode=$EDGE_MODE
@@ -177,7 +183,7 @@ caddy_config_path=$CADDY_CONFIG_PATH
 EOF
 
   log "Creating backup archive at $archive_path"
-  run_root tar -czf "$archive_path" -C "$temp_dir" .
+  run_root tar -czf "$archive_path" -C "$TEMP_DIR" .
   run_root sh -c "sha256sum \"$archive_path\" > \"$checksum_path\""
 
   log "Backup archive created."
