@@ -130,6 +130,10 @@ module ShareAPI
     attr_reader :config, :storage, :sanitizer, :authenticator
 
     def route_dynamic(request)
+      if request.get? && request.path_info == "/reader/assets/remote_reader_bundle.css"
+        return render_remote_reader_bundle_css
+      end
+
       if request.get? && (reader_asset = reader_asset_for(request.path_info))
         return render_reader_asset(reader_asset)
       end
@@ -633,8 +637,29 @@ module ShareAPI
       ]
     end
 
+    def render_remote_reader_bundle_css
+      [
+        200,
+        asset_headers(content_type: "text/css; charset=utf-8"),
+        [ remote_reader_bundle_css_source ]
+      ]
+    end
+
     def repo_root
       Pathname.new(File.expand_path("../..", __dir__))
+    end
+
+    def remote_reader_bundle_css_source
+      bundle_source = Pathname.new(__dir__).join("public", "reader", "remote_reader_bundle.css").read
+
+      bundle_source.sub(
+        '@import "/reader/assets/share_view.css"; /* inlined by the share-api asset server */',
+        share_view_css_source
+      )
+    end
+
+    def share_view_css_source
+      repo_root.join("app", "assets", "tailwind", "components", "share_view.css").read
     end
 
     def public_content_security_policy
@@ -735,7 +760,8 @@ module ShareAPI
 
     def snapshot_document_markup(title:, locale:, theme_id:, color_scheme:, style_blocks:, fragment_html:)
       theme_attribute = theme_id.to_s.strip.empty? ? "" : %( data-theme="#{CGI.escapeHTML(theme_id)}")
-      style_markup = Array(style_blocks).map { |css| "<style>\n#{css.to_s.gsub(%r{</style}i, '<\\/style')}\n</style>" }.join("\n    ")
+      combined_style_blocks = Array(style_blocks) + [ remote_snapshot_layout_overrides_css ]
+      style_markup = combined_style_blocks.map { |css| "<style>\n#{css.to_s.gsub(%r{</style}i, '<\\/style')}\n</style>" }.join("\n    ")
       head_parts = [
         '<meta charset="utf-8">',
         '<meta name="viewport" content="width=device-width, initial-scale=1">',
@@ -759,6 +785,68 @@ module ShareAPI
           </body>
         </html>
       HTML
+    end
+
+    def remote_snapshot_layout_overrides_css
+      <<~CSS
+        html {
+          min-height: 100%;
+        }
+
+        *,
+        *::before,
+        *::after {
+          box-sizing: border-box;
+        }
+
+        body {
+          min-height: 100vh;
+          overflow-wrap: anywhere;
+        }
+
+        .export-shell {
+          padding:
+            clamp(1.25rem, 2vw + 0.9rem, 3rem)
+            clamp(0.95rem, 1.6vw + 0.65rem, 1.5rem);
+        }
+
+        .export-article {
+          width: min(100%, 72ch);
+          max-width: min(100%, 72ch);
+          overflow-wrap: break-word;
+        }
+
+        .export-article img,
+        .export-article video,
+        .export-article iframe {
+          max-width: 100%;
+        }
+
+        @media (max-width: 1023px) {
+          .export-shell {
+            padding:
+              clamp(1.1rem, 1.5vw + 0.9rem, 1.8rem)
+              clamp(0.9rem, 1.3vw + 0.7rem, 1.2rem);
+          }
+        }
+
+        @media (max-width: 768px) {
+          .export-shell {
+            padding: 1.15rem 0.9rem 1.8rem;
+          }
+
+          .export-article {
+            line-height: 1.65;
+          }
+
+          .export-article table {
+            display: block;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            font-size: 0.8125em;
+          }
+        }
+      CSS
     end
 
     def theme_reader_asset_for(path_info)

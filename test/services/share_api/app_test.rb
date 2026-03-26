@@ -55,6 +55,14 @@ class ShareApiAppTest < ActiveSupport::TestCase
     assert_equal "text/javascript", last_response.media_type
     assert_includes last_response.body, "LewisMDRemoteReader"
 
+    get "/reader/assets/remote_reader_bundle.css"
+
+    assert_equal 200, last_response.status
+    assert_equal "text/css", last_response.media_type
+    assert_includes last_response.body, ".share-view__toolbar"
+    assert_includes last_response.body, ".share-view__frame"
+    assert_includes last_response.body, "box-sizing: border-box"
+
     get "/reader/assets/share_view.css"
 
     assert_equal 200, last_response.status
@@ -181,6 +189,8 @@ class ShareApiAppTest < ActiveSupport::TestCase
     assert_includes last_response.body, '<html lang="en" data-theme="dark">'
     assert_includes last_response.body, '<main class="export-shell">'
     assert_includes last_response.body, '<article class="export-article">'
+    assert_includes last_response.body, "width: min(100%, 72ch)"
+    assert_includes last_response.body, "@media (max-width: 768px)"
     assert_includes last_response.body, "<h1>Shared Note</h1>"
     refute_includes last_response.body, "<script>"
   end

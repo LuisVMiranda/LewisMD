@@ -378,6 +378,42 @@ git pull
 bash deploy/share_api/upgrade_share_api.sh --yes
 ```
 
+### Remote share page loads, but the UI is left-aligned or the note appears in a tiny box
+
+This usually means the remote reader shell is missing its layout CSS, so the
+iframe falls back to the browser default size instead of filling the page.
+
+Quick checks:
+
+```bash
+curl -fsS https://lewismd.miralab.in/reader/assets/remote_reader_bundle.css | grep -F ".share-view__frame"
+curl -fsS https://lewismd.miralab.in/reader/assets/remote_reader_bundle.css | grep -F ".share-view__toolbar"
+```
+
+If those selectors are missing, the VPS is still serving an older reader bundle.
+Pull the latest repo version and rebuild the share-api container:
+
+```bash
+git pull
+bash deploy/share_api/upgrade_share_api.sh --yes --skip-monitor-check
+```
+
+If the bundle looks correct but the public page is still stale, force-refresh the
+browser and reload the reverse proxy:
+
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+The current remote reader bundle is intentionally self-contained, so the live
+bundle itself should include the share-view shell rules needed for:
+
+- full-width toolbar layout
+- full-height iframe sizing
+- tablet/mobile toolbar wrapping
+- responsive snapshot padding and table overflow handling
+
 ### Monitoring timer is not running
 
 Check:

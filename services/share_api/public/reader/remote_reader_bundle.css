@@ -16,7 +16,18 @@
 @import "/reader/assets/themes/solarized-dark.css";
 @import "/reader/assets/themes/solarized-light.css";
 @import "/reader/assets/themes/tokyo-night.css";
-@import "/reader/assets/share_view.css";
+@import "/reader/assets/share_view.css"; /* inlined by the share-api asset server */
+
+html {
+  box-sizing: border-box;
+  text-size-adjust: 100%;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: inherit;
+}
 
 html,
 body {
@@ -31,6 +42,27 @@ body {
 
 body {
   overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  padding: 0;
+}
+
+img,
+svg,
+iframe {
+  display: block;
 }
 
 .hidden {
@@ -85,7 +117,7 @@ body {
 
 .text-base {
   font-size: 1rem;
-  line-height: 1;
+  line-height: 1.5;
 }
 
 .flex {
