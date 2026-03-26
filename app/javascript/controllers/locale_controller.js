@@ -6,12 +6,12 @@ import {
   localeFlagMarkup,
   localeNameFor,
   renderLocaleMenuHtml
-} from "../lib/share_reader/locale_helpers.js"
+} from "lib/share_reader/locale_helpers"
 import {
   dispatchTranslationsLoaded,
   installGlobalTranslationHelper,
   setGlobalTranslations
-} from "../lib/share_reader/translation_helpers.js"
+} from "lib/share_reader/translation_helpers"
 
 if (typeof window !== "undefined") {
   installGlobalTranslationHelper(window)

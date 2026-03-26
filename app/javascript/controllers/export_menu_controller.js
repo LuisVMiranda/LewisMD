@@ -8,7 +8,7 @@ import {
   renderExportMenuHtml,
   SHARE_ACTIVE_ITEMS,
   SHARE_CREATE_ITEMS
-} from "../lib/share_reader/export_menu_helpers.js"
+} from "lib/share_reader/export_menu_helpers"
 
 export default class extends Controller {
   static targets = ["menu", "button"]

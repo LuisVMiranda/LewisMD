@@ -9,7 +9,7 @@ import {
   resolvedThemeId,
   themeIconMarkup,
   themeNameFor
-} from "../lib/share_reader/theme_helpers.js"
+} from "lib/share_reader/theme_helpers"
 
 export default class extends Controller {
   static targets = ["menu", "currentTheme"]
