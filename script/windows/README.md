@@ -111,6 +111,9 @@ At this phase it does two useful things already:
 
 It now delegates to `launch_lewismd.ps1` for the real launch flow, while still
 remaining the readable entrypoint users can rely on when something goes wrong.
+If the dedicated Edge/Chrome launcher profile is still finishing shutdown, the
+visible wrapper now waits briefly and retries one transient browser-handoff
+failure automatically before surfacing an error.
 
 Hidden mode intentionally opts out of this automatic bootstrap fallback. If the
 runtime is missing, the hidden launcher fails fast and points the user back to
@@ -133,7 +136,11 @@ What it does:
 - tracks the exact Rails PID in a launcher-managed state file
 - refuses to launch if the target port is already owned by another process
 - opens Edge or Chrome in `--app` mode with a dedicated browser profile
+- waits for the dedicated launcher browser profile to stabilize before reusing
+  it or declaring startup complete
 - waits for the app window to close
+- waits for launcher-profile browser processes to disappear cleanly before
+  considering the session fully closed
 - stops only the launcher-managed Rails process on exit
 
 For a validation-only pass without launching the browser, you can run:

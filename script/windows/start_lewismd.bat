@@ -23,6 +23,10 @@ set "LAUNCHER_LOG=%STATE_DIR%\launcher.log"
 set "SKIP_BOOTSTRAP_CHECK="
 set "NO_AUTO_BOOTSTRAP="
 set "NO_PAUSE_ON_ERROR="
+set "ORCHESTRATOR_ATTEMPTS=0"
+set "MAX_ORCHESTRATOR_ATTEMPTS=2"
+set "TRANSIENT_ORCHESTRATOR_EXIT_CODE=2"
+set "ORCHESTRATOR_RETRY_DELAY_SECONDS=2"
 set "FORWARDED_ARGS=%*"
 
 echo(%FORWARDED_ARGS% | findstr /I /C:"--help" /C:"/?" >nul
@@ -119,9 +123,7 @@ if not exist "%ORCHESTRATOR_SCRIPT%" (
 
 echo [start] Handing off to the PowerShell orchestrator...
 call :log "Delegating to launch_lewismd.ps1."
-powershell -NoProfile -ExecutionPolicy Bypass -File "%ORCHESTRATOR_SCRIPT%" %FORWARDED_ARGS%
-set "EXIT_CODE=%ERRORLEVEL%"
-call :log "PowerShell orchestrator exited with code %EXIT_CODE%."
+call :run_orchestrator
 
 if not "%EXIT_CODE%"=="0" (
   echo.
@@ -132,6 +134,22 @@ if not "%EXIT_CODE%"=="0" (
 )
 
 exit /b %EXIT_CODE%
+
+:run_orchestrator
+set /a ORCHESTRATOR_ATTEMPTS+=1
+powershell -NoProfile -ExecutionPolicy Bypass -File "%ORCHESTRATOR_SCRIPT%" %FORWARDED_ARGS%
+set "EXIT_CODE=%ERRORLEVEL%"
+call :log "PowerShell orchestrator exited with code %EXIT_CODE% on attempt %ORCHESTRATOR_ATTEMPTS%."
+
+if "%EXIT_CODE%"=="%TRANSIENT_ORCHESTRATOR_EXIT_CODE%" if %ORCHESTRATOR_ATTEMPTS% lss %MAX_ORCHESTRATOR_ATTEMPTS% (
+  echo [start] LewisMD hit a brief browser handoff delay while closing.
+  echo [start] Retrying the launch once automatically...
+  call :log "Retrying the PowerShell orchestrator after transient exit code %EXIT_CODE%."
+  timeout /t %ORCHESTRATOR_RETRY_DELAY_SECONDS% /nobreak >nul
+  goto run_orchestrator
+)
+
+exit /b 0
 
 :usage
 echo LewisMD Windows launcher

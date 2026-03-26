@@ -512,6 +512,72 @@ function Get-BrowserProfileProcesses {
   )
 }
 
+function Get-BrowserSessionSnapshot {
+  param([string]$BrowserPath)
+
+  $profileProcesses = @(Get-BrowserProfileProcesses -BrowserPath $BrowserPath)
+  $processIds = @($profileProcesses | Select-Object -ExpandProperty ProcessId)
+  $hasWindow = $false
+
+  foreach ($processId in $processIds) {
+    $runtimeProcess = Get-Process -Id $processId -ErrorAction SilentlyContinue
+    if ($null -ne $runtimeProcess -and $runtimeProcess.MainWindowHandle -ne 0) {
+      $hasWindow = $true
+      break
+    }
+  }
+
+  $signature = ($processIds | Sort-Object) -join ","
+
+  return [pscustomobject]@{
+    ProcessIds = $processIds
+    HasWindow = $hasWindow
+    Signature = $signature
+  }
+}
+
+function Wait-ForBrowserSessionReady {
+  param(
+    [string]$BrowserPath,
+    [int]$TimeoutSeconds,
+    [int]$StabilitySeconds
+  )
+
+  $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+  $lastSignature = $null
+  $stableSince = $null
+
+  while ((Get-Date) -lt $deadline) {
+    $snapshot = Get-BrowserSessionSnapshot -BrowserPath $BrowserPath
+
+    if ($snapshot.ProcessIds.Count -eq 0) {
+      $lastSignature = $null
+      $stableSince = $null
+      Start-Sleep -Milliseconds 500
+      continue
+    }
+
+    if ($snapshot.HasWindow) {
+      return $snapshot
+    }
+
+    if ($snapshot.Signature -eq $lastSignature) {
+      if ($null -eq $stableSince) {
+        $stableSince = Get-Date
+      } elseif (((Get-Date) - $stableSince).TotalSeconds -ge $StabilitySeconds) {
+        return $snapshot
+      }
+    } else {
+      $lastSignature = $snapshot.Signature
+      $stableSince = Get-Date
+    }
+
+    Start-Sleep -Milliseconds 500
+  }
+
+  return $null
+}
+
 function Start-BrowserSession {
   param([string]$BrowserPath)
 
@@ -524,52 +590,105 @@ function Start-BrowserSession {
 
   Write-LauncherMessage "Launching browser app mode with $BrowserPath ..."
 
-  $existingProfileProcesses = @(Get-BrowserProfileProcesses -BrowserPath $BrowserPath)
-  if ($existingProfileProcesses.Count -gt 0) {
-    $existingIds = ($existingProfileProcesses | Select-Object -ExpandProperty ProcessId) -join ", "
+  $existingSnapshot = Wait-ForBrowserSessionReady `
+    -BrowserPath $BrowserPath `
+    -TimeoutSeconds ([Math]::Max($script:ResolvedConfig.BrowserSessionStabilitySeconds + 1, 3)) `
+    -StabilitySeconds $script:ResolvedConfig.BrowserSessionStabilitySeconds
+  if ($null -ne $existingSnapshot) {
+    $existingIds = ($existingSnapshot.ProcessIds -join ", ")
     Write-LauncherMessage "Reusing existing LewisMD browser session for the dedicated profile (PIDs: $existingIds)." "WARN"
 
     return [pscustomobject]@{
       BrowserPath = $BrowserPath
-      ProcessIds = @($existingProfileProcesses | Select-Object -ExpandProperty ProcessId)
+      ProcessIds = @($existingSnapshot.ProcessIds)
       Reused = $true
     }
   }
 
-  $process = Start-Process -FilePath $BrowserPath `
-    -ArgumentList $browserArguments `
-    -WorkingDirectory $script:ResolvedConfig.RepoRoot `
-    -PassThru
+  if (-not (Wait-ForBrowserSessionToClose -BrowserPath $BrowserPath -TimeoutSeconds 6 -StabilitySeconds $script:ResolvedConfig.BrowserShutdownStabilitySeconds)) {
+    throw "The dedicated LewisMD browser profile is still shutting down. Wait a moment and try again."
+  }
 
-  $deadline = (Get-Date).AddSeconds(10)
-  while ((Get-Date) -lt $deadline) {
-    $profileProcesses = @(Get-BrowserProfileProcesses -BrowserPath $BrowserPath)
-    if ($profileProcesses.Count -gt 0) {
-      $profileProcessIds = ($profileProcesses | Select-Object -ExpandProperty ProcessId)
-      $joinedIds = ($profileProcessIds -join ", ")
+  for ($attempt = 1; $attempt -le $script:ResolvedConfig.BrowserLaunchRetryCount; $attempt++) {
+    if ($attempt -gt 1) {
+      Write-LauncherMessage (
+        "Retrying browser launch for the dedicated LewisMD profile (attempt {0} of {1})." -f
+        $attempt,
+        $script:ResolvedConfig.BrowserLaunchRetryCount
+      ) "WARN"
+      Start-Sleep -Seconds $script:ResolvedConfig.BrowserLaunchRetryDelaySeconds
+    }
+
+    $process = Start-Process -FilePath $BrowserPath `
+      -ArgumentList $browserArguments `
+      -WorkingDirectory $script:ResolvedConfig.RepoRoot `
+      -PassThru
+
+    $snapshot = Wait-ForBrowserSessionReady `
+      -BrowserPath $BrowserPath `
+      -TimeoutSeconds $script:ResolvedConfig.BrowserStartupTimeoutSeconds `
+      -StabilitySeconds $script:ResolvedConfig.BrowserSessionStabilitySeconds
+
+    if ($null -ne $snapshot) {
+      $joinedIds = ($snapshot.ProcessIds -join ", ")
       Write-LauncherMessage "Browser session is active for the dedicated LewisMD profile (PIDs: $joinedIds)."
 
       return [pscustomobject]@{
         BrowserPath = $BrowserPath
-        ProcessIds = $profileProcessIds
+        ProcessIds = $snapshot.ProcessIds
         Reused = $false
       }
     }
 
-    try { $process.Refresh() } catch {}
-    Start-Sleep -Milliseconds 500
+    Write-LauncherMessage "Browser profile launch did not stabilize on attempt $attempt." "WARN"
+    try {
+      $process.Refresh()
+      if (-not $process.HasExited) {
+        Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+      }
+    } catch {
+      Write-LauncherMessage "Could not clean up transient browser bootstrap process $($process.Id)." "WARN"
+    } finally {
+      $process.Dispose()
+    }
+
+    Wait-ForBrowserSessionToClose `
+      -BrowserPath $BrowserPath `
+      -TimeoutSeconds 6 `
+      -StabilitySeconds $script:ResolvedConfig.BrowserShutdownStabilitySeconds | Out-Null
   }
 
   throw "The browser app window did not stay open for the dedicated LewisMD profile. Close any conflicting launcher profile windows and try again."
 }
 
 function Wait-ForBrowserSessionToClose {
-  param([string]$BrowserPath)
+  param(
+    [string]$BrowserPath,
+    [int]$TimeoutSeconds = 0,
+    [int]$StabilitySeconds = 2
+  )
+
+  $absenceSince = $null
+  $deadline = if ($TimeoutSeconds -gt 0) {
+    (Get-Date).AddSeconds($TimeoutSeconds)
+  } else {
+    $null
+  }
 
   while ($true) {
-    $profileProcesses = @(Get-BrowserProfileProcesses -BrowserPath $BrowserPath)
-    if ($profileProcesses.Count -eq 0) {
-      return
+    $snapshot = Get-BrowserSessionSnapshot -BrowserPath $BrowserPath
+    if ($snapshot.ProcessIds.Count -eq 0) {
+      if ($null -eq $absenceSince) {
+        $absenceSince = Get-Date
+      } elseif (((Get-Date) - $absenceSince).TotalSeconds -ge $StabilitySeconds) {
+        return $true
+      }
+    } else {
+      $absenceSince = $null
+    }
+
+    if ($null -ne $deadline -and (Get-Date) -ge $deadline) {
+      return $false
     }
 
     Start-Sleep -Seconds 1
@@ -625,6 +744,11 @@ function Resolve-Config {
     BrowserProfileDir = Resolve-LauncherPath -PathValue $defaults.BrowserProfileDir -RepoRoot $repoRoot
     HealthUri = "http://127.0.0.1:$resolvedPort$($defaults.HealthEndpointPath)"
     BrowserCommands = @($defaults.BrowserCommands)
+    BrowserStartupTimeoutSeconds = [int]$defaults.BrowserStartupTimeoutSeconds
+    BrowserSessionStabilitySeconds = [int]$defaults.BrowserSessionStabilitySeconds
+    BrowserShutdownStabilitySeconds = [int]$defaults.BrowserShutdownStabilitySeconds
+    BrowserLaunchRetryCount = [int]$defaults.BrowserLaunchRetryCount
+    BrowserLaunchRetryDelaySeconds = [int]$defaults.BrowserLaunchRetryDelaySeconds
     RailsServerPidFile = [System.IO.Path]::GetFullPath((Join-Path (Resolve-LauncherPath -PathValue $defaults.StateDirectory -RepoRoot $repoRoot) "server.pid"))
   }
 }

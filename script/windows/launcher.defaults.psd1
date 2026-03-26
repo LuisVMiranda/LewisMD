@@ -37,6 +37,13 @@
     "chrome"
   )
 
+  # Browser startup/shutdown smoothing for the dedicated LewisMD profile.
+  BrowserStartupTimeoutSeconds = 12
+  BrowserSessionStabilitySeconds = 2
+  BrowserShutdownStabilitySeconds = 2
+  BrowserLaunchRetryCount = 2
+  BrowserLaunchRetryDelaySeconds = 2
+
   # Supported environment variable overrides for personal local use.
   EnvironmentOverrides = @(
     "LEWISMD_PORT",
