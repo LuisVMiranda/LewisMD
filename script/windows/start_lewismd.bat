@@ -27,6 +27,7 @@ set "ORCHESTRATOR_ATTEMPTS=0"
 set "MAX_ORCHESTRATOR_ATTEMPTS=2"
 set "TRANSIENT_ORCHESTRATOR_EXIT_CODE=2"
 set "ORCHESTRATOR_RETRY_DELAY_SECONDS=2"
+set "SKIP_RUNTIME_VALIDATION_ARG="
 set "FORWARDED_ARGS=%*"
 
 echo(%FORWARDED_ARGS% | findstr /I /C:"--help" /C:"/?" >nul
@@ -100,9 +101,11 @@ if not defined SKIP_BOOTSTRAP_CHECK (
     )
 
     call :log "Full bootstrap completed successfully after validation failure."
+    set "SKIP_RUNTIME_VALIDATION_ARG=-SkipRuntimeValidation"
     echo [start] Bootstrap completed successfully. Continuing launch...
   ) else (
     call :log "Bootstrap validation completed successfully."
+    set "SKIP_RUNTIME_VALIDATION_ARG=-SkipRuntimeValidation"
   )
 ) else (
   echo [start] Skipping bootstrap validation because --skip-bootstrap-check was requested.
@@ -137,7 +140,11 @@ exit /b %EXIT_CODE%
 
 :run_orchestrator
 set /a ORCHESTRATOR_ATTEMPTS+=1
-powershell -NoProfile -ExecutionPolicy Bypass -File "%ORCHESTRATOR_SCRIPT%" %FORWARDED_ARGS%
+if defined SKIP_RUNTIME_VALIDATION_ARG (
+  powershell -NoProfile -ExecutionPolicy Bypass -File "%ORCHESTRATOR_SCRIPT%" %SKIP_RUNTIME_VALIDATION_ARG% %FORWARDED_ARGS%
+) else (
+  powershell -NoProfile -ExecutionPolicy Bypass -File "%ORCHESTRATOR_SCRIPT%" %FORWARDED_ARGS%
+)
 set "EXIT_CODE=%ERRORLEVEL%"
 call :log "PowerShell orchestrator exited with code %EXIT_CODE% on attempt %ORCHESTRATOR_ATTEMPTS%."
 

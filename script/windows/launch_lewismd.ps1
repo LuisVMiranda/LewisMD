@@ -4,7 +4,8 @@ param(
   [string]$NotesPath,
   [string]$Browser,
   [switch]$ValidateOnly,
-  [switch]$StopOnly
+  [switch]$StopOnly,
+  [switch]$SkipRuntimeValidation
 )
 
 Set-StrictMode -Version Latest
@@ -795,16 +796,20 @@ try {
   Ensure-Directory -Path $script:ResolvedConfig.NotesPath
   Write-LauncherMessage "Notes path: $($script:ResolvedConfig.NotesPath)"
 
-  if (-not (Test-Path -LiteralPath $script:ResolvedConfig.RubyExe)) {
-    throw "Portable Ruby was not found at $($script:ResolvedConfig.RubyExe). Run bootstrap after extracting the runtime."
-  }
+  if ($SkipRuntimeValidation) {
+    Write-LauncherMessage "Skipping duplicate runtime validation because bootstrap already succeeded."
+  } else {
+    if (-not (Test-Path -LiteralPath $script:ResolvedConfig.RubyExe)) {
+      throw "Portable Ruby was not found at $($script:ResolvedConfig.RubyExe). Run bootstrap after extracting the runtime."
+    }
 
-  & $script:ResolvedConfig.RubyExe --version *> $null
-  if ($LASTEXITCODE -ne 0) {
-    throw "Portable Ruby could not be executed from $($script:ResolvedConfig.RubyExe)."
-  }
+    & $script:ResolvedConfig.RubyExe --version *> $null
+    if ($LASTEXITCODE -ne 0) {
+      throw "Portable Ruby could not be executed from $($script:ResolvedConfig.RubyExe)."
+    }
 
-  Test-BundlerReady
+    Test-BundlerReady
+  }
 
   if ($ValidateOnly) {
     Write-LauncherMessage "Validation-only mode completed successfully."

@@ -160,6 +160,8 @@ script\windows\Launch_LewisMD.vbs
 What it does:
 
 - runs `start_lewismd.bat` with the console hidden
+- skips the visible launcher's extra bootstrap validation because the
+  PowerShell orchestrator still validates the runtime itself
 - passes `--no-pause-on-error` so hidden failures do not leave an invisible paused window behind
 - waits for the launcher/app session to end
 - shows a simple message box if startup fails

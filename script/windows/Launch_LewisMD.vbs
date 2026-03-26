@@ -46,7 +46,7 @@ If Not fso.FileExists(startScript) Then
   WScript.Quit 1
 End If
 
-command = "cmd.exe /c """"" & startScript & """ --no-auto-bootstrap --no-pause-on-error"""
+command = "cmd.exe /c """"" & startScript & """ --skip-bootstrap-check --no-auto-bootstrap --no-pause-on-error"""
 
 If dryRun Then
   WScript.Echo "startScript=" & startScript
