@@ -75,6 +75,7 @@ class AiService
       return { error: "Unsupported AI feature." } unless cfg.ai_feature_selection_supported?(feature)
 
       selection = cfg.save_ai_feature_selection(feature, provider: provider, model: model)
+      return { error: "We couldn't save your AI choice right now." } if selection == false
       return { error: "That AI option is no longer available." } unless selection
 
       {
@@ -82,6 +83,9 @@ class AiService
         saved_selections: cfg.ai_saved_selections,
         selection_states: cfg.ai_saved_selection_states
       }
+    rescue StandardError => e
+      Rails.logger.error "AI preference save error (#{feature}): #{e.class} - #{sanitize_ai_error_text(e.message)}"
+      { error: "We couldn't save your AI choice right now." }
     end
 
     def fix_grammar(text, provider: nil, model: nil)
@@ -95,17 +99,7 @@ class AiService
       model = selection["model"]
       return { error: "No AI provider available" } unless provider && model
 
-      # Debug: log what we're about to use
-      cfg = config_instance
-      key_for_provider = case provider
-      when "openai" then cfg.get_ai("openai_api_key")
-      when "openrouter" then cfg.get_ai("openrouter_api_key")
-      when "anthropic" then cfg.get_ai("anthropic_api_key")
-      when "gemini" then cfg.get_ai("gemini_api_key")
-      else nil
-      end
-      key_prefix = key_for_provider&.slice(0, 10) || "none"
-      Rails.logger.info "AI request: provider=#{provider}, model=#{model}, key_prefix=#{key_prefix}..., ai_in_file=#{cfg.ai_configured_in_file?}"
+      log_text_request(feature: "grammar", provider:, model:, selection:)
 
       configure_client(provider:)
       chat = RubyLLM.chat(model: model, provider: provider.to_sym, assume_model_exists: provider == "ollama")
@@ -114,8 +108,9 @@ class AiService
 
       { corrected: response.content, provider: provider, model: model }
     rescue StandardError => e
-      Rails.logger.error "AI error (#{provider}/#{model}): #{e.class} - #{e.message}"
-      { error: "AI processing failed: #{e.message}" }
+      safe_error = build_processing_error_message(e)
+      Rails.logger.error "AI error (#{provider}/#{model}): #{e.class} - #{safe_error}"
+      { error: safe_error }
     end
 
     def generate_custom_prompt(text, prompt, provider: nil, model: nil)
@@ -129,6 +124,8 @@ class AiService
       model = selection["model"]
       return { error: "No AI provider available" } unless provider && model
 
+      log_text_request(feature: "custom_prompt", provider:, model:, selection:)
+
       configure_client(provider:)
       chat = RubyLLM.chat(model: model, provider: provider.to_sym, assume_model_exists: provider == "ollama")
       chat.with_instructions(build_custom_prompt_instructions(prompt))
@@ -136,8 +133,9 @@ class AiService
 
       { corrected: clean_custom_prompt_output(response.content), provider: provider, model: model }
     rescue StandardError => e
-      Rails.logger.error "AI Custom error (#{provider}/#{model}): #{e.class} - #{e.message}"
-      { error: "AI processing failed: #{e.message}" }
+      safe_error = build_processing_error_message(e)
+      Rails.logger.error "AI custom error (#{provider}/#{model}): #{e.class} - #{safe_error}"
+      { error: safe_error }
     end
 
     # Get provider info for frontend display
@@ -237,6 +235,39 @@ class AiService
 
     private
 
+    def log_text_request(feature:, provider:, model:, selection:)
+      selection_source = selection["model_source"] || "default"
+      Rails.logger.info(
+        "AI request: feature=#{feature} provider=#{provider} model=#{model} selection_source=#{selection_source}"
+      )
+    end
+
+    def build_processing_error_message(error)
+      safe_message = sanitize_ai_error_text(error.message)
+      return "AI processing failed. Please try again." if safe_message.blank?
+
+      "AI processing failed: #{safe_message}"
+    end
+
+    def sanitize_ai_error_text(message)
+      sanitized = message.to_s.gsub(/\s+/, " ").strip
+      return nil if sanitized.blank?
+
+      sensitive_ai_values.each do |value|
+        sanitized = sanitized.gsub(value, "[redacted]") if value.present?
+      end
+
+      sanitized.truncate(200)
+    end
+
+    def sensitive_ai_values
+      cfg = config_instance
+
+      %w[openai_api_key openrouter_api_key anthropic_api_key gemini_api_key].filter_map do |key|
+        cfg.get_ai(key).presence
+      end.uniq.sort_by { |value| -value.length }
+    end
+
     def build_image_content(prompt, reference_image_path)
       return prompt unless reference_image_path
 
@@ -260,8 +291,8 @@ class AiService
     end
 
     def resolve_text_selection(provider:, model:)
-      provider = provider.to_s
-      model = model.to_s
+      provider = provider.to_s.strip
+      model = model.to_s.strip
 
       if provider.blank? && model.blank?
         selection = current_selection

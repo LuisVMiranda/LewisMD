@@ -81,9 +81,9 @@ class AiController < ApplicationController
 
   # PATCH /ai/preferences
   def update_preference
-    feature = params[:feature].to_s
-    provider = params[:provider].to_s
-    model = params[:model].to_s
+    feature = params[:feature].to_s.strip
+    provider = params[:provider].to_s.strip
+    model = params[:model].to_s.strip
 
     if feature.blank?
       return render json: { error: "AI preference feature is required." }, status: :bad_request
@@ -134,8 +134,8 @@ class AiController < ApplicationController
   private
 
   def requested_ai_selection
-    provider = params[:provider].to_s
-    model = params[:model].to_s
+    provider = params[:provider].to_s.strip
+    model = params[:model].to_s.strip
 
     return {} if provider.blank? && model.blank?
     return { error: "Provider and model must be supplied together." } if provider.blank? || model.blank?

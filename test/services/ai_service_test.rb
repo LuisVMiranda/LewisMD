@@ -247,6 +247,18 @@ class AiServiceTest < ActiveSupport::TestCase
     assert_equal false, info[:selection_states]["custom_prompt"]["invalid"]
   end
 
+  test "provider_info does not expose api credentials" do
+    ENV["OPENAI_API_KEY"] = "sk-test"
+    ENV["ANTHROPIC_API_KEY"] = "sk-ant-test"
+
+    info = AiService.provider_info
+
+    assert_not_includes info.keys, :openai_api_key
+    assert_not_includes info.keys, :anthropic_api_key
+    refute_includes info.to_json, "sk-test"
+    refute_includes info.to_json, "sk-ant-test"
+  end
+
   test "provider_info exposes invalid saved selection states when configured choices disappear" do
     ENV["OPENAI_API_KEY"] = "sk-test"
     ENV["ANTHROPIC_API_KEY"] = "sk-ant-test"
@@ -337,6 +349,21 @@ class AiServiceTest < ActiveSupport::TestCase
     assert_equal "That AI option is no longer available.", result[:error]
   end
 
+  test "save_selection returns a gentle error when config persistence fails" do
+    config = mock
+    config.expects(:ai_feature_selection_supported?).with("grammar").returns(true)
+    config.expects(:save_ai_feature_selection).with("grammar", provider: "openai", model: "gpt-4o-mini").returns(false)
+    Config.stubs(:new).returns(config)
+
+    result = AiService.save_selection(
+      feature: "grammar",
+      provider: "openai",
+      model: "gpt-4o-mini"
+    )
+
+    assert_equal "We couldn't save your AI choice right now.", result[:error]
+  end
+
   # Image generation tests
   test "image_generation_enabled? returns false when no OpenRouter key" do
     assert_not AiService.image_generation_enabled?
@@ -412,6 +439,27 @@ class AiServiceTest < ActiveSupport::TestCase
     assert_equal "gpt-4o-mini", result[:model]
   end
 
+  test "fix_grammar logs selection details without credential prefixes" do
+    ENV["OPENAI_API_KEY"] = "sk-test-key"
+
+    mock_response = stub(content: "This is corrected text.")
+    mock_chat = stub
+    mock_chat.stubs(:with_instructions).returns(mock_chat)
+    mock_chat.stubs(:ask).returns(mock_response)
+
+    RubyLLM.stubs(:chat).returns(mock_chat)
+    Rails.logger.expects(:info).with do |message|
+      message.include?("feature=grammar") &&
+        message.include?("provider=openai") &&
+        !message.include?("key_prefix") &&
+        !message.include?("sk-test-key")
+    end
+
+    result = AiService.fix_grammar("This is uncorrected text")
+
+    assert_equal "This is corrected text.", result[:corrected]
+  end
+
   test "fix_grammar uses an explicit validated provider selection when supplied" do
     ENV["OPENAI_API_KEY"] = "sk-test-key"
     ENV["ANTHROPIC_API_KEY"] = "sk-ant-test"
@@ -467,6 +515,21 @@ class AiServiceTest < ActiveSupport::TestCase
 
     assert result[:error].present?
     assert_includes result[:error], "API connection failed"
+  end
+
+  test "fix_grammar redacts credential values from provider failures" do
+    ENV["OPENAI_API_KEY"] = "sk-test-key"
+
+    mock_chat = stub
+    mock_chat.stubs(:with_instructions).returns(mock_chat)
+    mock_chat.stubs(:ask).raises(StandardError.new("OpenAI rejected sk-test-key during authentication"))
+
+    RubyLLM.stubs(:chat).returns(mock_chat)
+
+    result = AiService.fix_grammar("Some text")
+
+    assert_includes result[:error], "[redacted]"
+    refute_includes result[:error], "sk-test-key"
   end
 
   test "fix_grammar works with anthropic provider" do

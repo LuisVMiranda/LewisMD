@@ -367,8 +367,7 @@ class Config
 
     casted = cast_value(value, SCHEMA[key][:type])
     @values[key] = casted
-    save_single_key(key, casted)
-    true
+    save_single_key(key, casted) != false
   end
 
   # Update multiple values at once
@@ -381,8 +380,7 @@ class Config
       @values[key] = casted
       changes[key] = casted
     end
-    save_keys(changes)
-    true
+    save_keys(changes) != false
   end
 
   # Get all UI settings (safe for frontend)
@@ -578,10 +576,11 @@ class Config
     end
     return nil unless matching_option
 
-    update(
+    persisted = update(
       metadata[:provider_key] => matching_option["provider"],
       metadata[:model_key] => matching_option["model"]
     )
+    return false if persisted == false
 
     ai_feature_selection(feature)
   end

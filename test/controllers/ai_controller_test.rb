@@ -55,6 +55,20 @@ class AiControllerTest < ActionDispatch::IntegrationTest
     assert_includes data["available_providers"], "openai"
   end
 
+  test "config does not expose api credentials" do
+    ENV["OPENAI_API_KEY"] = "sk-test-key"
+    ENV["ANTHROPIC_API_KEY"] = "sk-ant-test-key"
+
+    get "/ai/config", as: :json
+    assert_response :success
+
+    data = JSON.parse(response.body)
+    assert_not data.key?("openai_api_key")
+    assert_not data.key?("anthropic_api_key")
+    refute_includes response.body, "sk-test-key"
+    refute_includes response.body, "sk-ant-test-key"
+  end
+
   test "config returns enabled true when OpenRouter key is set" do
     ENV["OPENROUTER_API_KEY"] = "sk-or-test-key"
 

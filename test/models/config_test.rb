@@ -751,6 +751,22 @@ class ConfigTest < ActiveSupport::TestCase
     assert_nil config.save_ai_feature_selection("grammar", provider: "openai", model: "gpt-4-turbo")
   end
 
+  test "update returns false when persisting config fails" do
+    config = Config.new(base_path: @test_dir)
+    config.stubs(:save_keys).returns(false)
+
+    assert_equal false, config.update("theme" => "dark")
+  end
+
+  test "save_ai_feature_selection returns false when persisting config fails" do
+    ENV["OPENAI_API_KEY"] = "sk-test"
+
+    config = Config.new(base_path: @test_dir)
+    config.stubs(:save_keys).returns(false)
+
+    assert_equal false, config.save_ai_feature_selection("grammar", provider: "openai", model: "gpt-4o-mini")
+  end
+
   test "feature_available? returns true for ai when any provider configured" do
     ENV["GEMINI_API_KEY"] = "gemini-test"
 
