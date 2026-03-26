@@ -174,7 +174,7 @@ class RemoteShareReader {
     this.currentFontFamily = element.dataset.defaultFontFamily || DEFAULT_FONT_FAMILY
     this.showControlsLabel = element.dataset.showControlsLabel || window.t("share_view.show_controls")
     this.hideControlsLabel = element.dataset.hideControlsLabel || window.t("share_view.hide_controls")
-    this.displayPanelExpanded = true
+    this.displayPanelExpanded = !this.displayPanel?.classList.contains("hidden")
     this.exportGroupExpanded = false
     this.baseFontSize = null
   }
@@ -187,7 +187,7 @@ class RemoteShareReader {
     this.renderMenus()
     this.attachEventListeners()
     this.updateDisplays()
-    this.syncResponsiveDisplayPanel()
+    this.applyDisplayPanelState()
 
     if (this.frame?.contentDocument?.readyState === "complete") {
       this.onFrameLoad()
@@ -196,7 +196,6 @@ class RemoteShareReader {
 
   disconnect() {
     document.removeEventListener("click", this.boundDocumentClick)
-    window.removeEventListener("resize", this.boundResize)
     this.frame?.removeEventListener("load", this.boundFrameLoad)
     this.themeButton?.removeEventListener("click", this.boundThemeToggle)
     this.themeMenu?.removeEventListener("click", this.boundThemeMenuClick)
@@ -216,7 +215,6 @@ class RemoteShareReader {
     this.boundDocumentClick = (event) => {
       if (!this.element.contains(event.target)) this.closeMenus()
     }
-    this.boundResize = () => this.syncResponsiveDisplayPanel()
     this.boundFrameLoad = () => this.onFrameLoad()
     this.boundThemeToggle = (event) => this.toggleMenu(event, "theme")
     this.boundThemeMenuClick = (event) => this.onThemeMenuClick(event)
@@ -232,7 +230,6 @@ class RemoteShareReader {
     this.boundFontChange = (event) => this.changeFontFamily(event)
 
     document.addEventListener("click", this.boundDocumentClick)
-    window.addEventListener("resize", this.boundResize)
     this.frame?.addEventListener("load", this.boundFrameLoad)
     this.themeButton?.addEventListener("click", this.boundThemeToggle)
     this.themeMenu?.addEventListener("click", this.boundThemeMenuClick)
@@ -589,21 +586,6 @@ class RemoteShareReader {
     const doctype = frameDocument.doctype
     const doctypeString = doctype ? `<!DOCTYPE ${doctype.name}>` : "<!DOCTYPE html>"
     return `${doctypeString}\n${frameDocument.documentElement.outerHTML}`
-  }
-
-  syncResponsiveDisplayPanel() {
-    this.displayPanelExpanded = this.defaultDisplayPanelExpanded()
-    this.applyDisplayPanelState()
-  }
-
-  defaultDisplayPanelExpanded() {
-    const width = window.innerWidth || document.documentElement.clientWidth || 0
-    const height = window.innerHeight || document.documentElement.clientHeight || 0
-    const isLandscape = width > height
-
-    if (width < 768) return false
-    if (width < 1024) return isLandscape
-    return true
   }
 
   applyDisplayPanelState() {

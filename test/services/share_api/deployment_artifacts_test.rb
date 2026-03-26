@@ -169,6 +169,19 @@ class ShareApiDeploymentArtifactsTest < ActiveSupport::TestCase
         "#{filename} drifted from the standalone reader theme copy"
       )
     end
+
+    %w[
+      icon.svg
+      favicon-32x32.png
+      favicon-16x16.png
+      apple-touch-icon.png
+    ].each do |filename|
+      assert_equal(
+        Rails.root.join("public", filename).binread,
+        Rails.root.join("services", "share_api", "public", "reader", filename).binread,
+        "#{filename} drifted from the standalone reader icon copy"
+      )
+    end
   end
 
   test "readme links the optional remote share api workflow" do

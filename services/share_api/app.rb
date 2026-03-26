@@ -71,6 +71,22 @@ module ShareAPI
       "/reader/assets/share_view.css" => {
         content_type: "text/css; charset=utf-8",
         path: -> { reader_public_path("share_view.css") }
+      },
+      "/reader/assets/icon.svg" => {
+        content_type: "image/svg+xml",
+        path: -> { reader_public_path("icon.svg") }
+      },
+      "/reader/assets/favicon-32x32.png" => {
+        content_type: "image/png",
+        path: -> { reader_public_path("favicon-32x32.png") }
+      },
+      "/reader/assets/favicon-16x16.png" => {
+        content_type: "image/png",
+        path: -> { reader_public_path("favicon-16x16.png") }
+      },
+      "/reader/assets/apple-touch-icon.png" => {
+        content_type: "image/png",
+        path: -> { reader_public_path("apple-touch-icon.png") }
       }
     }.freeze
     PUBLIC_NOT_FOUND_HTML = <<~HTML.freeze
@@ -318,6 +334,10 @@ module ShareAPI
             <meta name="robots" content="noindex,nofollow,noarchive">
             <meta name="color-scheme" content="#{CGI.escapeHTML(current_color_scheme)}">
             <title>#{CGI.escapeHTML(title)} | LewisMD Share</title>
+            <link rel="icon" type="image/svg+xml" href="/reader/assets/icon.svg">
+            <link rel="icon" type="image/png" sizes="32x32" href="/reader/assets/favicon-32x32.png">
+            <link rel="icon" type="image/png" sizes="16x16" href="/reader/assets/favicon-16x16.png">
+            <link rel="apple-touch-icon" sizes="180x180" href="/reader/assets/apple-touch-icon.png">
             <link rel="stylesheet" href="/reader/assets/remote_reader_bundle.css">
             <script type="module" src="/reader/assets/remote_reader_bundle.js"></script>
           </head>
@@ -417,10 +437,10 @@ module ShareAPI
             type="button"
             class="share-view__toolbar-button"
             data-role="display-toggle"
-            aria-expanded="true"
+            aria-expanded="false"
             aria-controls="share-view-display-panel"
-            title="Hide reading controls"
-            aria-label="Hide reading controls"
+            title="Show reading controls"
+            aria-label="Show reading controls"
           >
             #{display_icon_markup}
             <span class="share-view__toolbar-label">Display</span>
@@ -438,7 +458,7 @@ module ShareAPI
       <<~HTML
         <div
           id="share-view-display-panel"
-          class="share-view__display-panel"
+          class="share-view__display-panel hidden"
           data-role="display-panel"
           aria-label="Reading controls"
         >

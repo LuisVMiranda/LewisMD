@@ -23,6 +23,24 @@ Remote public share pages now render the full LewisMD shared-reader interface:
 - display controls for zoom, text width, and font family
 - a same-origin snapshot iframe that holds the sanitized rendered note
 
+The remote reader keeps the same operator-friendly defaults across desktop,
+tablet, and mobile:
+
+- the toolbar buttons include their own standalone spacing and sizing rules
+- the display-controls tray starts collapsed by default
+- the public page uses the same LewisMD icon set as its favicon/app icon
+
+Because the share API container is built from `services/share_api` only, the
+remote reader ships standalone copies of the assets it depends on:
+
+- `share_view.css`
+- the remote reader helper modules
+- the theme CSS files
+- the favicon/icon files
+
+That keeps the public reader self-contained instead of reaching back into the
+main Rails app tree at runtime.
+
 The VPS still owns the outer page. LewisMD does not blindly upload an arbitrary
 outer HTML document and publish it as-is.
 
@@ -413,6 +431,18 @@ bundle itself should include the share-view shell rules needed for:
 - full-height iframe sizing
 - tablet/mobile toolbar wrapping
 - responsive snapshot padding and table overflow handling
+
+If the page shell looks correct but the browser tab still shows the default
+icon, verify the standalone reader icon copy directly:
+
+```bash
+curl -I https://lewismd.miralab.in/reader/assets/icon.svg
+```
+
+If the note opens with the display controls already expanded, the VPS is still
+serving an older reader shell. Pull the latest repo version, rebuild the
+share-api container, and hard-refresh the page so the server-rendered HTML and
+reader bundle stay in sync.
 
 ### Monitoring timer is not running
 
