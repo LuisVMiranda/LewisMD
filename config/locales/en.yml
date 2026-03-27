@@ -109,6 +109,7 @@ en:
     new_note: "New Note"
     new_folder: "New Folder"
     rename: "Rename"
+    copy_as_path: "Copy as path"
     save_as_template: "Save as Template"
     delete_template: "Delete Template"
     backup_note: "Back up note"

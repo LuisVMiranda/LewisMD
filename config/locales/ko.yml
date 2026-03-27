@@ -92,6 +92,7 @@ ko:
     new_note: 새 노트
     new_folder: 새 폴더
     rename: 이름 변경
+    copy_as_path: 경로로 복사
     save_as_template: 템플릿으로 저장
     delete_template: 템플릿 삭제
     backup_note: ?? ??

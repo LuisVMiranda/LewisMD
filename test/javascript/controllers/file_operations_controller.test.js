@@ -34,6 +34,7 @@ describe("FileOperationsController", () => {
           <button data-action="click->file-operations#deleteItem">Delete</button>
           <button data-action="click->file-operations#newNoteInFolder">New Note</button>
           <button data-action="click->file-operations#newFolderInFolder">New Folder</button>
+          <button data-file-operations-target="copyPathMenuItem" class="hidden">Copy as path</button>
           <button data-file-operations-target="backupMenuItem" class="hidden">
             <span data-file-operations-target="backupMenuLabel"></span>
           </button>
@@ -193,6 +194,7 @@ describe("FileOperationsController", () => {
     // Mock confirm
     global.confirm = vi.fn().mockReturnValue(true)
     global.alert = vi.fn()
+    navigator.clipboard = { writeText: vi.fn().mockResolvedValue(undefined) }
     originalCreateObjectURL = URL.createObjectURL
     originalRevokeObjectURL = URL.revokeObjectURL
     URL.createObjectURL = vi.fn(() => "blob:backup-test")
@@ -339,6 +341,32 @@ describe("FileOperationsController", () => {
       expect(controller.backupMenuItemTarget.classList.contains("hidden")).toBe(false)
       expect(controller.backupMenuLabelTarget.textContent).toBe("Back up folder")
     })
+
+    it("shows copy as path for notes and hides it for folders", () => {
+      controller.showContextMenu({
+        preventDefault: vi.fn(),
+        stopPropagation: vi.fn(),
+        clientX: 100,
+        clientY: 200,
+        currentTarget: {
+          dataset: { path: "folder/test.md", type: "file", fileType: "markdown" }
+        }
+      })
+
+      expect(controller.copyPathMenuItemTarget.classList.contains("hidden")).toBe(false)
+
+      controller.showContextMenu({
+        preventDefault: vi.fn(),
+        stopPropagation: vi.fn(),
+        clientX: 100,
+        clientY: 200,
+        currentTarget: {
+          dataset: { path: "folder", type: "folder" }
+        }
+      })
+
+      expect(controller.copyPathMenuItemTarget.classList.contains("hidden")).toBe(true)
+    })
   })
 
   describe("hideContextMenu()", () => {
@@ -387,6 +415,21 @@ describe("FileOperationsController", () => {
 
       expect(controller.noteTypeDialogTarget.close).toHaveBeenCalled()
       expect(openSpy).toHaveBeenCalledWith("note", "", "hugo")
+    })
+  })
+
+  describe("copyItemPath()", () => {
+    it("copies the note path without the markdown extension", async () => {
+      controller.contextItem = { path: "Personal/Studies/Español/2026/Practice_Area_A2.md", type: "file" }
+      const dispatchSpy = vi.spyOn(controller, "dispatch")
+
+      await controller.copyItemPath()
+
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith("Personal/Studies/Español/2026/Practice_Area_A2")
+      expect(controller.contextMenuTarget.classList.contains("hidden")).toBe(true)
+      expect(dispatchSpy).toHaveBeenCalledWith("status-message", expect.objectContaining({
+        detail: expect.objectContaining({ message: "status.copied_to_clipboard", error: false })
+      }))
     })
   })
 

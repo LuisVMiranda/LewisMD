@@ -440,6 +440,18 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "show returns JSON for accented nested paths" do
+    create_test_folder("Personal/Studies/Español/2026")
+    create_test_note("Personal/Studies/Español/2026/Practice_Area_A2.md", "# Practice Area")
+
+    get "/notes/Personal/Studies/Espa%C3%B1ol/2026/Practice_Area_A2.md", as: :json
+    assert_response :success
+
+    data = JSON.parse(response.body)
+    assert_equal "Personal/Studies/Español/2026/Practice_Area_A2.md", data["path"]
+    assert_equal "# Practice Area", data["content"]
+  end
+
   test "show with HTML request for missing file renders SPA with error state" do
     get note_url(path: "nonexistent/file.md")
     assert_response :success

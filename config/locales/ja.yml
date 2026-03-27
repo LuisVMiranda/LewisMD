@@ -92,6 +92,7 @@ ja:
     new_note: 新規ノート
     new_folder: 新規フォルダ
     rename: 名前変更
+    copy_as_path: パスとしてコピー
     save_as_template: テンプレートとして保存
     delete_template: テンプレートを削除
     backup_note: ??????????

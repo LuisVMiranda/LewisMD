@@ -41,6 +41,7 @@ export default class extends Controller {
 
   static targets = [
     "contextMenu",
+    "copyPathMenuItem",
     "backupMenuItem",
     "backupMenuLabel",
     "templateNoteMenuItem",
@@ -160,6 +161,9 @@ export default class extends Controller {
     if (renameItem) renameItem.classList.toggle("hidden", false)
     if (deleteItem) deleteItem.classList.toggle("hidden", false)
     if (newNoteItem) newNoteItem.classList.toggle("hidden", type !== "folder")
+    if (this.hasCopyPathMenuItemTarget) {
+      this.copyPathMenuItemTarget.classList.toggle("hidden", type !== "file")
+    }
 
     const newFolderItem = this.contextMenuTarget.querySelector('[data-action*="newFolderInFolder"]')
     if (newFolderItem) newFolderItem.classList.toggle("hidden", type !== "folder")
@@ -184,6 +188,24 @@ export default class extends Controller {
   hideContextMenu() {
     if (this.hasContextMenuTarget) {
       this.contextMenuTarget.classList.add("hidden")
+    }
+  }
+
+  async copyItemPath() {
+    if (!this.contextItem?.path) return
+
+    const clipboardPath = this.contextItem.type === "file"
+      ? this.contextItem.path.replace(/\.(md|markdown)$/i, "")
+      : this.contextItem.path
+
+    this.hideContextMenu()
+
+    try {
+      await navigator.clipboard.writeText(clipboardPath)
+      this.showStatusMessage(window.t("status.copied_to_clipboard"))
+    } catch (error) {
+      console.error("Failed to copy item path:", error)
+      this.showStatusMessage(window.t("status.copy_failed"), true)
     }
   }
 

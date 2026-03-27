@@ -167,6 +167,8 @@ describe("PreviewController", () => {
       const anchor = controller.contentTarget.querySelector("a")
       expect(anchor).not.toBeNull()
       expect(anchor.getAttribute("href")).toBe("/notes/Personal/Studies/Espa%C3%B1ol/2026/Study_Syllabus_A2.md")
+      expect(anchor.dataset.notePath).toBe("Personal/Studies/Español/2026/Study_Syllabus_A2.md")
+      expect(anchor.getAttribute("data-turbo")).toBe("false")
     })
 
     it("dispatches note-link-selected when a rendered LewisMD note link is clicked", () => {

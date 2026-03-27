@@ -39,9 +39,10 @@ export default class extends Controller {
     this._isUpdatingContent = false // Prevents preview scroll from syncing to editor during content updates
     this._contentUpdateTimeout = null
     this.currentNotePath = null
+    this.contentClickOptions = { capture: true }
     this.boundContentClick = this.onContentClick.bind(this)
     if (this.hasContentTarget) {
-      this.contentTarget.addEventListener("click", this.boundContentClick)
+      this.contentTarget.addEventListener("click", this.boundContentClick, this.contentClickOptions)
     }
     this.applyZoom()
   }
@@ -59,7 +60,7 @@ export default class extends Controller {
 
   disconnect() {
     if (this.hasContentTarget && this.boundContentClick) {
-      this.contentTarget.removeEventListener("click", this.boundContentClick)
+      this.contentTarget.removeEventListener("click", this.boundContentClick, this.contentClickOptions)
     }
     if (this.syncScrollTimeout) {
       cancelAnimationFrame(this.syncScrollTimeout)
@@ -86,7 +87,7 @@ export default class extends Controller {
     if (anchor.hasAttribute("download")) return
     if (anchor.target && anchor.target !== "_self") return
 
-    const notePath = extractNotePathFromLewisUrl(anchor.href)
+    const notePath = anchor.dataset.notePath || extractNotePathFromLewisUrl(anchor.href)
     if (!notePath) return
 
     event.preventDefault()

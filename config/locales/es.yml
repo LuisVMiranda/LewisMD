@@ -92,6 +92,7 @@ es:
     new_note: Nueva Nota
     new_folder: Nueva Carpeta
     rename: Renombrar
+    copy_as_path: Copiar como ruta
     save_as_template: Guardar como Plantilla
     delete_template: Eliminar Plantilla
     backup_note: Respaldar nota

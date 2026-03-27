@@ -1,4 +1,4 @@
-import { rewriteNoteHref } from "lib/url_utils"
+import { extractNotePathFromLewisUrl, rewriteNoteHref } from "lib/url_utils"
 
 export function rewriteNoteLinksInHtml(html, currentNotePath = null) {
   if (!html) return ""
@@ -12,6 +12,12 @@ export function rewriteNoteLinksInHtml(html, currentNotePath = null) {
 
     if (rewrittenHref) {
       anchor.setAttribute("href", rewrittenHref)
+      anchor.setAttribute("data-turbo", "false")
+
+      const notePath = extractNotePathFromLewisUrl(rewrittenHref, window.location.origin)
+      if (notePath) {
+        anchor.setAttribute("data-note-path", notePath)
+      }
     }
   })
 

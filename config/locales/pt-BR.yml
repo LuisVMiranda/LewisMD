@@ -92,6 +92,7 @@ pt-BR:
     new_note: Nova Nota
     new_folder: Nova Pasta
     rename: Renomear
+    copy_as_path: Copiar como caminho
     save_as_template: Salvar como Modelo
     delete_template: Excluir Modelo
     backup_note: Fazer backup da nota
