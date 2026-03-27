@@ -545,7 +545,7 @@ export default class extends Controller {
       ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
       : "border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400"
 
-    return `<span class="inline-flex items-center rounded-full border px-3.5 py-0.5 text-[11px] font-medium uppercase tracking-wide ${toneClasses}">${this.escapeHtml(label)}</span>`
+    return `<span class="inline-flex items-center rounded-full border px-[18px] py-0.5 text-[11px] font-medium uppercase tracking-wide ${toneClasses}">${this.escapeHtml(label)}</span>`
   }
 
   valueLabel(value) {

@@ -42,6 +42,11 @@ module SharePublishers
         remote_share: remote_share,
         existing_share: existing_share
       )
+    rescue RemoteShareClient::RequestError => e
+      return republish_missing_remote_share(payload:, existing_share:) if existing_share && payload && e.status == 404
+
+      registry.mark_stale(path: path, note_identifier: note_identifier, error: e.message) if existing_share
+      raise ShareService::InvalidShareError, e.message
     rescue RemoteShareClient::Error => e
       registry.mark_stale(path: path, note_identifier: note_identifier, error: e.message) if existing_share
       raise ShareService::InvalidShareError, e.message
@@ -55,6 +60,10 @@ module SharePublishers
       registry.delete(path: path, note_identifier: note_identifier)
 
       existing_share
+    rescue RemoteShareClient::RequestError => e
+      return cleanup_missing_remote_share(existing_share, path:, note_identifier:) if existing_share && e.status == 404
+
+      raise ShareService::InvalidShareError, e.message
     rescue RemoteShareClient::Error => e
       raise ShareService::InvalidShareError, e.message
     end
@@ -169,6 +178,22 @@ module SharePublishers
       return nil unless expiration_days.positive?
 
       expiration_days.days.from_now.iso8601
+    end
+
+    def republish_missing_remote_share(payload:, existing_share:)
+      cleanup_missing_remote_share(
+        existing_share,
+        path: payload[:path],
+        note_identifier: payload[:note_identifier]
+      )
+
+      remote_share = client.create_share(remote_request_payload(payload))
+      persist_remote_share(payload:, remote_share:)
+    end
+
+    def cleanup_missing_remote_share(existing_share, path:, note_identifier:)
+      registry.delete_by_token(existing_share[:token]) || registry.delete(path: path, note_identifier: note_identifier)
+      existing_share
     end
   end
 end

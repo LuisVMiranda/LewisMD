@@ -276,6 +276,57 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Remote share API timed out", data["last_error"]
   end
 
+  test "remote update republishes the share when the remote share is already gone" do
+    configure_remote_share_backend
+    stub_remote_capabilities
+    stub_remote_create
+
+    post shares_url,
+      params: {
+        path: "shared-note.md",
+        title: "Shared Note",
+        html: '<html lang="en" data-theme="dark"><body><article class="export-article"><p>Version One</p></article></body></html>'
+      },
+      as: :json
+    created_share = JSON.parse(response.body)
+
+    stub_remote_capabilities
+    stub_request(:put, "https://shares.example.com/api/v1/shares/remote-share-1234")
+      .to_return(status: 404, body: { error: "Share not found" }.to_json)
+    stub_request(:post, "https://shares.example.com/api/v1/shares")
+      .to_return(
+        status: 201,
+        body: {
+          token: "remote-share-5678",
+          public_url: "https://shares.example.com/s/remote-share-5678",
+          title: "Shared Note",
+          created_at: "2026-03-26T12:00:00Z",
+          updated_at: "2026-03-26T12:00:00Z"
+        }.to_json
+      )
+
+    patch update_share_url(path: "shared-note.md"),
+      params: {
+        title: "Shared Note",
+        html: '<html lang="en" data-theme="dark"><body><article class="export-article"><p>Version Two</p></article></body></html>'
+      },
+      as: :json
+
+    assert_response :success
+
+    updated = JSON.parse(response.body)
+    assert_equal "remote-share-5678", updated["token"]
+    assert_equal created_share["note_identifier"], updated["note_identifier"]
+    assert_equal "https://shares.example.com/s/remote-share-5678", updated["url"]
+
+    get share_status_url(path: "shared-note.md"), as: :json
+
+    assert_response :success
+    data = JSON.parse(response.body)
+    assert_equal "remote-share-5678", data["token"]
+    assert_equal false, data["stale"]
+  end
+
   test "destroy revokes active share" do
     post shares_url,
       params: {
@@ -336,6 +387,32 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_nil SharePublishers::RemoteShareProvider.new(base_path: @test_notes_dir).active_share_for("shared-note.md")
+  end
+
+  test "destroy clears the local remote share record when the remote share is already gone" do
+    configure_remote_share_backend
+    stub_remote_capabilities
+    stub_remote_create
+
+    post shares_url,
+      params: {
+        path: "shared-note.md",
+        title: "Shared Note",
+        html: '<html lang="en" data-theme="dark"><body><article class="export-article"><p>Version One</p></article></body></html>'
+      },
+      as: :json
+
+    stub_remote_capabilities
+    stub_request(:delete, "https://shares.example.com/api/v1/shares/remote-share-1234")
+      .to_return(status: 404, body: { error: "Share not found" }.to_json)
+
+    delete destroy_share_url(path: "shared-note.md"), as: :json
+
+    assert_response :success
+    assert_nil SharePublishers::RemoteShareProvider.new(base_path: @test_notes_dir).active_share_for("shared-note.md")
+
+    get share_status_url(path: "shared-note.md"), as: :json
+    assert_response :not_found
   end
 
   test "show renders the share shell even after note is deleted" do

@@ -163,10 +163,69 @@ class RemoteShareProviderTest < ActiveSupport::TestCase
     assert_equal "https://shares.example.com/s/remote-share-1234", stale_share[:url]
   end
 
+  test "refresh republishes the share when the remote API reports that it is already gone" do
+    @registry.save(existing_share_metadata)
+    client = mock("remote-share-client")
+    client.expects(:update_share).raises(RemoteShareClient::RequestError.new("Share not found", status: 404))
+    client.expects(:create_share).with do |payload|
+      assert_equal "note-123", payload[:note_identifier]
+      assert_equal "shared-note.md", payload[:path]
+      true
+    end.returns(
+      {
+        token: "remote-share-5678",
+        url: "https://shares.example.com/s/remote-share-5678",
+        title: "Shared Note",
+        created_at: "2026-03-26T12:00:00Z",
+        updated_at: "2026-03-26T12:00:00Z"
+      }
+    )
+    client.stubs(:last_capabilities).returns({ "api_version" => "1", "feature_flags" => { "full_share_shell" => true } })
+
+    provider = SharePublishers::RemoteShareProvider.new(
+      base_path: @test_notes_dir,
+      config: @config,
+      registry: @registry,
+      client: client
+    )
+
+    share = provider.refresh(
+      path: "shared-note.md",
+      title: "Shared Note",
+      snapshot_html: "<html><body>Ignored</body></html>",
+      share_payload: share_payload
+    )
+
+    assert_equal "remote-share-5678", share[:token]
+    assert_equal false, share[:stale]
+    assert_nil share[:last_error]
+    assert_nil @registry.find_by_token("remote-share-1234")
+    assert_equal "remote-share-5678", @registry.active_share_for("shared-note.md", note_identifier: "note-123")[:token]
+  end
+
   test "revoke deletes the stored registry entry after the remote API succeeds" do
     @registry.save(existing_share_metadata)
     client = mock("remote-share-client")
     client.expects(:revoke_share).with(token: "remote-share-1234").returns(true)
+
+    provider = SharePublishers::RemoteShareProvider.new(
+      base_path: @test_notes_dir,
+      config: @config,
+      registry: @registry,
+      client: client
+    )
+
+    share = provider.revoke(path: "shared-note.md", note_identifier: "note-123")
+
+    assert_equal "remote-share-1234", share[:token]
+    assert_nil @registry.active_share_for("shared-note.md", note_identifier: "note-123")
+  end
+
+  test "revoke clears the local registry entry when the remote API reports that it is already gone" do
+    @registry.save(existing_share_metadata)
+    client = mock("remote-share-client")
+    client.expects(:revoke_share).with(token: "remote-share-1234")
+      .raises(RemoteShareClient::RequestError.new("Share not found", status: 404))
 
     provider = SharePublishers::RemoteShareProvider.new(
       base_path: @test_notes_dir,
