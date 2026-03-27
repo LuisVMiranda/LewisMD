@@ -84,6 +84,23 @@ class RemoteShareRegistryService
     end
   end
 
+  def find_by_token(token)
+    return nil unless token.to_s.match?(TOKEN_PATTERN)
+
+    file = metadata_file(token)
+    return nil unless file.file?
+
+    metadata = parse_metadata_file(file)
+    return nil unless metadata
+
+    if expired_share?(metadata)
+      file.delete if file.exist?
+      return nil
+    end
+
+    metadata
+  end
+
   def mark_stale(path:, note_identifier: nil, error:)
     metadata = active_share_for(path, note_identifier: note_identifier)
     raise ShareService::NotFoundError, "Share not found for #{path}" unless metadata
@@ -102,6 +119,17 @@ class RemoteShareRegistryService
     matching_metadata_files(metadata).each do |file|
       file.delete if file.exist?
     end
+  end
+
+  def delete_by_token(token)
+    metadata = find_by_token(token)
+    return nil unless metadata
+
+    matching_metadata_files(metadata).each do |file|
+      file.delete if file.exist?
+    end
+
+    metadata
   end
 
   def delete_all

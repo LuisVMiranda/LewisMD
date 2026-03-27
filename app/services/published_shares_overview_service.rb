@@ -23,6 +23,10 @@ class PublishedSharesOverviewService
     rows.sort_by { |row| timestamp_for(row) }.reverse
   end
 
+  def find(token)
+    list.find { |row| row[:token] == token.to_s }
+  end
+
   private
 
   attr_reader :share_service, :remote_share_registry_service, :note_share_identity_service

@@ -109,6 +109,17 @@ class ShareService
     metadata.merge(snapshot_file: file)
   end
 
+  def metadata_for_token(token)
+    metadata = read_metadata(token)
+    return nil unless metadata
+    return nil if metadata[:revoked]
+
+    metadata.merge(
+      snapshot_file: snapshot_file(token),
+      snapshot_missing: !snapshot_file(token).file?
+    )
+  end
+
   def list_active_shares
     metadata_files.filter_map do |file|
       metadata = parse_metadata_file(file)
@@ -121,6 +132,23 @@ class ShareService
         snapshot_missing: !snapshot.file?
       )
     end
+  end
+
+  def revoke_by_token(token)
+    metadata = metadata_for_token(token)
+    raise NotFoundError, "Share not found for token #{token}" unless metadata
+
+    revoked_metadata = metadata.except(:snapshot_file, :snapshot_missing).merge(
+      updated_at: Time.current.iso8601,
+      revoked: true
+    )
+
+    write_metadata(revoked_metadata)
+
+    file = snapshot_file(revoked_metadata[:token])
+    file.delete if file.exist?
+
+    revoked_metadata
   end
 
   def active_share_for(path, note_identifier: nil, require_snapshot: true)

@@ -2,7 +2,7 @@
   <dialog
     data-share-management-target="dialog"
     data-action="click->share-management#onDialogClick keydown->share-management#onKeydown"
-    class="w-[92vw] max-w-4xl p-0 rounded-lg shadow-xl bg-[var(--theme-bg-primary)] text-[var(--theme-text-primary)] backdrop:bg-black/50 border border-[var(--theme-border)]"
+    class="w-[92vw] max-w-5xl p-0 rounded-lg shadow-xl bg-[var(--theme-bg-primary)] text-[var(--theme-text-primary)] backdrop:bg-black/50 border border-[var(--theme-border)]"
   >
     <div class="flex items-center justify-between px-6 py-4 border-b border-[var(--theme-border)]">
       <div>
@@ -12,8 +12,44 @@
       <%= render "shared/dialog_close_button", action: "click->share-management#close", size: "h-5 w-5", padding: "p-2", hover_bg: "hover:bg-[var(--theme-bg-secondary)]" %>
     </div>
 
+    <div class="px-6 pt-4">
+      <div class="inline-flex rounded-lg border border-[var(--theme-border)] bg-[var(--theme-bg-secondary)] p-1">
+        <button type="button"
+                data-share-management-target="tabButton"
+                data-tab="status"
+                data-action="click->share-management#switchTab"
+                class="rounded-md border px-3 py-1.5 text-sm">
+          <%= t("share_management.tabs.status", default: "Status") %>
+        </button>
+        <button type="button"
+                data-share-management-target="tabButton"
+                data-tab="connection"
+                data-action="click->share-management#switchTab"
+                class="rounded-md border px-3 py-1.5 text-sm">
+          <%= t("share_management.tabs.connection", default: "Connection") %>
+        </button>
+        <button type="button"
+                data-share-management-target="tabButton"
+                data-tab="publishing"
+                data-action="click->share-management#switchTab"
+                class="rounded-md border px-3 py-1.5 text-sm">
+          <%= t("share_management.tabs.publishing", default: "Publishing Overview") %>
+        </button>
+      </div>
+    </div>
+
     <div class="p-6 space-y-6">
-      <section class="space-y-3">
+      <section data-share-management-target="tabPanel" data-tab-panel="status" class="space-y-4">
+        <div>
+          <h3 class="text-sm font-semibold uppercase tracking-wide text-[var(--theme-text-secondary)]"><%= t("share_management.status_heading", default: "Status") %></h3>
+          <p class="text-xs text-[var(--theme-text-muted)] mt-1"><%= t("share_management.status_subtitle", default: "Check remote reachability, admin support, and cleanup readiness.") %></p>
+        </div>
+        <div data-share-management-target="statusPanel" class="rounded-lg border border-[var(--theme-border)] bg-[var(--theme-bg-secondary)] p-4 text-sm text-[var(--theme-text-primary)]">
+          <%= t("share_management.loading", default: "Loading Share API settings...") %>
+        </div>
+      </section>
+
+      <section data-share-management-target="tabPanel" data-tab-panel="connection" class="space-y-4 hidden">
         <div>
           <h3 class="text-sm font-semibold uppercase tracking-wide text-[var(--theme-text-secondary)]"><%= t("share_management.connection_heading", default: "Connection") %></h3>
           <p class="text-xs text-[var(--theme-text-muted)] mt-1"><%= t("share_management.secrets_hint", default: "Leave secret fields blank to keep the current value.") %></p>
@@ -110,13 +146,21 @@
         </form>
       </section>
 
-      <section class="space-y-3">
+      <section data-share-management-target="tabPanel" data-tab-panel="publishing" class="space-y-4 hidden">
         <div>
-          <h3 class="text-sm font-semibold uppercase tracking-wide text-[var(--theme-text-secondary)]"><%= t("share_management.status_heading", default: "Status") %></h3>
+          <h3 class="text-sm font-semibold uppercase tracking-wide text-[var(--theme-text-secondary)]"><%= t("share_management.tabs.publishing", default: "Publishing Overview") %></h3>
+          <p class="text-xs text-[var(--theme-text-muted)] mt-1"><%= t("share_management.publishing_subtitle", default: "Review published notes, copy links, open their local files, or delete individual shares.") %></p>
         </div>
-        <div data-share-management-target="statusPanel" class="rounded-lg border border-[var(--theme-border)] bg-[var(--theme-bg-secondary)] p-4 text-sm text-[var(--theme-text-primary)]">
-          <%= t("share_management.loading", default: "Loading Share API settings...") %>
+
+        <div data-share-management-target="publishedLoading" class="rounded-lg border border-[var(--theme-border)] bg-[var(--theme-bg-secondary)] p-4 text-sm text-[var(--theme-text-muted)] hidden">
+          <%= t("share_management.published_loading", default: "Loading published notes...") %>
         </div>
+
+        <div data-share-management-target="publishedEmpty" class="rounded-lg border border-[var(--theme-border)] bg-[var(--theme-bg-secondary)] p-4 text-sm text-[var(--theme-text-muted)] hidden">
+          <%= t("share_management.published_empty", default: "No published notes were found.") %>
+        </div>
+
+        <div data-share-management-target="publishedList" class="hidden"></div>
       </section>
     </div>
 

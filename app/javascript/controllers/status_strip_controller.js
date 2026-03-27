@@ -15,11 +15,18 @@ const SAVE_TONES = {
   error: "error"
 }
 
+const PUBLISH_TONES = {
+  public: "accent",
+  private: "muted",
+  stale: "error"
+}
+
 export default class extends Controller {
   static targets = [
     "strip",
     "modeChip",
     "saveChip",
+    "publishChip",
     "recoveryChip",
     "lineMetric",
     "selectionMetric",
@@ -71,6 +78,7 @@ export default class extends Controller {
     this.showStrip()
     this.renderModeChip()
     this.renderSaveChip()
+    this.renderPublishChip()
     this.renderRecoveryChip()
     this.renderLineMetric()
     this.renderSelectionMetric()
@@ -88,6 +96,13 @@ export default class extends Controller {
     this.saveChipTarget.textContent = this.saveStatusLabel(status)
     this.saveChipTarget.dataset.tone = SAVE_TONES[status] || "muted"
     this.saveChipTarget.classList.remove("hidden")
+  }
+
+  renderPublishChip() {
+    const status = this.currentPublishStatus()
+    this.publishChipTarget.textContent = this.publishStatusLabel(status)
+    this.publishChipTarget.dataset.tone = PUBLISH_TONES[status] || "muted"
+    this.publishChipTarget.classList.remove("hidden")
   }
 
   renderRecoveryChip() {
@@ -145,6 +160,37 @@ export default class extends Controller {
       default:
         return window.t("status_strip.save.saved")
     }
+  }
+
+  currentPublishStatus() {
+    if (!this.currentState?.shareable) return "private"
+    if (this.currentState?.shareStale) return "stale"
+    if (this.currentState?.shareActive) return "public"
+
+    return "private"
+  }
+
+  publishStatusLabel(status) {
+    switch (status) {
+      case "public":
+        return window.t("status_strip.publish.public")
+      case "stale":
+        return window.t("status_strip.publish.stale")
+      case "private":
+      default:
+        return window.t("status_strip.publish.private")
+    }
+  }
+
+  onPublishChipClick() {
+    if (!this.currentState?.shareable) return
+
+    this.dispatch("publish-clicked", {
+      detail: {
+        status: this.currentPublishStatus(),
+        url: this.currentState?.shareUrl || null
+      }
+    })
   }
 
   setMetric(target, text) {

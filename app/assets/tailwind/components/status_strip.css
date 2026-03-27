@@ -43,6 +43,19 @@
   white-space: nowrap;
 }
 
+.status-strip__chip--button {
+  cursor: pointer;
+}
+
+.status-strip__chip--button:hover {
+  background: var(--theme-bg-hover);
+}
+
+.status-strip__chip--button:focus-visible {
+  outline: 2px solid var(--theme-accent);
+  outline-offset: 2px;
+}
+
 .status-strip__chip.hidden {
   display: none;
 }

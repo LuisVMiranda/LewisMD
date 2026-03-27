@@ -134,7 +134,10 @@ ko:
     share_failed: 공유 링크를 업데이트하지 못했습니다
   status_strip:
     mode_prefix: 모드
-    recovery_available: 복구 가능
+    publish:
+      public: Public
+      private: Private
+      stale: Public (stale)
     modes:
       raw: 원문
       preview: 미리보기
@@ -163,6 +166,74 @@ ko:
     refresh_share_link: 공유 스냅샷 새로고침
     disable_share_link: 공유 링크 비활성화
     manage_api: API 관리
+  share_management:
+    title: Manage API
+    subtitle: Remote share relay settings, status, and maintenance.
+    connection_heading: Connection
+    status_heading: Status
+    status_subtitle: Check remote reachability, admin support, and cleanup readiness.
+    loading: Loading Share API settings...
+    ready: Adjust settings, recheck the connection, or clear published remote shares.
+    recheck: Reconnect / Recheck
+    recheck_complete: Share API status refreshed.
+    recheck_failed: Couldn't refresh Share API status.
+    settings_saved: Share API settings saved.
+    delete_all: Delete all shared notes
+    delete_failed: Couldn't delete the published remote shares.
+    bulk_delete_success: Deleted %{count} shared notes from the remote API.
+    local_mode_message: Local sharing stores snapshots on this machine.
+    remote_reachable: Remote share API is reachable.
+    remote_unreachable: Remote share API couldn't be reached.
+    published_loading: Loading published notes...
+    published_empty: No published notes were found.
+    published_deleted: Published note deleted.
+    published_deleted_stale_remote: Published note was already gone remotely, so the local share record was cleaned up.
+    delete_published_failed: Couldn't delete the published note.
+    load_failed: Couldn't load Share API settings.
+    published_load_failed: Couldn't load the published notes overview.
+    published_missing_locally: This published note no longer exists locally.
+    publishing_subtitle: Review published notes, copy links, open their local files, or delete individual shares.
+    copy_link: Copy Link
+    delete_published: Delete
+    published_uuid: UUID
+    published_date: Published
+    published_stale: Stale
+    published_missing: Missing locally
+    secrets_hint: Leave secret fields blank to keep the current value.
+    secret_configured: Configured
+    secret_not_configured: Not configured
+    yes: Yes
+    no: No
+    tabs:
+      status: Status
+      connection: Connection
+      publishing: Publishing Overview
+    fields:
+      share_backend: Share backend
+      share_remote_api_scheme: API scheme
+      share_remote_api_host: API host
+      share_remote_api_port: API port
+      share_remote_public_base: Public base URL
+      share_remote_timeout_seconds: Timeout (seconds)
+      share_remote_verify_tls: Verify TLS
+      share_remote_upload_assets: Upload embedded assets
+      share_remote_instance_name: Instance name
+      share_remote_expiration_days: Default expiration (days)
+      share_remote_healthchecks_ping_url: Healthchecks ping URL
+      share_remote_alert_webhook_url: Alert webhook URL
+      share_remote_api_token: API token
+      share_remote_signing_secret: Signing secret
+      share_remote_alert_webhook_secret: Alert webhook secret
+    status:
+      backend: Backend
+      public_base: Public base
+      reachable: Reachable
+      admin: Admin features
+      share_count: Published shares
+      storage_writable: Storage writable
+      capabilities: Capabilities
+      message: Message
+      upgrade_required: Upgrade the remote share API image to enable admin cleanup and publishing overview controls.
   share_view:
     label: 공유 노트
     open_exports: 내보내기 작업 열기
@@ -582,6 +653,8 @@ ko:
   confirm:
     delete_note: "노트 \"%{name}\"을 삭제할까요?\n\n이 작업은 되돌릴 수 없습니다."
     delete_folder: "폴더 \"%{name}\"과(와) 그 안의 모든 내용을 삭제할까요?\n\n이 작업은 되돌릴 수 없습니다."
+    delete_all_shared_notes: "Delete all published remote shares?\n\nThis wipes every shared note on the remote API without restarting it."
+    delete_published_note: 'Delete the published note "%{title}"?'
   success:
     note_created: 노트가 생성되었습니다
     note_saved: 노트가 저장되었습니다
@@ -596,7 +669,6 @@ ko:
   notes:
     show:
       ai_error: 'AI 오류: %{message}'
-
 
 
 

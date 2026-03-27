@@ -82,7 +82,8 @@ describe("AppController shared UI state", () => {
     }
 
     exportMenuController = {
-      setShareState: vi.fn()
+      setShareState: vi.fn(),
+      openMenu: vi.fn()
     }
 
     shareManagementController = {
@@ -133,7 +134,11 @@ describe("AppController shared UI state", () => {
       column: 7,
       selectionLength: 4,
       hasSelection: true,
-      recoveryAvailable: false
+      recoveryAvailable: false,
+      shareable: true,
+      shareActive: false,
+      shareStale: false,
+      shareUrl: null
     })
   })
 
@@ -476,7 +481,8 @@ describe("AppController shared UI state", () => {
   it("syncs current share availability into the export menu", () => {
     controller.setCurrentShare({
       token: "abc123",
-      url: "http://localhost:7591/s/abc123"
+      url: "http://localhost:7591/s/abc123",
+      stale: true
     })
 
     expect(exportMenuController.setShareState).toHaveBeenLastCalledWith({
@@ -484,6 +490,7 @@ describe("AppController shared UI state", () => {
       active: true,
       url: "http://localhost:7591/s/abc123"
     })
+    expect(controller.currentShare.stale).toBe(true)
 
     controller.clearCurrentShare()
 
@@ -492,6 +499,12 @@ describe("AppController shared UI state", () => {
       active: false,
       url: null
     })
+  })
+
+  it("opens the export menu when the publish chip is clicked", () => {
+    controller.onStatusStripPublishClicked()
+
+    expect(exportMenuController.openMenu).toHaveBeenCalledTimes(1)
   })
 
   it("applies note content returned from share creation and preserves body-relative cursor position", () => {

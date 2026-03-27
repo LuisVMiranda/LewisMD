@@ -158,6 +158,13 @@ describe("ExportMenuController", () => {
     expect(controller.buttonTarget.getAttribute("aria-expanded")).toBe("false")
   })
 
+  it("opens the menu programmatically", () => {
+    controller.openMenu()
+
+    expect(controller.menuTarget.classList.contains("hidden")).toBe(false)
+    expect(controller.buttonTarget.getAttribute("aria-expanded")).toBe("true")
+  })
+
   it("dispatches the selected action id and closes the menu", () => {
     const selectedSpy = vi.fn()
     element.addEventListener("export-menu:selected", selectedSpy)

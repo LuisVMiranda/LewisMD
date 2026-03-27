@@ -156,6 +156,10 @@ en:
   status_strip:
     mode_prefix: "Mode"
     recovery_available: "Recovery available"
+    publish:
+      public: "Public"
+      private: "Private"
+      stale: "Public (stale)"
     modes:
       raw: "Raw"
       preview: "Preview"
@@ -190,6 +194,7 @@ en:
     subtitle: "Remote share relay settings, status, and maintenance."
     connection_heading: "Connection"
     status_heading: "Status"
+    status_subtitle: "Check remote reachability, admin support, and cleanup readiness."
     loading: "Loading Share API settings..."
     ready: "Adjust settings, recheck the connection, or clear published remote shares."
     recheck: "Reconnect / Recheck"
@@ -202,11 +207,30 @@ en:
     local_mode_message: "Local sharing stores snapshots on this machine."
     remote_reachable: "Remote share API is reachable."
     remote_unreachable: "Remote share API couldn't be reached."
+    published_loading: "Loading published notes..."
+    published_empty: "No published notes were found."
+    published_deleted: "Published note deleted."
+    published_deleted_stale_remote: "Published note was already gone remotely, so the local share record was cleaned up."
+    delete_published_failed: "Couldn't delete the published note."
+    load_failed: "Couldn't load Share API settings."
+    published_load_failed: "Couldn't load the published notes overview."
+    published_missing_locally: "This published note no longer exists locally."
+    publishing_subtitle: "Review published notes, copy links, open their local files, or delete individual shares."
+    copy_link: "Copy Link"
+    delete_published: "Delete"
+    published_uuid: "UUID"
+    published_date: "Published"
+    published_stale: "Stale"
+    published_missing: "Missing locally"
     secrets_hint: "Leave secret fields blank to keep the current value."
     secret_configured: "Configured"
     secret_not_configured: "Not configured"
     yes: "Yes"
     no: "No"
+    tabs:
+      status: "Status"
+      connection: "Connection"
+      publishing: "Publishing Overview"
     fields:
       share_backend: "Share backend"
       share_remote_api_scheme: "API scheme"
@@ -232,6 +256,7 @@ en:
       storage_writable: "Storage writable"
       capabilities: "Capabilities"
       message: "Message"
+      upgrade_required: "Upgrade the remote share API image to enable admin cleanup and publishing overview controls."
 
   share_view:
     label: "Shared note"

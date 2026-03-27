@@ -30,6 +30,33 @@ class ShareManagementController < ApplicationController
     )
   end
 
+  def published
+    render json: {
+      published_shares: published_shares_overview.list
+    }
+  end
+
+  def destroy_published
+    row = published_shares_overview.find(params[:token])
+    return render json: { error: t("errors.share_not_found", default: "Share not found") }, status: :not_found unless row
+
+    deletion_result = delete_published_share(row)
+
+    render json: {
+      deleted: true,
+      token: row[:token],
+      backend: row[:backend],
+      path: row[:path],
+      note_identifier: row[:note_identifier],
+      remote_missing: deletion_result[:remote_missing] == true,
+      message: deletion_result[:message]
+    }
+  rescue ShareService::NotFoundError
+    render json: { error: t("errors.share_not_found", default: "Share not found") }, status: :not_found
+  rescue ShareService::InvalidShareError, RemoteShareClient::Error => e
+    render json: { error: e.message }, status: :unprocessable_entity
+  end
+
   def destroy
     unless remote_backend?
       render json: {
@@ -134,7 +161,49 @@ class ShareManagementController < ApplicationController
     @remote_registry ||= RemoteShareRegistryService.new(base_path: @config.base_path)
   end
 
+  def local_share_service
+    @local_share_service ||= ShareService.new(base_path: @config.base_path)
+  end
+
+  def published_shares_overview
+    @published_shares_overview ||= PublishedSharesOverviewService.new(base_path: @config.base_path)
+  end
+
   def share_provider_selector
     @share_provider_selector ||= ShareProviderSelector.new(config: @config)
+  end
+
+  def delete_published_share(row)
+    case row[:backend]
+    when "local"
+      local_share_service.revoke_by_token(row[:token])
+      {
+        message: t("share_management.published_deleted", default: "Published note deleted.")
+      }
+    when "remote"
+      remote_missing = false
+
+      begin
+        remote_client.revoke_share(token: row[:token])
+      rescue RemoteShareClient::RequestError => e
+        if e.status == 404
+          remote_missing = true
+        else
+          raise
+        end
+      end
+
+      remote_registry.delete_by_token(row[:token])
+      {
+        remote_missing: remote_missing,
+        message: if remote_missing
+          t("share_management.published_deleted_stale_remote", default: "Published note was already gone remotely, so the local share record was cleaned up.")
+        else
+          t("share_management.published_deleted", default: "Published note deleted.")
+        end
+      }
+    else
+      raise ShareService::InvalidShareError, t("errors.share_not_found", default: "Share not found")
+    end
   end
 end

@@ -136,6 +136,112 @@ class ShareManagementControllerTest < ActionDispatch::IntegrationTest
     assert_includes data["error"], "remote sharing"
   end
 
+  test "published returns normalized published shares with current note names and missing local rows" do
+    create_test_note("drafts/original.md", "# Original")
+    identity = NoteShareIdentityService.new(base_path: @test_notes_dir).ensure_identity!("drafts/original.md")
+    share_service = ShareService.new(base_path: @test_notes_dir)
+    local_share = share_service.create_or_find(
+      path: "drafts/original.md",
+      title: "Original",
+      snapshot_html: "<html><body>Original</body></html>",
+      note_identifier: identity[:note_identifier]
+    )
+    assert Note.find("drafts/original.md").rename("published/final-name.md")
+
+    RemoteShareRegistryService.new(base_path: @test_notes_dir).save(
+      token: "remote-stale-123",
+      note_identifier: "missing-note-123",
+      path: "missing/deleted-note.md",
+      title: "Deleted Note",
+      url: "https://shares.example.com/s/remote-stale-123",
+      created_at: "2026-03-27T12:00:00Z",
+      updated_at: "2026-03-27T12:00:00Z",
+      stale: true,
+      last_error: "Remote share missing",
+      last_synced_at: "2026-03-27T12:00:00Z",
+      content_hash: "hash-1",
+      locale: "en",
+      theme_id: "default",
+      asset_manifest: [],
+      expires_at: "2026-04-10T12:00:00Z",
+      capabilities: {}
+    )
+
+    get published_share_admin_url, as: :json
+
+    assert_response :success
+    data = JSON.parse(response.body)
+    assert_equal 2, data["published_shares"].length
+
+    local_row = data["published_shares"].find { |row| row["token"] == local_share[:token] }
+    remote_row = data["published_shares"].find { |row| row["token"] == "remote-stale-123" }
+
+    assert_equal "published/final-name.md", local_row["path"]
+    assert_equal "final-name", local_row["title"]
+    assert_equal false, local_row["missing_locally"]
+    assert_equal "/s/#{local_share[:token]}", local_row["url"]
+
+    assert_equal "missing/deleted-note.md", remote_row["path"]
+    assert_equal "Deleted Note", remote_row["title"]
+    assert_equal true, remote_row["missing_locally"]
+    assert_equal true, remote_row["stale"]
+  end
+
+  test "destroy_published revokes a local published note by token" do
+    create_test_note("drafts/local-share.md", "# Local")
+    identity = NoteShareIdentityService.new(base_path: @test_notes_dir).ensure_identity!("drafts/local-share.md")
+    share_service = ShareService.new(base_path: @test_notes_dir)
+    share = share_service.create_or_find(
+      path: "drafts/local-share.md",
+      title: "Local",
+      snapshot_html: "<html><body>Local</body></html>",
+      note_identifier: identity[:note_identifier]
+    )
+
+    delete destroy_published_share_admin_url(token: share[:token]), as: :json
+
+    assert_response :success
+    data = JSON.parse(response.body)
+    assert_equal true, data["deleted"]
+    assert_equal "local", data["backend"]
+    assert_nil share_service.metadata_for_token(share[:token])
+  end
+
+  test "destroy_published clears stale remote registry entries when the remote share is already gone" do
+    configure_remote_share_backend
+    registry = RemoteShareRegistryService.new(base_path: @test_notes_dir)
+    registry.save(
+      token: "remote-share-1234",
+      note_identifier: "note-123",
+      path: "shared-note.md",
+      title: "Shared Note",
+      url: "https://shares.example.com/s/remote-share-1234",
+      created_at: "2026-03-27T12:00:00Z",
+      updated_at: "2026-03-27T12:00:00Z",
+      stale: true,
+      last_error: "Remote share missing",
+      last_synced_at: "2026-03-27T12:00:00Z",
+      content_hash: "hash-1",
+      locale: "en",
+      theme_id: "dark",
+      asset_manifest: [],
+      expires_at: "2026-04-10T12:00:00Z",
+      capabilities: { "api_version" => "1" }
+    )
+
+    stub_remote_capabilities
+    stub_request(:delete, "https://shares.example.com/api/v1/shares/remote-share-1234")
+      .to_return(status: 404, body: { error: "Share not found" }.to_json)
+
+    delete destroy_published_share_admin_url(token: "remote-share-1234"), as: :json
+
+    assert_response :success
+    data = JSON.parse(response.body)
+    assert_equal true, data["deleted"]
+    assert_equal true, data["remote_missing"]
+    assert_nil registry.find_by_token("remote-share-1234")
+  end
+
   private
 
   def configure_remote_share_backend

@@ -68,6 +68,8 @@ Rails.application.routes.draw do
   get "shares/admin", to: "share_management#show", as: :share_admin
   patch "shares/admin", to: "share_management#update"
   post "shares/admin/recheck", to: "share_management#recheck", as: :recheck_share_admin
+  get "shares/admin/published", to: "share_management#published", as: :published_share_admin
+  delete "shares/admin/published/:token", to: "share_management#destroy_published", as: :destroy_published_share_admin
   delete "shares/admin", to: "share_management#destroy"
   get "shares/*path", to: "shares#lookup", as: :share_status, format: false
   patch "shares/*path", to: "shares#update", as: :update_share, format: false

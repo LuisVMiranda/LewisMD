@@ -291,7 +291,11 @@ export default class extends Controller {
     return {
       ...this.getDocumentContext(),
       ...this.getModeState(),
-      recoveryAvailable: Boolean(this.recoveryAvailable)
+      recoveryAvailable: Boolean(this.recoveryAvailable),
+      shareable: Boolean(this.currentFile && this.isMarkdownFile()),
+      shareActive: Boolean(this.currentShare?.url),
+      shareStale: Boolean(this.currentShare?.stale),
+      shareUrl: this.currentShare?.url || null
     }
   }
 
@@ -724,11 +728,13 @@ export default class extends Controller {
   setCurrentShare(share) {
     this.currentShare = share ? { ...share } : null
     this.updateExportMenuShareState()
+    this.emitUiStateChanged("share-state-changed")
   }
 
   clearCurrentShare() {
     this.currentShare = null
     this.updateExportMenuShareState()
+    this.emitUiStateChanged("share-state-changed")
   }
 
   updateExportMenuShareState() {
@@ -1810,8 +1816,27 @@ export default class extends Controller {
     this.getShareManagementController()?.open()
   }
 
+  openExportMenu() {
+    this.getExportMenuController()?.openMenu?.()
+  }
+
+  onStatusStripPublishClicked() {
+    this.openExportMenu()
+  }
+
   async onShareManagementSharesCleared() {
     await this.refreshCurrentShareState()
+  }
+
+  async onShareManagementShareDeleted() {
+    await this.refreshCurrentShareState()
+  }
+
+  async onShareManagementOpenNote(event) {
+    const path = event.detail?.path
+    if (!path) return
+
+    await this.loadFile(path)
   }
 
   async onExportMenuSelected(event) {

@@ -62,6 +62,11 @@ export default class extends Controller {
     this.updateExpandedState()
   }
 
+  openMenu() {
+    this.menuTarget.classList.remove("hidden")
+    this.updateExpandedState()
+  }
+
   select(event) {
     const actionId = event.currentTarget.dataset.actionId
     if (!actionId) return
