@@ -251,6 +251,8 @@ en:
       backend: "Backend"
       public_base: "Public base"
       reachable: "Reachable"
+      online: "ONLINE"
+      offline: "OFFLINE"
       admin: "Admin features"
       share_count: "Published shares"
       storage_writable: "Storage writable"

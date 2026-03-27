@@ -343,7 +343,7 @@ export default class extends Controller {
     const rows = [
       [ this.translate("share_management.status.backend", "Backend"), this.escapeHtml(backend) ],
       [ this.translate("share_management.status.public_base", "Public base"), this.escapeHtml(this.status.public_base || this.settings.share_remote_public_base || "-") ],
-      [ this.translate("share_management.status.reachable", "Reachable"), this.booleanLabel(this.status.reachable) ],
+      [ this.translate("share_management.status.reachable", "Reachable"), this.reachableLabel(this.status.reachable) ],
       [ this.translate("share_management.status.admin", "Admin features"), this.booleanLabel(this.status.admin_enabled) ],
       [ this.translate("share_management.status.share_count", "Published shares"), this.valueLabel(this.status.remote_share_count) ],
       [ this.translate("share_management.status.storage_writable", "Storage writable"), this.booleanLabel(this.status.storage_writable) ],
@@ -521,6 +521,30 @@ export default class extends Controller {
     return value
       ? this.translate("share_management.yes", "Yes")
       : this.translate("share_management.no", "No")
+  }
+
+  reachableLabel(value) {
+    if (value === null || value === undefined) return "-"
+
+    if (value) {
+      return this.statusPill(
+        this.translate("share_management.status.online", "ONLINE"),
+        "online"
+      )
+    }
+
+    return this.statusPill(
+      this.translate("share_management.status.offline", "OFFLINE"),
+      "offline"
+    )
+  }
+
+  statusPill(label, tone) {
+    const toneClasses = tone === "online"
+      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+      : "border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400"
+
+    return `<span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wide ${toneClasses}">${this.escapeHtml(label)}</span>`
   }
 
   valueLabel(value) {

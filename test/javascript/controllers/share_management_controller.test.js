@@ -31,6 +31,8 @@ describe("ShareManagementController", () => {
         "share_management.status.backend": "Backend",
         "share_management.status.public_base": "Public base",
         "share_management.status.reachable": "Reachable",
+        "share_management.status.online": "ONLINE",
+        "share_management.status.offline": "OFFLINE",
         "share_management.status.admin": "Admin features",
         "share_management.status.share_count": "Published shares",
         "share_management.status.storage_writable": "Storage writable",
@@ -217,6 +219,7 @@ describe("ShareManagementController", () => {
     expect(controller.formTarget.elements.share_remote_api_token.placeholder).toBe("Configured")
     expect(controller.statusPanelTarget.textContent).toContain("Published shares")
     expect(controller.statusPanelTarget.textContent).toContain("4")
+    expect(controller.statusPanelTarget.textContent).toContain("ONLINE")
   })
 
   it("saves updated settings through the local admin proxy", async () => {
