@@ -96,6 +96,26 @@ class RemoteShareRegistryServiceTest < ActiveSupport::TestCase
     assert @test_notes_dir.join(RemoteShareRegistryService::REGISTRY_DIR, "remote-share-1234.json").exist?
   end
 
+  test "list_active_shares returns non-expired entries and prunes expired ones" do
+    @service.save(remote_share_metadata)
+    @service.save(remote_share_metadata.merge(
+      token: "expired-share-123",
+      note_identifier: "note-expired",
+      path: "expired-note.md",
+      url: "https://shares.example.com/s/expired-share-123",
+      expires_at: "2026-03-25T11:59:00Z"
+    ))
+
+    travel_to Time.zone.parse("2026-03-25 12:00:00 UTC") do
+      shares = @service.list_active_shares
+
+      assert_equal 1, shares.length
+      assert_equal "remote-share-1234", shares.first[:token]
+    end
+
+    refute @test_notes_dir.join(RemoteShareRegistryService::REGISTRY_DIR, "expired-share-123.json").exist?
+  end
+
   private
 
   def remote_share_metadata

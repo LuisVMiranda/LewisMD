@@ -148,4 +148,30 @@ class ShareServiceTest < ActiveSupport::TestCase
     metadata = JSON.parse(File.read(@test_notes_dir.join(".frankmd/shares/#{share[:token]}.json")))
     assert_equal "renamed/shared-note.md", metadata["path"]
   end
+
+  test "list_active_shares includes active shares and flags missing snapshots" do
+    create_test_note("other-note.md", "# Other")
+
+    active = @service.create_or_find(
+      path: "shared-note.md",
+      title: "Shared Note",
+      snapshot_html: "<html><body>Version One</body></html>",
+      note_identifier: @note_identifier
+    )
+    missing_snapshot = @service.create_or_find(
+      path: "other-note.md",
+      title: "Other Note",
+      snapshot_html: "<html><body>Other</body></html>",
+      note_identifier: SecureRandom.uuid
+    )
+    @service.revoke(path: "shared-note.md", note_identifier: @note_identifier)
+    @test_notes_dir.join(".frankmd/share_snapshots/#{missing_snapshot[:token]}.html").delete
+
+    shares = @service.list_active_shares
+
+    assert_equal 1, shares.length
+    assert_equal missing_snapshot[:token], shares.first[:token]
+    assert_equal true, shares.first[:snapshot_missing]
+    assert_equal "other-note.md", shares.first[:path]
+  end
 end

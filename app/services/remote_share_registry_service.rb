@@ -70,6 +70,20 @@ class RemoteShareRegistryService
     normalized_metadata
   end
 
+  def list_active_shares
+    metadata_files.filter_map do |file|
+      metadata = parse_metadata_file(file)
+      next unless metadata
+
+      if expired_share?(metadata)
+        file.delete if file.exist?
+        next
+      end
+
+      metadata
+    end
+  end
+
   def mark_stale(path:, note_identifier: nil, error:)
     metadata = active_share_for(path, note_identifier: note_identifier)
     raise ShareService::NotFoundError, "Share not found for #{path}" unless metadata

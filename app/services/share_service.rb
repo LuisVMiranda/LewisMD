@@ -109,6 +109,20 @@ class ShareService
     metadata.merge(snapshot_file: file)
   end
 
+  def list_active_shares
+    metadata_files.filter_map do |file|
+      metadata = parse_metadata_file(file)
+      next unless metadata
+      next if metadata[:revoked]
+
+      snapshot = snapshot_file(metadata[:token])
+      metadata.merge(
+        snapshot_file: snapshot,
+        snapshot_missing: !snapshot.file?
+      )
+    end
+  end
+
   def active_share_for(path, note_identifier: nil, require_snapshot: true)
     normalized_path = normalize_note_path(path)
     normalized_note_identifier = normalize_note_identifier(note_identifier)

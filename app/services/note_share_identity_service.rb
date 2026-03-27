@@ -41,6 +41,19 @@ class NoteShareIdentityService
     }
   end
 
+  def indexed_notes
+    markdown_note_paths.filter_map do |path|
+      content = notes_service.read(path)
+      {
+        path: path,
+        title: File.basename(path, ".md"),
+        note_identifier: extract_frontmatter_metadata(content)[:note_identifier]
+      }
+    rescue NotesService::NotFoundError, ShareService::InvalidShareError
+      next
+    end
+  end
+
   private
 
   attr_reader :notes_service
