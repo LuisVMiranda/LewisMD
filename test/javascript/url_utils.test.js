@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest"
 import {
   encodePath,
+  rewriteNoteHref,
   extractYouTubeId
 } from "../../app/javascript/lib/url_utils.js"
 
@@ -80,5 +81,39 @@ describe("extractYouTubeId", () => {
   it("handles URL without www", () => {
     expect(extractYouTubeId("https://youtube.com/watch?v=dQw4w9WgXcQ"))
       .toBe("dQw4w9WgXcQ")
+  })
+})
+
+describe("rewriteNoteHref", () => {
+  it("rewrites root note paths to LewisMD note routes", () => {
+    expect(rewriteNoteHref("/Personal/Studies/Español/2026/Study_Syllabus_A2"))
+      .toBe("/notes/Personal/Studies/Espa%C3%B1ol/2026/Study_Syllabus_A2.md")
+  })
+
+  it("rewrites relative note paths against the current note directory", () => {
+    expect(rewriteNoteHref("Study_Syllabus_A2", "Personal/Studies/Español/2026/Lesson_01.md"))
+      .toBe("/notes/Personal/Studies/Espa%C3%B1ol/2026/Study_Syllabus_A2.md")
+  })
+
+  it("resolves parent directory note paths", () => {
+    expect(rewriteNoteHref("../Glossary", "Personal/Studies/Español/2026/Lesson_01.md"))
+      .toBe("/notes/Personal/Studies/Espa%C3%B1ol/Glossary.md")
+  })
+
+  it("preserves query strings and anchors when rewriting note paths", () => {
+    expect(rewriteNoteHref("./Study_Syllabus_A2?view=compact#goals", "Personal/Studies/Español/2026/Lesson_01.md"))
+      .toBe("/notes/Personal/Studies/Espa%C3%B1ol/2026/Study_Syllabus_A2.md?view=compact#goals")
+  })
+
+  it("keeps existing app routes unchanged", () => {
+    expect(rewriteNoteHref("/notes/Personal/Studies/Espa%C3%B1ol/2026/Study_Syllabus_A2.md"))
+      .toBe("/notes/Personal/Studies/Espa%C3%B1ol/2026/Study_Syllabus_A2.md")
+  })
+
+  it("does not rewrite external, anchor, or non-note file links", () => {
+    expect(rewriteNoteHref("https://example.com")).toBeNull()
+    expect(rewriteNoteHref("#section-2")).toBeNull()
+    expect(rewriteNoteHref("appendix.pdf", "Personal/Studies/Español/2026/Lesson_01.md")).toBeNull()
+    expect(rewriteNoteHref("/images/example.png")).toBe("/images/example.png")
   })
 })

@@ -37,7 +37,19 @@ export default class extends Controller {
     this._scrollSourceTimeout = null
     this._isUpdatingContent = false // Prevents preview scroll from syncing to editor during content updates
     this._contentUpdateTimeout = null
+    this.currentNotePath = null
     this.applyZoom()
+  }
+
+  setCurrentNotePath(path) {
+    this.currentNotePath = path || null
+  }
+
+  getCurrentNotePath() {
+    if (this.currentNotePath) return this.currentNotePath
+
+    const match = window.location.pathname.match(/^\/notes\/(.+)$/)
+    return match ? decodeURIComponent(match[1]) : null
   }
 
   disconnect() {
@@ -166,7 +178,7 @@ export default class extends Controller {
   }
 
   // Render markdown content to preview
-  render(markdownContent) {
+  render(markdownContent, options = {}) {
     if (!this.isVisible) return
     if (!this.hasContentTarget) return
 
@@ -183,7 +195,9 @@ export default class extends Controller {
     this.frontmatterLines = frontmatterLines
 
     // Parse with line numbers for accurate scroll sync
-    this.contentTarget.innerHTML = parseWithLineNumbers(content, frontmatterLines)
+    this.contentTarget.innerHTML = parseWithLineNumbers(content, frontmatterLines, {
+      currentNotePath: options.currentNotePath || this.getCurrentNotePath()
+    })
 
     // Add copy buttons to code blocks
     this._addCodeCopyButtons()

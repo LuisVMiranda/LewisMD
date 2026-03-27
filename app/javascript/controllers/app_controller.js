@@ -415,6 +415,7 @@ export default class extends Controller {
     this.currentFile = null
     this.currentFileType = null
     this.clearCurrentShare()
+    this.getPreviewController()?.setCurrentNotePath?.(null)
     this.updatePathDisplay(null)
     this.editorPlaceholderTarget.classList.remove("hidden")
     this.editorTarget.classList.add("hidden")
@@ -569,6 +570,7 @@ export default class extends Controller {
 
     // Only show toolbar and preview for markdown files
     const isMarkdown = fileType === "markdown"
+    this.getPreviewController()?.setCurrentNotePath?.(isMarkdown ? this.currentFile : null)
 
     if (isMarkdown) {
       this.editorToolbarTarget.classList.remove("hidden")
@@ -877,13 +879,17 @@ export default class extends Controller {
     const previewController = this.getPreviewController()
     if (!previewController) return
 
+    previewController.setCurrentNotePath?.(this.currentFile)
+
     const scrollSync = this.getScrollSyncController()
     if (scrollSync) {
       scrollSync.updatePreview()
       return
     }
 
-    previewController.render(this.getCurrentDocumentContent())
+    previewController.render(this.getCurrentDocumentContent(), {
+      currentNotePath: this.currentFile
+    })
   }
 
   getCurrentDocumentContent() {

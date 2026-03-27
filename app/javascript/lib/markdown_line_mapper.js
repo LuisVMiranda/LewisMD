@@ -4,6 +4,7 @@
 // images, videos, or other elements that render with different heights
 
 import { marked } from "marked"
+import { rewriteNoteLinksInHtml } from "lib/rendered_note_links"
 
 /**
  * Parse markdown and return HTML with source line annotations
@@ -12,7 +13,7 @@ import { marked } from "marked"
  * @param {number} lineOffset - Line offset (e.g., for stripped frontmatter)
  * @returns {string} - HTML with data-source-line attributes on block elements
  */
-export function parseWithLineNumbers(markdown, lineOffset = 0) {
+export function parseWithLineNumbers(markdown, lineOffset = 0, options = {}) {
   if (!markdown) return ""
 
   // First, get tokens to know line positions
@@ -46,7 +47,7 @@ export function parseWithLineNumbers(markdown, lineOffset = 0) {
   }
 
   // Parse with standard marked
-  const html = marked.parse(markdown)
+  const html = rewriteNoteLinksInHtml(marked.parse(markdown), options.currentNotePath)
 
   // Post-process: add data-source-line to block elements
   // This is a simple approach that adds line numbers sequentially to block elements

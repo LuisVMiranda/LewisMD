@@ -159,6 +159,16 @@ describe("PreviewController", () => {
       expect(controller.contentTarget.innerHTML).toContain("World</p>")
     })
 
+    it("rewrites note-style markdown links into LewisMD note routes", () => {
+      controller.render("[Study syllabus](Study_Syllabus_A2)", {
+        currentNotePath: "Personal/Studies/Español/2026/Lesson_01.md"
+      })
+
+      const anchor = controller.contentTarget.querySelector("a")
+      expect(anchor).not.toBeNull()
+      expect(anchor.getAttribute("href")).toBe("/notes/Personal/Studies/Espa%C3%B1ol/2026/Study_Syllabus_A2.md")
+    })
+
     it("does nothing when hidden", () => {
       controller.panelTarget.classList.add("hidden")
       controller.render("# Test")

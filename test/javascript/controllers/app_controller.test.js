@@ -453,7 +453,9 @@ describe("AppController shared UI state", () => {
     await controller.collectRenderedDocumentPayload()
 
     expect(previewController.show).not.toHaveBeenCalled()
-    expect(previewController.render).toHaveBeenCalledWith("# Example\n\nBody")
+    expect(previewController.render).toHaveBeenCalledWith("# Example\n\nBody", {
+      currentNotePath: "notes/test.md"
+    })
     expect(previewController.hide).not.toHaveBeenCalled()
   })
 
