@@ -4,11 +4,13 @@
 import { EditorView, keymap, placeholder, lineNumbers, highlightActiveLineGutter, drawSelection, rectangularSelection, highlightActiveLine, ViewPlugin } from "@codemirror/view"
 import { EditorState, Compartment, Prec } from "@codemirror/state"
 import { history, defaultKeymap, historyKeymap, indentWithTab } from "@codemirror/commands"
+import { autocompletion } from "@codemirror/autocomplete"
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown"
 import { bracketMatching } from "@codemirror/language"
 import { searchKeymap, highlightSelectionMatches } from "@codemirror/search"
 import { createTheme } from "lib/codemirror_theme"
 import { LINE_NUMBER_MODES } from "lib/line_numbers"
+import { findInlineMarkdownLinkDestination, rankNoteLinkCandidates } from "lib/note_link_autocomplete"
 
 // Re-export for convenience
 export { LINE_NUMBER_MODES }
@@ -168,8 +170,44 @@ export function createExtensions(options = {}) {
     lineNumberMode = LINE_NUMBER_MODES.OFF,
     onUpdate = null,
     onSelectionChange = null,
-    onScroll = null
+    onScroll = null,
+    noteLinkAutocomplete = null
   } = options
+
+  const noteLinkAutocompleteSource = noteLinkAutocomplete
+    ? (context) => {
+        const selection = context.state.selection.main
+        if (!selection.empty) return null
+
+        const line = context.state.doc.lineAt(context.pos)
+        const cursorOffset = context.pos - line.from
+        const destinationContext = findInlineMarkdownLinkDestination(line.text, cursorOffset)
+        if (!destinationContext) return null
+
+        const query = destinationContext.query.trim()
+        if (!context.explicit && query.length < 1) return null
+
+        const candidates = rankNoteLinkCandidates(
+          noteLinkAutocomplete.getAvailableNotes?.() || [],
+          destinationContext.query,
+          noteLinkAutocomplete.getCurrentNotePath?.() || null
+        )
+
+        if (candidates.length === 0) return null
+
+        return {
+          from: line.from + destinationContext.from,
+          to: line.from + destinationContext.to,
+          options: candidates.map((candidate) => ({
+            label: candidate.label,
+            detail: candidate.detail || null,
+            type: "text",
+            apply: candidate.insertText
+          })),
+          filter: false
+        }
+      }
+    : null
 
   const extensions = [
     // Theme (in compartment for dynamic switching)
@@ -193,6 +231,12 @@ export function createExtensions(options = {}) {
     highlightActiveLine(),
     highlightSelectionMatches({ minSelectionLength: 3, wholeWords: true }),
     bracketMatching(),
+    autocompletion({
+      activateOnTyping: true,
+      icons: false,
+      maxRenderedOptions: 3,
+      override: noteLinkAutocompleteSource ? [noteLinkAutocompleteSource] : []
+    }),
 
     // Line wrapping
     EditorView.lineWrapping,

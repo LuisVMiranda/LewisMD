@@ -91,6 +91,22 @@ describe("CodemirrorController", () => {
     })
   })
 
+  describe("note link autocomplete context", () => {
+    it("stores the current note path", () => {
+      controller.setCurrentNotePath("Folder 1/note.md")
+
+      expect(controller.currentNotePath).toBe("Folder 1/note.md")
+    })
+
+    it("stores the available markdown notes", () => {
+      const notes = [{ path: "Folder 1/other.md", file_type: "markdown" }]
+
+      controller.setAvailableNotes(notes)
+
+      expect(controller.availableMarkdownNotes).toEqual(notes)
+    })
+  })
+
   describe("getSelection()", () => {
     it("returns selection info with from, to, and text", () => {
       const selection = controller.getSelection()

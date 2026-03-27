@@ -13,7 +13,7 @@ module SharePublishers
 
     def create_or_find(path:, title:, snapshot_html:, share_payload: nil)
       _ = snapshot_html
-      existing_share = active_share_for(path)
+      existing_share = active_share_for(path, note_identifier: share_payload&.dig(:note_identifier))
       return existing_share.merge(created: false) if existing_share
 
       payload = normalize_share_payload(path:, title:, share_payload:)
@@ -27,7 +27,8 @@ module SharePublishers
 
     def refresh(path:, title:, snapshot_html:, share_payload: nil)
       _ = snapshot_html
-      existing_share = registry.active_share_for(path)
+      note_identifier = share_payload&.dig(:note_identifier)
+      existing_share = registry.active_share_for(path, note_identifier: note_identifier)
       raise ShareService::NotFoundError, "Share not found for #{path}" unless existing_share
 
       payload = normalize_share_payload(path:, title:, share_payload:)
@@ -42,16 +43,16 @@ module SharePublishers
         existing_share: existing_share
       )
     rescue RemoteShareClient::Error => e
-      registry.mark_stale(path: path, error: e.message) if existing_share
+      registry.mark_stale(path: path, note_identifier: note_identifier, error: e.message) if existing_share
       raise ShareService::InvalidShareError, e.message
     end
 
-    def revoke(path:)
-      existing_share = registry.active_share_for(path)
+    def revoke(path:, note_identifier: nil)
+      existing_share = registry.active_share_for(path, note_identifier: note_identifier)
       raise ShareService::NotFoundError, "Share not found for #{path}" unless existing_share
 
       client.revoke_share(token: existing_share[:token])
-      registry.delete(path:)
+      registry.delete(path: path, note_identifier: note_identifier)
 
       existing_share
     rescue RemoteShareClient::Error => e
@@ -62,9 +63,9 @@ module SharePublishers
       nil
     end
 
-    def active_share_for(path, require_snapshot: true)
+    def active_share_for(path, note_identifier: nil, require_snapshot: true)
       _ = require_snapshot
-      registry.active_share_for(path)
+      registry.active_share_for(path, note_identifier: note_identifier)
     rescue ShareService::InvalidShareError
       nil
     end
@@ -119,6 +120,7 @@ module SharePublishers
       metadata = registry.save(
         {
           token: remote_share[:token],
+          note_identifier: payload[:note_identifier],
           path: payload[:path],
           title: remote_share[:title].presence || payload[:title],
           url: remote_share[:url],

@@ -91,6 +91,8 @@ class ConfigTest < ActiveSupport::TestCase
     assert_includes content, "# preview_font_family = sans"
     assert_includes content, "# preview_width = 40"
     assert_includes content, "# active_mode = raw"
+    assert_includes content, "# last_open_note = Writing/Current.md"
+    assert_includes content, "# explorer_expanded_folders = Personal%2FStudies,Personal%2FStudies%2FEspa%C3%B1ol"
     assert_includes content, "# App-managed local images default to .frankmd/images inside notes path."
     assert_includes content, "# Templates"
     assert_includes content, "# templates_path = /path/to/templates"
@@ -122,6 +124,8 @@ class ConfigTest < ActiveSupport::TestCase
     assert_equal "sans", config.get(:preview_font_family)
     assert_equal true, config.get(:sidebar_visible)
     assert_nil config.get(:active_mode)
+    assert_nil config.get(:last_open_note)
+    assert_nil config.get(:explorer_expanded_folders)
     assert_equal false, config.get(:typewriter_mode)
     assert_nil config.get(:templates_path)
     assert_equal "local", config.get(:share_backend)
@@ -144,6 +148,8 @@ class ConfigTest < ActiveSupport::TestCase
       preview_width = 52
       preview_font_family = serif
       active_mode = preview
+      last_open_note = "Projects/Current Draft.md"
+      explorer_expanded_folders = Projects,Projects%2FArchive
       templates_path = /tmp/templates
       share_backend = remote
       share_remote_api_host = shares.example.com
@@ -162,6 +168,8 @@ class ConfigTest < ActiveSupport::TestCase
     assert_equal 52, config.get(:preview_width)
     assert_equal "serif", config.get(:preview_font_family)
     assert_equal "preview", config.get(:active_mode)
+    assert_equal "Projects/Current Draft.md", config.get(:last_open_note)
+    assert_equal "Projects,Projects%2FArchive", config.get(:explorer_expanded_folders)
     assert_equal "/tmp/templates", config.get(:templates_path)
     assert_equal "remote", config.get(:share_backend)
     assert_equal "shares.example.com", config.get(:share_remote_api_host)
@@ -267,6 +275,8 @@ class ConfigTest < ActiveSupport::TestCase
       preview_font_family: "mono",
       preview_width: 58,
       active_mode: "reading",
+      last_open_note: "Writing/Current Draft.md",
+      explorer_expanded_folders: "Writing,Writing%2FDrafts",
       share_remote_expiration_days: 21
     )
 
@@ -276,6 +286,8 @@ class ConfigTest < ActiveSupport::TestCase
     assert_equal "mono", config2.get(:preview_font_family)
     assert_equal 58, config2.get(:preview_width)
     assert_equal "reading", config2.get(:active_mode)
+    assert_equal "Writing/Current Draft.md", config2.get(:last_open_note)
+    assert_equal "Writing,Writing%2FDrafts", config2.get(:explorer_expanded_folders)
     assert_equal 21, config2.get(:share_remote_expiration_days)
   end
 
@@ -437,6 +449,8 @@ class ConfigTest < ActiveSupport::TestCase
     assert_equal 55, settings["preview_width"]
     assert_equal "serif", settings["preview_font_family"]
     assert_equal "preview", settings["active_mode"]
+    assert_nil settings["last_open_note"]
+    assert_nil settings["explorer_expanded_folders"]
     refute settings.key?("youtube_api_key")
     refute settings.key?("templates_path")
   end
@@ -962,5 +976,26 @@ class ConfigTest < ActiveSupport::TestCase
     assert_includes content, "# ai_custom_prompt_provider = anthropic"
     assert_includes content, "# ai_custom_prompt_model = claude-sonnet-4-20250514"
     assert_equal 1, content.scan(/ai_grammar_provider/).length
+  end
+
+  test "upgrade adds explorer resume lines to an existing ui section" do
+    config_with_ui_section = <<~CONFIG
+      # FrankMD Configuration
+      theme = dark
+
+      # UI Settings
+      # active_mode = raw
+      # typewriter_mode = false
+    CONFIG
+
+    @test_dir.join(".fed").write(config_with_ui_section)
+
+    Config.new(base_path: @test_dir)
+    content = @test_dir.join(".fed").read
+
+    assert_includes content, "# last_open_note = Writing/Current.md"
+    assert_includes content, "# explorer_expanded_folders = Personal%2FStudies,Personal%2FStudies%2FEspa%C3%B1ol"
+    assert_equal 1, content.scan(/last_open_note/).length
+    assert_equal 1, content.scan(/explorer_expanded_folders/).length
   end
 end

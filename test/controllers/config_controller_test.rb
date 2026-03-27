@@ -30,6 +30,8 @@ class ConfigControllerTest < ActionDispatch::IntegrationTest
     assert settings.key?("preview_font_family")
     assert settings.key?("sidebar_visible")
     assert settings.key?("active_mode")
+    assert settings.key?("last_open_note")
+    assert settings.key?("explorer_expanded_folders")
     assert settings.key?("typewriter_mode")
 
     # Should include features
@@ -55,6 +57,8 @@ class ConfigControllerTest < ActionDispatch::IntegrationTest
     assert_equal "sans", settings["preview_font_family"]
     assert_equal true, settings["sidebar_visible"]
     assert_nil settings["active_mode"]
+    assert_nil settings["last_open_note"]
+    assert_nil settings["explorer_expanded_folders"]
     assert_equal false, settings["typewriter_mode"]
   end
 
@@ -65,6 +69,8 @@ class ConfigControllerTest < ActionDispatch::IntegrationTest
       preview_width = 55
       preview_font_family = serif
       active_mode = preview
+      last_open_note = "Writing/Current Draft.md"
+      explorer_expanded_folders = Writing,Writing%2FDrafts
       typewriter_mode = true
     CONFIG
 
@@ -79,13 +85,15 @@ class ConfigControllerTest < ActionDispatch::IntegrationTest
     assert_equal 55, settings["preview_width"]
     assert_equal "serif", settings["preview_font_family"]
     assert_equal "preview", settings["active_mode"]
+    assert_equal "Writing/Current Draft.md", settings["last_open_note"]
+    assert_equal "Writing,Writing%2FDrafts", settings["explorer_expanded_folders"]
     assert_equal true, settings["typewriter_mode"]
   end
 
   # === update ===
 
   test "update saves UI settings" do
-    patch config_url, params: { theme: "dark", editor_font_size: 18, preview_font_family: "serif", preview_width: 58, active_mode: "reading" }, as: :json
+    patch config_url, params: { theme: "dark", editor_font_size: 18, preview_font_family: "serif", preview_width: 58, active_mode: "reading", last_open_note: "Writing/Current Draft.md", explorer_expanded_folders: "Writing,Writing%2FDrafts" }, as: :json
     assert_response :success
 
     data = JSON.parse(response.body)
@@ -94,6 +102,8 @@ class ConfigControllerTest < ActionDispatch::IntegrationTest
     assert_equal "serif", data["settings"]["preview_font_family"]
     assert_equal 58, data["settings"]["preview_width"]
     assert_equal "reading", data["settings"]["active_mode"]
+    assert_equal "Writing/Current Draft.md", data["settings"]["last_open_note"]
+    assert_equal "Writing,Writing%2FDrafts", data["settings"]["explorer_expanded_folders"]
 
     # Verify persistence
     get config_url, as: :json
@@ -103,6 +113,8 @@ class ConfigControllerTest < ActionDispatch::IntegrationTest
     assert_equal "serif", data["settings"]["preview_font_family"]
     assert_equal 58, data["settings"]["preview_width"]
     assert_equal "reading", data["settings"]["active_mode"]
+    assert_equal "Writing/Current Draft.md", data["settings"]["last_open_note"]
+    assert_equal "Writing,Writing%2FDrafts", data["settings"]["explorer_expanded_folders"]
   end
 
   test "update rejects non-UI settings" do

@@ -103,6 +103,7 @@ pt-BR:
     copy_failed: Falha ao copiar conteúdo
     export_failed: Falha ao exportar conteúdo
     print_failed: Não foi possível abrir a caixa de impressão.
+    private_note_link_unavailable: Este link aponta para outra nota privada e não está disponível na visualização compartilhada.
     saved: Salvo
     unsaved: Alterações não salvas
     error_saving: Erro ao salvar
@@ -165,6 +166,7 @@ pt-BR:
     copy_share_link: Copiar link compartilhado
     refresh_share_link: Atualizar snapshot compartilhado
     disable_share_link: Desativar link compartilhado
+    manage_api: Gerenciar API
   share_view:
     label: Nota compartilhada
     open_exports: Abrir ações de exportação
@@ -581,6 +583,7 @@ pt-BR:
     failed_to_upload: Falha ao enviar
     templates_markdown_only: Modelos estão disponíveis apenas para notas markdown
     failed_to_process_ai: Falha ao processar texto com IA
+    share_identity_frontmatter_invalid: O LewisMD não conseguiu salvar uma identidade estável de compartilhamento porque o front matter da nota está malformado.
   confirm:
     delete_note: "Excluir a nota \"%{name}\"?\n\nEssa ação não pode ser desfeita."
     delete_folder: "Excluir a pasta \"%{name}\" e tudo o que está dentro dela?\n\nEssa ação não pode ser desfeita."

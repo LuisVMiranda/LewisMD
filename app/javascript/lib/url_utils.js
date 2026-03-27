@@ -26,6 +26,49 @@ function hasExternalScheme(value) {
   return /^[a-zA-Z][a-zA-Z\d+.-]*:/.test(value)
 }
 
+function unwrapMarkdownDestination(path) {
+  const normalized = String(path ?? "").trim()
+  if (normalized.startsWith("<") && normalized.endsWith(">")) {
+    return normalized.slice(1, -1)
+  }
+
+  return normalized
+}
+
+const NON_NOTE_FILE_EXTENSIONS = new Set([
+  ".avif",
+  ".bmp",
+  ".csv",
+  ".doc",
+  ".docx",
+  ".gif",
+  ".htm",
+  ".html",
+  ".jpeg",
+  ".jpg",
+  ".json",
+  ".js",
+  ".mov",
+  ".mp3",
+  ".mp4",
+  ".pdf",
+  ".png",
+  ".ppt",
+  ".pptx",
+  ".svg",
+  ".tar",
+  ".txt",
+  ".wav",
+  ".webm",
+  ".webp",
+  ".xls",
+  ".xlsx",
+  ".xml",
+  ".yaml",
+  ".yml",
+  ".zip"
+])
+
 function normalizePathSegments(path) {
   const segments = []
 
@@ -51,11 +94,27 @@ function noteLikeLeaf(leaf) {
   const extensionIndex = leaf.lastIndexOf(".")
   if (extensionIndex === -1) return true
 
-  return leaf.slice(extensionIndex).toLowerCase() === ".md"
+  const extension = leaf.slice(extensionIndex).toLowerCase()
+  return extension === ".md" || !NON_NOTE_FILE_EXTENSIONS.has(extension)
+}
+
+function decodePathSegments(path) {
+  return String(path ?? "")
+    .split("/")
+    .map((segment) => {
+      try {
+        return decodeURIComponent(segment)
+      } catch {
+        return segment
+      }
+    })
+    .join("/")
 }
 
 function normalizeNotePath(path) {
-  const normalized = normalizePathSegments(String(path ?? "").replace(/\\/g, "/").replace(/^\/+/, ""))
+  const normalized = normalizePathSegments(
+    decodePathSegments(String(path ?? "").replace(/\\/g, "/").replace(/^\/+/, ""))
+  )
   if (!normalized) return null
 
   const leaf = normalized.split("/").pop() || ""
@@ -108,11 +167,13 @@ export function rewriteNoteHref(href, currentNotePath = null) {
   const { path, query, hash } = splitHrefParts(normalizedHref)
   if (!path) return null
 
-  if (path.startsWith("/") && isPreservedAppPath(path)) {
-    return normalizedHref
+  const unwrappedPath = unwrapMarkdownDestination(path)
+
+  if (unwrappedPath.startsWith("/") && isPreservedAppPath(unwrappedPath)) {
+    return `${unwrappedPath}${query}${hash}`
   }
 
-  const resolvedNotePath = resolveRelativeNotePath(path, currentNotePath)
+  const resolvedNotePath = resolveRelativeNotePath(unwrappedPath, currentNotePath)
   if (!resolvedNotePath) return null
 
   return `/notes/${encodePath(resolvedNotePath)}${query}${hash}`

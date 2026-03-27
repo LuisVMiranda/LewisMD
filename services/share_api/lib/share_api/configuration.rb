@@ -28,6 +28,10 @@ module ShareAPI
       env["LEWISMD_SHARE_PUBLIC_BASE"].to_s
     end
 
+    def instance_name
+      env["LEWISMD_SHARE_INSTANCE_NAME"].to_s
+    end
+
     def replay_window_seconds
       integer_env("LEWISMD_SHARE_REPLAY_WINDOW_SECONDS", DEFAULT_REPLAY_WINDOW_SECONDS)
     end

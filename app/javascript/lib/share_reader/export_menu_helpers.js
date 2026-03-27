@@ -22,6 +22,8 @@ export const SHARE_ACTIVE_ITEMS = [
   { id: "disable-share-link", key: "disable_share_link", destructive: true }
 ]
 
+export const SHARE_MANAGEMENT_ITEM = { id: "manage-share-api", key: "manage_api" }
+
 export function buildExportMenuItems({
   markdownCopyable = true,
   shareState = {},
@@ -48,6 +50,11 @@ export function buildExportMenuItems({
   if (normalizedShareState.shareable) {
     items.push(...(normalizedShareState.active ? SHARE_ACTIVE_ITEMS : SHARE_CREATE_ITEMS))
   }
+
+  items.push({
+    ...SHARE_MANAGEMENT_ITEM,
+    divider: normalizedShareState.shareable
+  })
 
   return items
 }

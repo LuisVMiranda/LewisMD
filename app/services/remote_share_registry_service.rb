@@ -13,27 +13,41 @@ class RemoteShareRegistryService
     FileUtils.mkdir_p(@base_path) unless @base_path.exist?
   end
 
-  def active_share_for(path)
+  def active_share_for(path, note_identifier: nil)
     normalized_path = normalize_note_path(path)
-    file = metadata_file(normalized_path)
-    return nil unless file.file?
+    normalized_note_identifier = normalize_note_identifier(note_identifier)
 
-    metadata = parse_metadata_file(file)
-    return nil unless metadata
+    metadata_files.each do |file|
+      metadata = parse_metadata_file(file)
+      next unless metadata
 
-    if expired_share?(metadata)
-      file.delete if file.exist?
-      return nil
+      if expired_share?(metadata)
+        file.delete if file.exist?
+        next
+      end
+
+      matches_identifier = normalized_note_identifier.present? && metadata[:note_identifier] == normalized_note_identifier
+      matches_path = metadata[:path] == normalized_path
+      next unless matches_identifier || matches_path
+
+      return synchronize_metadata(
+        metadata,
+        file: file,
+        normalized_path: normalized_path,
+        note_identifier: normalized_note_identifier
+      )
     end
 
-    metadata
+    nil
   end
 
   def save(metadata)
     normalized_path = normalize_note_path(metadata.fetch(:path))
+    normalized_note_identifier = normalize_note_identifier(metadata[:note_identifier])
     normalized_metadata = {
       backend: "remote",
       token: metadata.fetch(:token),
+      note_identifier: normalized_note_identifier,
       path: normalized_path,
       title: metadata.fetch(:title),
       url: metadata.fetch(:url),
@@ -50,12 +64,14 @@ class RemoteShareRegistryService
       capabilities: metadata[:capabilities] || {}
     }
 
-    write_metadata(normalized_path, normalized_metadata)
+    file = metadata_file(normalized_metadata.fetch(:token))
+    write_metadata(file, normalized_metadata)
+    cleanup_duplicate_metadata_files(file, normalized_metadata)
     normalized_metadata
   end
 
-  def mark_stale(path:, error:)
-    metadata = active_share_for(path)
+  def mark_stale(path:, note_identifier: nil, error:)
+    metadata = active_share_for(path, note_identifier: note_identifier)
     raise ShareService::NotFoundError, "Share not found for #{path}" unless metadata
 
     save(metadata.merge(
@@ -65,10 +81,26 @@ class RemoteShareRegistryService
     ))
   end
 
-  def delete(path:)
-    normalized_path = normalize_note_path(path)
-    file = metadata_file(normalized_path)
-    file.delete if file.exist?
+  def delete(path:, note_identifier: nil)
+    metadata = active_share_for(path, note_identifier: note_identifier)
+    return unless metadata
+
+    matching_metadata_files(metadata).each do |file|
+      file.delete if file.exist?
+    end
+  end
+
+  def delete_all
+    deleted_count = 0
+
+    metadata_files.each do |file|
+      next unless file.exist?
+
+      file.delete
+      deleted_count += 1
+    end
+
+    deleted_count
   end
 
   private
@@ -79,8 +111,12 @@ class RemoteShareRegistryService
     @registry_dir ||= base_path.join(REGISTRY_DIR)
   end
 
-  def metadata_file(normalized_path)
-    registry_dir.join("#{Digest::SHA256.hexdigest(normalized_path)}.json")
+  def metadata_files
+    Dir.glob(registry_dir.join("*.json")).sort.map { |path| Pathname.new(path) }
+  end
+
+  def metadata_file(token)
+    registry_dir.join("#{token}.json")
   end
 
   def normalize_note_path(path)
@@ -89,6 +125,10 @@ class RemoteShareRegistryService
     raise ShareService::InvalidShareError, "Only markdown notes can be shared" unless normalized_path.end_with?(".md")
 
     normalized_path
+  end
+
+  def normalize_note_identifier(note_identifier)
+    note_identifier.to_s.strip.presence
   end
 
   def parse_metadata_file(file)
@@ -100,6 +140,7 @@ class RemoteShareRegistryService
     {
       backend: payload[:backend],
       token: payload[:token],
+      note_identifier: normalize_note_identifier(payload[:note_identifier]),
       path: payload[:path],
       title: payload[:title],
       url: payload[:url],
@@ -119,8 +160,7 @@ class RemoteShareRegistryService
     nil
   end
 
-  def write_metadata(normalized_path, metadata)
-    file = metadata_file(normalized_path)
+  def write_metadata(file, metadata)
     FileUtils.mkdir_p(file.dirname)
 
     tempfile = Tempfile.new([ file.basename.to_s, ".tmp" ], file.dirname.to_s)
@@ -151,5 +191,43 @@ class RemoteShareRegistryService
     Time.iso8601(expires_at) <= Time.current
   rescue ArgumentError
     false
+  end
+
+  def synchronize_metadata(metadata, file:, normalized_path:, note_identifier:)
+    updates = {}
+    updates[:path] = normalized_path if metadata[:path] != normalized_path
+
+    normalized_note_identifier = normalize_note_identifier(note_identifier)
+    if normalized_note_identifier.present? && metadata[:note_identifier] != normalized_note_identifier
+      updates[:note_identifier] = normalized_note_identifier
+    end
+
+    return metadata if updates.empty? && file == metadata_file(metadata[:token])
+
+    updated_metadata = metadata.merge(updates)
+    save(updated_metadata)
+  end
+
+  def cleanup_duplicate_metadata_files(canonical_file, metadata)
+    matching_metadata_files(metadata).each do |file|
+      next if file == canonical_file
+
+      file.delete if file.exist?
+    end
+  end
+
+  def matching_metadata_files(metadata)
+    normalized_path = metadata[:path]
+    normalized_note_identifier = normalize_note_identifier(metadata[:note_identifier])
+    token = metadata[:token]
+
+    metadata_files.select do |file|
+      parsed = parse_metadata_file(file)
+      next false unless parsed
+
+      parsed[:token] == token ||
+        (normalized_note_identifier.present? && parsed[:note_identifier] == normalized_note_identifier) ||
+        parsed[:path] == normalized_path
+    end
   end
 end

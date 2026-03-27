@@ -103,6 +103,7 @@ ja:
     copy_failed: コピーに失敗しました
     export_failed: エクスポートに失敗しました
     print_failed: 印刷ダイアログを開けませんでした。
+    private_note_link_unavailable: このリンクは別の非公開ノートを指しているため、共有表示では利用できません。
     saved: 保存済み
     unsaved: 未保存の変更
     error_saving: 保存エラー
@@ -161,6 +162,7 @@ ja:
     copy_share_link: 共有リンクをコピー
     refresh_share_link: 共有スナップショットを更新
     disable_share_link: 共有リンクを無効化
+    manage_api: APIを管理
   share_view:
     label: 共有ノート
     open_exports: エクスポート操作を開く
@@ -576,6 +578,7 @@ ja:
     failed_to_upload: アップロードに失敗しました
     templates_markdown_only: テンプレートはMarkdownノートでのみ利用できます
     failed_to_process_ai: AIでのテキスト処理に失敗しました
+    share_identity_frontmatter_invalid: LewisMD could not save a stable share identity because the note front matter is malformed.
   confirm:
     delete_note: "ノート「%{name}」を削除しますか？\n\nこの操作は元に戻せません。"
     delete_folder: "フォルダ「%{name}」とその中身をすべて削除しますか？\n\nこの操作は元に戻せません。"
@@ -593,7 +596,6 @@ ja:
   notes:
     show:
       ai_error: 'AIエラー: %{message}'
-
 
 
 

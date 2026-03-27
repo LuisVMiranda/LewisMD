@@ -17,11 +17,16 @@ class ShareService
     FileUtils.mkdir_p(@base_path) unless @base_path.exist?
   end
 
-  def create_or_find(path:, title:, snapshot_html:)
+  def create_or_find(path:, title:, snapshot_html:, note_identifier: nil)
     normalized_path = normalize_note_path(path)
+    normalized_note_identifier = normalize_note_identifier(note_identifier)
     validate_snapshot_html!(snapshot_html)
 
-    existing_share = active_share_for(normalized_path, require_snapshot: false)
+    existing_share = active_share_for(
+      normalized_path,
+      note_identifier: normalized_note_identifier,
+      require_snapshot: false
+    )
     return repair_missing_snapshot(existing_share, title, snapshot_html) if existing_share && !snapshot_file(existing_share[:token]).file?
     return existing_share.merge(created: false) if existing_share
 
@@ -29,6 +34,7 @@ class ShareService
     timestamp = Time.current.iso8601
     metadata = {
       token: token,
+      note_identifier: normalized_note_identifier,
       path: normalized_path,
       title: normalized_title(title, normalized_path),
       snapshot_path: snapshot_relative_path(token),
@@ -43,15 +49,22 @@ class ShareService
     metadata.merge(created: true)
   end
 
-  def refresh(path:, title:, snapshot_html:)
+  def refresh(path:, title:, snapshot_html:, note_identifier: nil)
     normalized_path = normalize_note_path(path)
+    normalized_note_identifier = normalize_note_identifier(note_identifier)
     validate_snapshot_html!(snapshot_html)
 
-    metadata = active_share_for(normalized_path, require_snapshot: false)
+    metadata = active_share_for(
+      normalized_path,
+      note_identifier: normalized_note_identifier,
+      require_snapshot: false
+    )
     raise NotFoundError, "Share not found for #{normalized_path}" unless metadata
 
     updated_metadata = metadata.merge(
+      note_identifier: normalized_note_identifier.presence || metadata[:note_identifier],
       title: normalized_title(title, normalized_path),
+      path: normalized_path,
       snapshot_path: snapshot_relative_path(metadata[:token]),
       updated_at: Time.current.iso8601,
       revoked: false
@@ -63,9 +76,13 @@ class ShareService
     updated_metadata
   end
 
-  def revoke(path:)
+  def revoke(path:, note_identifier: nil)
     normalized_path = normalize_note_path(path)
-    metadata = active_share_for(normalized_path, require_snapshot: false)
+    metadata = active_share_for(
+      normalized_path,
+      note_identifier: note_identifier,
+      require_snapshot: false
+    )
     raise NotFoundError, "Share not found for #{normalized_path}" unless metadata
 
     revoked_metadata = metadata.merge(
@@ -92,17 +109,20 @@ class ShareService
     metadata.merge(snapshot_file: file)
   end
 
-  def active_share_for(path, require_snapshot: true)
+  def active_share_for(path, note_identifier: nil, require_snapshot: true)
     normalized_path = normalize_note_path(path)
+    normalized_note_identifier = normalize_note_identifier(note_identifier)
 
     metadata_files.each do |file|
       metadata = parse_metadata_file(file)
       next unless metadata
       next if metadata[:revoked]
-      next unless metadata[:path] == normalized_path
+      matches_identifier = normalized_note_identifier.present? && metadata[:note_identifier] == normalized_note_identifier
+      matches_path = metadata[:path] == normalized_path
+      next unless matches_identifier || matches_path
       next if require_snapshot && !snapshot_file(metadata[:token]).file?
 
-      return metadata
+      return synchronize_metadata(metadata, normalized_path:, note_identifier: normalized_note_identifier)
     end
 
     nil
@@ -142,6 +162,10 @@ class ShareService
     raise InvalidShareError, "Only markdown notes can be shared" unless normalized_path.end_with?(".md")
 
     normalized_path
+  end
+
+  def normalize_note_identifier(note_identifier)
+    note_identifier.to_s.strip.presence
   end
 
   def normalized_title(title, path)
@@ -188,6 +212,7 @@ class ShareService
 
     {
       token: payload[:token],
+      note_identifier: payload[:note_identifier],
       path: payload[:path],
       title: payload[:title],
       snapshot_path: payload[:snapshot_path],
@@ -201,6 +226,22 @@ class ShareService
 
   def write_metadata(metadata)
     atomic_write(metadata_file(metadata[:token]), JSON.pretty_generate(metadata))
+  end
+
+  def synchronize_metadata(metadata, normalized_path:, note_identifier:)
+    updates = {}
+    updates[:path] = normalized_path if metadata[:path] != normalized_path
+
+    normalized_note_identifier = normalize_note_identifier(note_identifier)
+    if normalized_note_identifier.present? && metadata[:note_identifier] != normalized_note_identifier
+      updates[:note_identifier] = normalized_note_identifier
+    end
+
+    return metadata if updates.empty?
+
+    updated_metadata = metadata.merge(updates)
+    write_metadata(updated_metadata)
+    updated_metadata
   end
 
   def write_snapshot(token, snapshot_html)

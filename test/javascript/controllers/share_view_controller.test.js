@@ -21,7 +21,8 @@ describe("ShareViewController", () => {
     window.t = vi.fn((key) => ({
       "status.copied_to_clipboard": "Copied",
       "status.copy_failed": "Copy failed",
-      "status.export_failed": "Export failed"
+      "status.export_failed": "Export failed",
+      "status.private_note_link_unavailable": "Private note unavailable"
     }[key] || key))
 
     document.documentElement.setAttribute("data-theme", "dark")
@@ -215,5 +216,21 @@ describe("ShareViewController", () => {
     expect(clipboardItem.data["text/html"]).toBeInstanceOf(Blob)
     expect(clipboardItem.data["text/plain"]).toBeInstanceOf(Blob)
     expect(controller.showTemporaryMessage).toHaveBeenCalledWith("Copied")
+  })
+
+  it("blocks private note links inside the shared snapshot iframe", () => {
+    controller.onFrameLoad()
+    controller.showTemporaryMessage = vi.fn()
+
+    const blockedLink = frameDocument.createElement("a")
+    blockedLink.setAttribute("data-shared-link-kind", "internal-note")
+    blockedLink.textContent = "Private note"
+    article.appendChild(blockedLink)
+
+    const clickEvent = new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 })
+    blockedLink.dispatchEvent(clickEvent)
+
+    expect(clickEvent.defaultPrevented).toBe(true)
+    expect(controller.showTemporaryMessage).toHaveBeenCalledWith("Private note unavailable")
   })
 })

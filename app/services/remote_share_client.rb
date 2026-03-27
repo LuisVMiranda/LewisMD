@@ -50,7 +50,7 @@ class RemoteShareClient
   end
 
   def create_share(payload)
-    fetch_capabilities
+    ensure_capabilities!
     parsed = perform_json_request(
       method: :post,
       path: "/api/v1/shares",
@@ -61,7 +61,7 @@ class RemoteShareClient
   end
 
   def update_share(token:, payload:)
-    fetch_capabilities
+    ensure_capabilities!
     parsed = perform_json_request(
       method: :put,
       path: "/api/v1/shares/#{URI.encode_uri_component(token)}",
@@ -72,7 +72,7 @@ class RemoteShareClient
   end
 
   def revoke_share(token:)
-    fetch_capabilities
+    ensure_capabilities!
     perform_request(
       method: :delete,
       path: "/api/v1/shares/#{URI.encode_uri_component(token)}",
@@ -82,9 +82,31 @@ class RemoteShareClient
     true
   end
 
+  def fetch_admin_status
+    ensure_capabilities!
+    perform_json_request(
+      method: :get,
+      path: "/api/v1/admin/status",
+      body: nil
+    )
+  end
+
+  def delete_all_shares
+    ensure_capabilities!
+    perform_json_request(
+      method: :delete,
+      path: "/api/v1/admin/shares",
+      body: nil
+    )
+  end
+
   private
 
   attr_reader :config
+
+  def ensure_capabilities!
+    last_capabilities || fetch_capabilities
+  end
 
   def perform_json_request(method:, path:, body:)
     response = perform_request(method: method, path: path, body: body)

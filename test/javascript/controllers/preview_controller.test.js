@@ -171,6 +171,17 @@ describe("PreviewController", () => {
       expect(anchor.getAttribute("data-turbo")).toBe("false")
     })
 
+    it("renders note links with spaced folders and dotted note names", () => {
+      controller.render("[Wise Up notes](../Wise Up/Notes-27.03)", {
+        currentNotePath: "Personal/Studies/Spanish/2026/Study_Syllabus_A2.md"
+      })
+
+      const anchor = controller.contentTarget.querySelector("a")
+      expect(anchor).not.toBeNull()
+      expect(anchor.getAttribute("href")).toBe("/notes/Personal/Studies/Spanish/Wise%20Up/Notes-27.03.md")
+      expect(anchor.dataset.notePath).toBe("Personal/Studies/Spanish/Wise Up/Notes-27.03.md")
+    })
+
     it("dispatches note-link-selected when a rendered LewisMD note link is clicked", () => {
       controller.render("[Study syllabus](Study_Syllabus_A2)", {
         currentNotePath: "Personal/Studies/Español/2026/Lesson_01.md"

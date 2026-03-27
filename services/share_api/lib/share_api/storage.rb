@@ -159,6 +159,57 @@ module ShareAPI
       share
     end
 
+    def share_count(now: Time.now.utc)
+      count = 0
+
+      Dir.glob(shares_dir.join("*.json")).sort.each do |share_path|
+        file = Pathname.new(share_path)
+        share = JSON.parse(file.read)
+
+        if expired_share?(share, now: now)
+          purge_share(share)
+          next
+        end
+
+        count += 1
+      rescue JSON::ParserError, KeyError
+        file.delete if file.file?
+      end
+
+      prune_orphan_identity_indexes!
+      count
+    end
+
+    def delete_all_shares!
+      removed_tokens = []
+      invalid_share_files_deleted = 0
+
+      Dir.glob(shares_dir.join("*.json")).sort.each do |share_path|
+        file = Pathname.new(share_path)
+        share = JSON.parse(file.read)
+        token = share.fetch("token")
+        removed_tokens << token if token.to_s.match?(TOKEN_PATTERN)
+        purge_share(share)
+      rescue JSON::ParserError, KeyError
+        invalid_share_files_deleted += 1
+        file.delete if file.file?
+      end
+
+      deleted_tokens = removed_tokens.uniq
+      orphan_snapshot_dirs_deleted = prune_orphan_token_directories!(snapshots_dir, keep_tokens: Set.new)
+      orphan_asset_dirs_deleted = prune_orphan_token_directories!(assets_dir, keep_tokens: Set.new)
+      orphan_identity_indexes_deleted = prune_orphan_identity_indexes!
+
+      {
+        deleted_tokens: deleted_tokens,
+        deleted_count: deleted_tokens.length,
+        invalid_share_files_deleted: invalid_share_files_deleted,
+        orphan_snapshot_dirs_deleted: orphan_snapshot_dirs_deleted,
+        orphan_asset_dirs_deleted: orphan_asset_dirs_deleted,
+        orphan_identity_indexes_deleted: orphan_identity_indexes_deleted
+      }
+    end
+
     def sweep_expired_shares!(now: Time.now.utc)
       removed_tokens = []
 
@@ -545,14 +596,40 @@ module ShareAPI
     end
 
     def prune_orphan_identity_indexes!
+      deleted_count = 0
+
       Dir.glob(path_index_dir.join("*.json")).sort.each do |file_path|
         file = Pathname.new(file_path)
         payload = JSON.parse(file.read)
         token = payload.fetch("token")
-        file.delete unless share_file(token).file?
+        unless share_file(token).file?
+          file.delete
+          deleted_count += 1
+        end
       rescue JSON::ParserError, KeyError
-        file.delete if file.file?
+        if file.file?
+          file.delete
+          deleted_count += 1
+        end
       end
+
+      deleted_count
+    end
+
+    def prune_orphan_token_directories!(root_dir, keep_tokens:)
+      return 0 unless root_dir.directory?
+
+      deleted_count = 0
+      root_dir.each_child do |child|
+        token = child.basename.to_s
+        next unless token.match?(TOKEN_PATTERN)
+        next if keep_tokens.include?(token)
+
+        FileUtils.rm_rf(child)
+        deleted_count += 1
+      end
+
+      deleted_count
     end
   end
 end

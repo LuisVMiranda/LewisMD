@@ -122,6 +122,7 @@ en:
     copy_failed: "Failed to copy content"
     export_failed: "Failed to export content"
     print_failed: "Could not open the print dialog."
+    private_note_link_unavailable: "This link points to another private note and isn't available in shared view."
     saved: "Saved"
     unsaved: "Unsaved changes"
     error_saving: "Error saving"
@@ -182,6 +183,55 @@ en:
     copy_share_link: Copy shared link
     refresh_share_link: Refresh shared snapshot
     disable_share_link: Disable shared link
+    manage_api: Manage API
+
+  share_management:
+    title: "Manage API"
+    subtitle: "Remote share relay settings, status, and maintenance."
+    connection_heading: "Connection"
+    status_heading: "Status"
+    loading: "Loading Share API settings..."
+    ready: "Adjust settings, recheck the connection, or clear published remote shares."
+    recheck: "Reconnect / Recheck"
+    recheck_complete: "Share API status refreshed."
+    recheck_failed: "Couldn't refresh Share API status."
+    settings_saved: "Share API settings saved."
+    delete_all: "Delete all shared notes"
+    delete_failed: "Couldn't delete the published remote shares."
+    bulk_delete_success: "Deleted %{count} shared notes from the remote API."
+    local_mode_message: "Local sharing stores snapshots on this machine."
+    remote_reachable: "Remote share API is reachable."
+    remote_unreachable: "Remote share API couldn't be reached."
+    secrets_hint: "Leave secret fields blank to keep the current value."
+    secret_configured: "Configured"
+    secret_not_configured: "Not configured"
+    yes: "Yes"
+    no: "No"
+    fields:
+      share_backend: "Share backend"
+      share_remote_api_scheme: "API scheme"
+      share_remote_api_host: "API host"
+      share_remote_api_port: "API port"
+      share_remote_public_base: "Public base URL"
+      share_remote_timeout_seconds: "Timeout (seconds)"
+      share_remote_verify_tls: "Verify TLS"
+      share_remote_upload_assets: "Upload embedded assets"
+      share_remote_instance_name: "Instance name"
+      share_remote_expiration_days: "Default expiration (days)"
+      share_remote_healthchecks_ping_url: "Healthchecks ping URL"
+      share_remote_alert_webhook_url: "Alert webhook URL"
+      share_remote_api_token: "API token"
+      share_remote_signing_secret: "Signing secret"
+      share_remote_alert_webhook_secret: "Alert webhook secret"
+    status:
+      backend: "Backend"
+      public_base: "Public base"
+      reachable: "Reachable"
+      admin: "Admin features"
+      share_count: "Published shares"
+      storage_writable: "Storage writable"
+      capabilities: "Capabilities"
+      message: "Message"
 
   share_view:
     label: "Shared note"
@@ -661,12 +711,15 @@ en:
     parent_folder_not_found: "Parent folder not found. It may have been moved or deleted."
     failed_to_process_ai: "Failed to process text with AI"
     invalid_share_request: "Invalid share request"
+    share_identity_frontmatter_invalid: "LewisMD couldn't save a stable share identity because the note's front matter is malformed."
     share_not_found: "Share not found"
+    share_management_remote_only: "Delete all shared notes is only available when remote sharing is enabled."
 
   # Confirm messages
   confirm:
     delete_note: "Delete the note \"%{name}\"?\n\nThis action can't be undone."
     delete_folder: "Delete the folder \"%{name}\" and everything inside it?\n\nThis action can't be undone."
+    delete_all_shared_notes: "Delete all published remote shares?\n\nThis wipes every shared note on the remote API without restarting it."
 
   # Success messages
   success:

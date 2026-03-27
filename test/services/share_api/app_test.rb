@@ -46,6 +46,64 @@ class ShareApiAppTest < ActiveSupport::TestCase
     assert_equal "1", payload["api_version"]
     assert_equal true, payload.dig("feature_flags", "asset_uploads")
     assert_equal true, payload.dig("feature_flags", "full_share_shell")
+    assert_equal true, payload.dig("feature_flags", "admin_status")
+    assert_equal true, payload.dig("feature_flags", "admin_bulk_delete")
+  end
+
+  test "admin status returns authenticated relay status details" do
+    create_share!
+
+    get "/api/v1/admin/status", nil, signed_headers(method: "GET", path: "/api/v1/admin/status", body: "")
+
+    assert_equal 200, last_response.status
+    payload = JSON.parse(last_response.body)
+    assert_equal 1, payload["share_count"]
+    assert_equal true, payload["storage_writable"]
+    assert payload["checked_at"].present?
+  end
+
+  test "admin delete wipes all shares and keeps the api healthy" do
+    first = create_share!
+    second_body = JSON.generate(
+      valid_payload.merge(
+        "note_identifier" => "notes/second-note.md",
+        "path" => "notes/second-note.md",
+        "title" => "Second Shared Note",
+        "content_hash" => "hash-2"
+      )
+    )
+    post "/api/v1/shares", second_body, signed_headers(method: "POST", path: "/api/v1/shares", body: second_body)
+    second = JSON.parse(last_response.body)
+
+    orphan_token = "orphan-share-1234"
+    FileUtils.mkdir_p(@storage_path.join("snapshots", orphan_token))
+    @storage_path.join("snapshots", orphan_token, "index.html").write("<p>orphan</p>")
+    FileUtils.mkdir_p(@storage_path.join("assets", orphan_token))
+    @storage_path.join("assets", orphan_token, "image.png").write("img")
+    @storage_path.join("shares", "broken.json").write("{not valid json")
+
+    delete "/api/v1/admin/shares", nil, signed_headers(method: "DELETE", path: "/api/v1/admin/shares", body: "")
+
+    assert_equal 200, last_response.status
+    payload = JSON.parse(last_response.body)
+    assert_equal true, payload["deleted"]
+    assert_equal 2, payload["deleted_count"]
+    assert_equal 1, payload.dig("cleanup", "invalid_share_files_deleted")
+    assert_equal 1, payload.dig("cleanup", "orphan_snapshot_dirs_deleted")
+    assert_equal 1, payload.dig("cleanup", "orphan_asset_dirs_deleted")
+    assert_equal [ first["token"], second["token"] ].sort, payload.dig("cleanup", "removed_tokens").sort
+
+    get "/s/#{first["token"]}"
+    assert_equal 404, last_response.status
+
+    get "/s/#{second["token"]}"
+    assert_equal 404, last_response.status
+
+    get "/up"
+    assert_equal 200, last_response.status
+    refute @storage_path.join("snapshots", orphan_token).exist?
+    refute @storage_path.join("assets", orphan_token).exist?
+    refute @storage_path.join("shares", "broken.json").exist?
   end
 
   test "reader bundle assets are served as static files" do
@@ -54,6 +112,8 @@ class ShareApiAppTest < ActiveSupport::TestCase
     assert_equal 200, last_response.status
     assert_equal "text/javascript", last_response.media_type
     assert_includes last_response.body, "LewisMDRemoteReader"
+    assert_includes last_response.body, "private_note_link_unavailable"
+    assert_includes last_response.body, 'a[data-shared-link-kind="internal-note"]'
 
     get "/reader/assets/remote_reader_bundle.css"
 
@@ -276,6 +336,38 @@ class ShareApiAppTest < ActiveSupport::TestCase
     assert_includes last_response.body, "@media (max-width: 768px)"
     assert_includes last_response.body, "<h1>Shared Note</h1>"
     refute_includes last_response.body, "<script>"
+  end
+
+  test "snapshot route neutralizes private note links while preserving external links" do
+    body = JSON.generate(
+      valid_payload.merge(
+        "html_fragment" => '<p><a href="/notes/private/secret.md">Secret</a> <a href="../Wise Up/Notes-27.03">Dotted</a> and <a href="https://example.com/reference">Reference</a></p>',
+        "snapshot_document_html" => <<~HTML
+          <!doctype html>
+          <html lang="en" data-theme="dark">
+            <body>
+              <main class="export-shell">
+                <article class="export-article">
+                  <p><a href="/notes/private/secret.md">Secret</a> <a href="../Wise Up/Notes-27.03">Dotted</a> and <a href="https://example.com/reference">Reference</a></p>
+                </article>
+              </main>
+            </body>
+          </html>
+        HTML
+      )
+    )
+
+    post "/api/v1/shares", body, signed_headers(method: "POST", path: "/api/v1/shares", body: body)
+    payload = JSON.parse(last_response.body)
+
+    get "/snapshots/#{payload["token"]}"
+
+    assert_equal 200, last_response.status
+    assert_includes last_response.body, 'data-shared-link-kind="internal-note"'
+    assert_includes last_response.body, 'class="shared-blocked-note-link"'
+    refute_includes last_response.body, "/notes/private/secret.md"
+    refute_includes last_response.body, "../Wise Up/Notes-27.03"
+    assert_includes last_response.body, "https://example.com/reference"
   end
 
   test "post is idempotent per identity key and reuses the same token" do

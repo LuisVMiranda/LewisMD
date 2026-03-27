@@ -14,6 +14,7 @@ describe("AppController shared UI state", () => {
   let outlineController
   let splitPaneController
   let exportMenuController
+  let shareManagementController
 
   beforeEach(() => {
     previewController = {
@@ -63,7 +64,11 @@ describe("AppController shared UI state", () => {
       getCursorInfo: vi.fn(() => ({ currentLine: 4, totalLines: 20 })),
       getCursorPosition: vi.fn(() => ({ line: 4, column: 7, offset: 42 })),
       getSelection: vi.fn(() => ({ from: 10, to: 14, text: "test" })),
-      scrollToPosition: vi.fn()
+      setValue: vi.fn(),
+      setSelection: vi.fn(),
+      scrollToPosition: vi.fn(),
+      setCurrentNotePath: vi.fn(),
+      setAvailableNotes: vi.fn()
     }
 
     outlineController = {
@@ -80,12 +85,18 @@ describe("AppController shared UI state", () => {
       setShareState: vi.fn()
     }
 
+    shareManagementController = {
+      open: vi.fn()
+    }
+
     controller = Object.create(AppController.prototype)
     controller.currentFile = "notes/test.md"
     controller.currentFileType = "markdown"
+    controller.lastOpenMarkdownNotePath = null
     controller.readingModeActive = false
     controller.recoveryAvailable = false
     controller._lastUiStateSignature = null
+    controller._lastExplorerResumeStateSignature = null
     controller._codemirrorReady = true
     controller._restoringPersistedUiState = false
     controller.pendingConfigSettings = {}
@@ -98,8 +109,11 @@ describe("AppController shared UI state", () => {
     controller.getOutlineController = vi.fn(() => outlineController)
     controller.getSplitPaneController = vi.fn(() => splitPaneController)
     controller.getExportMenuController = vi.fn(() => exportMenuController)
+    controller.getShareManagementController = vi.fn(() => shareManagementController)
+    controller.getAutosaveController = vi.fn(() => null)
     controller.hasPreviewPanelTarget = false
     controller.hasTextareaTarget = false
+    controller.fileTreeTarget = document.createElement("div")
   })
 
   it("builds preview mode state from the current controller state", () => {
@@ -156,6 +170,74 @@ describe("AppController shared UI state", () => {
     controller.getPreviewController = vi.fn(() => null)
 
     expect(controller.buildUiStateSnapshot().previewZoom).toBe(110)
+  })
+
+  it("refreshes the codemirror note-link autocomplete context from the current file tree", () => {
+    controller.fileTreeTarget.innerHTML = `
+      <button data-type="file" data-path="Folder 1/current.md" data-file-type="markdown"></button>
+      <button data-type="file" data-path="Folder 1/other.md" data-file-type="markdown"></button>
+      <button data-type="file" data-path="Folder 1/image.png" data-file-type="image"></button>
+    `
+
+    controller.refreshNoteLinkAutocompleteContext()
+
+    expect(codemirrorController.setCurrentNotePath).toHaveBeenCalledWith("notes/test.md")
+    expect(codemirrorController.setAvailableNotes).toHaveBeenCalledWith([
+      expect.objectContaining({ path: "Folder 1/current.md" }),
+      expect.objectContaining({ path: "Folder 1/other.md" })
+    ])
+  })
+
+  it("hydrates expanded folders from the server-rendered tree DOM", () => {
+    controller.fileTreeTarget.innerHTML = `
+      <div class="tree-folder" data-path="Projects">
+        <div class="tree-item"></div>
+        <div class="tree-children"></div>
+      </div>
+      <div class="tree-folder" data-path="Archive">
+        <div class="tree-item"></div>
+        <div class="tree-children hidden"></div>
+      </div>
+      <div class="tree-folder" data-path="Projects/Drafts">
+        <div class="tree-item"></div>
+        <div class="tree-children"></div>
+      </div>
+    `
+
+    controller.hydrateExpandedFoldersFromTree()
+
+    expect(Array.from(controller.expandedFolders)).toEqual(["Projects", "Projects/Drafts"])
+  })
+
+  it("persists resume state when a markdown note becomes current", () => {
+    controller.currentFile = "Projects/Current Draft.md"
+    controller.currentFileType = "markdown"
+    controller.expandedFolders = new Set(["Projects", "Projects/Drafts"])
+
+    controller.rememberCurrentMarkdownNote()
+
+    expect(controller.saveConfig).toHaveBeenCalledWith({
+      last_open_note: "Projects/Current Draft.md",
+      explorer_expanded_folders: "Projects,Projects%2FDrafts"
+    })
+  })
+
+  it("keeps config persistence encoded while using JSON for request transport", () => {
+    controller.expandedFolders = new Set(["Clients, VIP", "Clients, VIP/2026"])
+
+    expect(controller.serializeExpandedFoldersForConfig()).toBe("Clients%2C%20VIP,Clients%2C%20VIP%2F2026")
+    expect(controller.serializeExpandedFoldersForRequest()).toBe('["Clients, VIP","Clients, VIP/2026"]')
+  })
+
+  it("does not overwrite the remembered last note for non-markdown files", () => {
+    controller.lastOpenMarkdownNotePath = "Projects/Current Draft.md"
+    controller.currentFile = ".fed"
+    controller.currentFileType = "config"
+
+    controller.rememberCurrentMarkdownNote()
+
+    expect(controller.lastOpenMarkdownNotePath).toBe("Projects/Current Draft.md")
+    expect(controller.saveConfig).not.toHaveBeenCalled()
   })
 
   it("dedupes unchanged state emissions", () => {
@@ -410,6 +492,18 @@ describe("AppController shared UI state", () => {
       active: false,
       url: null
     })
+  })
+
+  it("applies note content returned from share creation and preserves body-relative cursor position", () => {
+    const nextContent = "---\nlewismd_note_id: 1234\n---\n# Example\n\nBody"
+    codemirrorController.getCursorPosition.mockReturnValue({ line: 1, column: 6, offset: 5 })
+    codemirrorController.getSelection.mockReturnValue({ from: 5, to: 5, text: "" })
+
+    controller.applySharedNoteContent({ note_content: nextContent })
+
+    expect(codemirrorController.setValue).toHaveBeenCalledWith(nextContent)
+    expect(codemirrorController.setSelection).toHaveBeenCalledWith(35, 35)
+    expect(codemirrorController.setCurrentNotePath).toHaveBeenCalledWith("notes/test.md")
   })
 
   it("collects a preview-derived rendered payload and restores temporary visibility", async () => {
@@ -717,6 +811,11 @@ describe("AppController shared UI state", () => {
     controller.disableShareLink = vi.fn().mockResolvedValue(true)
     await controller.onExportMenuSelected({ detail: { actionId: "disable-share-link" } })
     expect(controller.disableShareLink).toHaveBeenCalledTimes(1)
+  })
+
+  it("routes manage-share-api menu selections to the share management modal", async () => {
+    await controller.onExportMenuSelected({ detail: { actionId: "manage-share-api" } })
+    expect(shareManagementController.open).toHaveBeenCalledTimes(1)
   })
 
   it("delegates saving the current markdown note as a template to file operations", async () => {

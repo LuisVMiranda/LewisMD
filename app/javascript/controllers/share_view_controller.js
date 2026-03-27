@@ -49,6 +49,9 @@ export default class extends Controller {
     this.boundResize = () => {
       this.syncResponsiveDisplayPanel()
     }
+    this.boundFrameBlockedLinkClick = (event) => this.onBlockedShareLinkClick(event)
+    this.boundFrameBlockedLinkKeydown = (event) => this.onBlockedShareLinkKeydown(event)
+    this.frameInteractionDocument = null
 
     window.addEventListener("frankmd:theme-changed", this.boundThemeChanged)
     window.addEventListener("resize", this.boundResize)
@@ -63,6 +66,7 @@ export default class extends Controller {
     if (this.boundResize) {
       window.removeEventListener("resize", this.boundResize)
     }
+    this.detachFrameInteractionHandlers()
   }
 
   zoomIn() {
@@ -99,6 +103,7 @@ export default class extends Controller {
     this.baseFontSize = this.detectBaseFontSize()
     this.syncFrameTheme()
     this.applySettings()
+    this.attachFrameInteractionHandlers()
   }
 
   applySettings() {
@@ -293,6 +298,46 @@ export default class extends Controller {
     document.body.appendChild(el)
 
     setTimeout(() => el.remove(), duration)
+  }
+
+  attachFrameInteractionHandlers() {
+    const frameDocument = this.frameDocument
+    if (!frameDocument) return
+
+    this.detachFrameInteractionHandlers()
+    frameDocument.addEventListener("click", this.boundFrameBlockedLinkClick)
+    frameDocument.addEventListener("keydown", this.boundFrameBlockedLinkKeydown)
+    this.frameInteractionDocument = frameDocument
+  }
+
+  detachFrameInteractionHandlers() {
+    if (!this.frameInteractionDocument) return
+
+    this.frameInteractionDocument.removeEventListener("click", this.boundFrameBlockedLinkClick)
+    this.frameInteractionDocument.removeEventListener("keydown", this.boundFrameBlockedLinkKeydown)
+    this.frameInteractionDocument = null
+  }
+
+  onBlockedShareLinkClick(event) {
+    if (event.defaultPrevented) return
+    if (event.button !== 0) return
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+
+    const blockedLink = event.target.closest('a[data-shared-link-kind="internal-note"]')
+    if (!blockedLink) return
+
+    event.preventDefault()
+    this.showTemporaryMessage(window.t("status.private_note_link_unavailable"))
+  }
+
+  onBlockedShareLinkKeydown(event) {
+    if (!["Enter", " "].includes(event.key)) return
+
+    const blockedLink = event.target.closest('a[data-shared-link-kind="internal-note"]')
+    if (!blockedLink) return
+
+    event.preventDefault()
+    this.showTemporaryMessage(window.t("status.private_note_link_unavailable"))
   }
 
   get articleElement() {

@@ -100,6 +100,7 @@ he:
     copy_failed: ההעתקה נכשלה
     export_failed: ייצוא התוכן נכשל
     print_failed: לא ניתן לפתוח את חלון ההדפסה.
+    private_note_link_unavailable: קישור זה מצביע על הערה פרטית אחרת ואינו זמין בתצוגה משותפת.
     saved: נשמר
     unsaved: שינויים לא שמורים
     error_saving: שגיאה בשמירה
@@ -158,6 +159,7 @@ he:
     copy_share_link: העתק קישור שיתוף
     refresh_share_link: רענן תמונת מצב משותפת
     disable_share_link: השבת קישור שיתוף
+    manage_api: נהל API
   share_view:
     label: הערה משותפת
     open_exports: פתח פעולות ייצוא
@@ -550,6 +552,7 @@ he:
     failed_to_upload: נכשל בהעלאה
     templates_markdown_only: תבניות זמינות רק עבור הערות markdown
     failed_to_process_ai: נכשל בעיבוד טקסט עם AI
+    share_identity_frontmatter_invalid: LewisMD could not save a stable share identity because the note front matter is malformed.
   confirm:
     delete_note: "למחוק את ההערה \"%{name}\"?\n\nאי אפשר לבטל את הפעולה הזו."
     delete_folder: "למחוק את התיקייה \"%{name}\" ואת כל מה שבתוכה?\n\nאי אפשר לבטל את הפעולה הזו."
@@ -567,7 +570,6 @@ he:
   notes:
     show:
       ai_error: 'שגיאת AI: %{message}'
-
 
 
 

@@ -125,6 +125,55 @@ class RemoteShareClientTest < ActiveSupport::TestCase
     assert_equal "Forbidden", error.message
   end
 
+  test "fetch_admin_status returns share counts and storage writability" do
+    stub_request(:get, "https://shares.example.com/api/v1/capabilities")
+      .to_return(status: 200, body: { api_version: "1", feature_flags: { admin_status: true } }.to_json)
+
+    stub_request(:get, "https://shares.example.com/api/v1/admin/status")
+      .with do |request|
+        request.headers["Authorization"] == "Bearer token-123" &&
+          request.headers["X-Lewismd-Signature"].present?
+      end
+      .to_return(
+        status: 200,
+        body: {
+          share_count: 4,
+          storage_writable: true,
+          checked_at: "2026-03-27T12:00:00Z"
+        }.to_json
+      )
+
+    status = @client.fetch_admin_status
+
+    assert_equal 4, status["share_count"]
+    assert_equal true, status["storage_writable"]
+  end
+
+  test "delete_all_shares returns deleted metadata" do
+    stub_request(:get, "https://shares.example.com/api/v1/capabilities")
+      .to_return(status: 200, body: { api_version: "1", feature_flags: { admin_bulk_delete: true } }.to_json)
+
+    stub_request(:delete, "https://shares.example.com/api/v1/admin/shares")
+      .to_return(
+        status: 200,
+        body: {
+          deleted: true,
+          deleted_count: 7,
+          cleanup: {
+            removed_tokens: [ "remote-share-1234" ],
+            orphan_snapshot_dirs_deleted: 1,
+            orphan_asset_dirs_deleted: 1
+          }
+        }.to_json
+      )
+
+    result = @client.delete_all_shares
+
+    assert_equal true, result["deleted"]
+    assert_equal 7, result["deleted_count"]
+    assert_equal 1, result.dig("cleanup", "orphan_snapshot_dirs_deleted")
+  end
+
   test "create_share surfaces actionable guidance when the VPS returns an empty 500" do
     stub_request(:get, "https://shares.example.com/api/v1/capabilities")
       .to_return(status: 200, body: { api_version: "1" }.to_json)

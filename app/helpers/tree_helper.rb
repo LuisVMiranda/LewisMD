@@ -25,6 +25,7 @@ module TreeHelper
     path = item[:path] || item["path"]
     name = item[:name] || item["name"]
     children = item[:children] || item["children"] || []
+    note_count = item[:note_count] || item["note_count"] || 0
     is_expanded = expanded_folders.include?(path)
 
     content_tag(:div, class: "tree-folder", data: { path: path }) do
@@ -39,7 +40,8 @@ module TreeHelper
         }) do
         chevron_svg(is_expanded) +
         folder_icon_svg +
-        content_tag(:span, name, class: "truncate")
+        content_tag(:span, name, class: "tree-folder-name truncate min-w-0 flex-1") +
+        content_tag(:span, note_count, class: "tree-folder-count")
       end
 
       children_div = content_tag(:div, class: "tree-children#{is_expanded ? '' : ' hidden'}") do

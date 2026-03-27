@@ -14,10 +14,11 @@ class RemoteShareRegistryServiceTest < ActiveSupport::TestCase
 
   test "save persists metadata and active_share_for returns it" do
     metadata = @service.save(remote_share_metadata)
-    loaded = @service.active_share_for("shared-note.md")
+    loaded = @service.active_share_for("shared-note.md", note_identifier: "note-123")
 
     assert_equal "remote-share-1234", metadata[:token]
     assert_equal "remote", loaded[:backend]
+    assert_equal "note-123", loaded[:note_identifier]
     assert_equal "shared-note.md", loaded[:path]
     assert_equal "Shared Note", loaded[:title]
     assert_equal "https://shares.example.com/s/remote-share-1234", loaded[:url]
@@ -32,12 +33,12 @@ class RemoteShareRegistryServiceTest < ActiveSupport::TestCase
   test "mark_stale preserves metadata and records the last error" do
     @service.save(remote_share_metadata)
 
-    updated = @service.mark_stale(path: "shared-note.md", error: "Remote share API timed out")
+    updated = @service.mark_stale(path: "shared-note.md", note_identifier: "note-123", error: "Remote share API timed out")
 
     assert_equal true, updated[:stale]
     assert_equal "Remote share API timed out", updated[:last_error]
 
-    loaded = @service.active_share_for("shared-note.md")
+    loaded = @service.active_share_for("shared-note.md", note_identifier: "note-123")
     assert_equal true, loaded[:stale]
     assert_equal "https://shares.example.com/s/remote-share-1234", loaded[:url]
   end
@@ -45,16 +46,32 @@ class RemoteShareRegistryServiceTest < ActiveSupport::TestCase
   test "delete removes stored metadata" do
     @service.save(remote_share_metadata)
 
-    @service.delete(path: "shared-note.md")
+    @service.delete(path: "shared-note.md", note_identifier: "note-123")
 
-    assert_nil @service.active_share_for("shared-note.md")
+    assert_nil @service.active_share_for("shared-note.md", note_identifier: "note-123")
+  end
+
+  test "delete_all removes every stored registry entry" do
+    @service.save(remote_share_metadata)
+    @service.save(remote_share_metadata.merge(
+      token: "remote-share-5678",
+      note_identifier: "note-456",
+      path: "other-note.md",
+      url: "https://shares.example.com/s/remote-share-5678"
+    ))
+
+    deleted_count = @service.delete_all
+
+    assert_equal 2, deleted_count
+    assert_nil @service.active_share_for("shared-note.md", note_identifier: "note-123")
+    assert_nil @service.active_share_for("other-note.md", note_identifier: "note-456")
   end
 
   test "active_share_for prunes expired metadata and returns nil" do
     @service.save(remote_share_metadata.merge(expires_at: "2026-03-25T11:59:00Z"))
 
     travel_to Time.zone.parse("2026-03-25 12:00:00 UTC") do
-      assert_nil @service.active_share_for("shared-note.md")
+      assert_nil @service.active_share_for("shared-note.md", note_identifier: "note-123")
     end
 
     registry_dir = @test_notes_dir.join(RemoteShareRegistryService::REGISTRY_DIR)
@@ -66,7 +83,17 @@ class RemoteShareRegistryServiceTest < ActiveSupport::TestCase
     FileUtils.mkdir_p(registry_dir)
     registry_dir.join("broken.json").write("{not valid json")
 
-    assert_nil @service.active_share_for("shared-note.md")
+    assert_nil @service.active_share_for("shared-note.md", note_identifier: "note-123")
+  end
+
+  test "active_share_for resolves by note identifier after the note path changes" do
+    @service.save(remote_share_metadata)
+
+    loaded = @service.active_share_for("renamed/shared-note.md", note_identifier: "note-123")
+
+    assert_equal "remote-share-1234", loaded[:token]
+    assert_equal "renamed/shared-note.md", loaded[:path]
+    assert @test_notes_dir.join(RemoteShareRegistryService::REGISTRY_DIR, "remote-share-1234.json").exist?
   end
 
   private
@@ -74,6 +101,7 @@ class RemoteShareRegistryServiceTest < ActiveSupport::TestCase
   def remote_share_metadata
     {
       token: "remote-share-1234",
+      note_identifier: "note-123",
       path: "shared-note.md",
       title: "Shared Note",
       url: "https://shares.example.com/s/remote-share-1234",

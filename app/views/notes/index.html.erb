@@ -1,6 +1,6 @@
 <div class="h-screen w-full flex flex-col bg-[var(--theme-bg-primary)] text-[var(--theme-text-primary)]"
      data-controller="app autosave scroll-sync connection-monitor typewriter status-strip"
-     data-action="connection-monitor:offline->autosave#onConnectionLost connection-monitor:online->autosave#onConnectionRestored autosave:config-saved->app#onAutosaveConfigSaved autosave:offline-changed->app#onAutosaveOfflineChanged autosave:status->status-strip#onAutosaveStatus app:state-changed->status-strip#onStateChanged codemirror:ready->app#onCodeMirrorReady preview:scroll->app#onPreviewScrolled outline:selected->app#onOutlineSelected split-pane:width-changed->app#onPreviewWidthChanged typewriter:toggled->app#onTypewriterToggled typewriter:toggled->scroll-sync#onTypewriterToggled"
+     data-action="connection-monitor:offline->autosave#onConnectionLost connection-monitor:online->autosave#onConnectionRestored autosave:config-saved->app#onAutosaveConfigSaved autosave:offline-changed->app#onAutosaveOfflineChanged autosave:status->status-strip#onAutosaveStatus app:state-changed->status-strip#onStateChanged codemirror:ready->app#onCodeMirrorReady preview:scroll->app#onPreviewScrolled outline:selected->app#onOutlineSelected split-pane:width-changed->app#onPreviewWidthChanged typewriter:toggled->app#onTypewriterToggled typewriter:toggled->scroll-sync#onTypewriterToggled share-management:shares-cleared->app#onShareManagementSharesCleared"
      data-app-initial-path-value="<%= @initial_path %>"
      data-app-initial-note-value="<%= (@initial_note || {}).to_json %>"
      data-app-codemirror-outlet='[data-controller~="codemirror"]'
@@ -30,6 +30,7 @@
      data-app-log-viewer-outlet='[data-controller~="log-viewer"]'
      data-app-code-dialog-outlet='[data-controller~="code-dialog"]'
      data-app-customize-outlet='[data-controller~="customize"]'
+     data-app-share-management-outlet='[data-controller~="share-management"]'
      data-app-drag-drop-outlet='[data-controller~="drag-drop"]'
      data-autosave-codemirror-outlet='[data-controller~="codemirror"]'
      data-autosave-offline-backup-outlet='[data-controller~="offline-backup"]'

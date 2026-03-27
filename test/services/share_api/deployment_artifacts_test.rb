@@ -233,7 +233,7 @@ class ShareApiDeploymentArtifactsTest < ActiveSupport::TestCase
         refresh_share_link
         disable_share_link
       ],
-      "status" => %w[copied_to_clipboard copy_failed export_failed print_failed]
+      "status" => %w[copied_to_clipboard copy_failed export_failed print_failed private_note_link_unavailable]
     }
 
     %w[en pt-BR pt-PT es he ja ko].each do |locale|

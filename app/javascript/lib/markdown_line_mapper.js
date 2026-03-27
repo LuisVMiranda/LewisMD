@@ -4,6 +4,7 @@
 // images, videos, or other elements that render with different heights
 
 import { marked } from "marked"
+import { normalizeMarkdownNoteLinkDestinations } from "lib/note_link_autocomplete"
 import { rewriteNoteLinksInHtml } from "lib/rendered_note_links"
 
 /**
@@ -15,9 +16,10 @@ import { rewriteNoteLinksInHtml } from "lib/rendered_note_links"
  */
 export function parseWithLineNumbers(markdown, lineOffset = 0, options = {}) {
   if (!markdown) return ""
+  const normalizedMarkdown = normalizeMarkdownNoteLinkDestinations(markdown, options.currentNotePath)
 
   // First, get tokens to know line positions
-  const tokens = marked.lexer(markdown)
+  const tokens = marked.lexer(normalizedMarkdown)
 
   // Calculate line numbers for each token
   const tokenLines = []
@@ -28,11 +30,11 @@ export function parseWithLineNumbers(markdown, lineOffset = 0, options = {}) {
     if (token.type === "space") continue // Skip whitespace-only tokens
 
     const tokenText = token.raw || ""
-    const tokenStart = markdown.indexOf(tokenText, currentPos)
+    const tokenStart = normalizedMarkdown.indexOf(tokenText, currentPos)
 
     if (tokenStart >= 0) {
       // Count newlines from currentPos to tokenStart
-      const textBefore = markdown.slice(currentPos, tokenStart)
+      const textBefore = normalizedMarkdown.slice(currentPos, tokenStart)
       currentLine += (textBefore.match(/\n/g) || []).length
 
       tokenLines.push({
@@ -47,7 +49,7 @@ export function parseWithLineNumbers(markdown, lineOffset = 0, options = {}) {
   }
 
   // Parse with standard marked
-  const html = rewriteNoteLinksInHtml(marked.parse(markdown), options.currentNotePath)
+  const html = rewriteNoteLinksInHtml(marked.parse(normalizedMarkdown), options.currentNotePath)
 
   // Post-process: add data-source-line to block elements
   // This is a simple approach that adds line numbers sequentially to block elements

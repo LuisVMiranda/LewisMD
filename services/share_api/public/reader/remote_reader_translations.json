@@ -50,7 +50,8 @@
       "copied_to_clipboard": "Content copied to clipboard",
       "copy_failed": "Failed to copy content",
       "export_failed": "Failed to export content",
-      "print_failed": "Could not open the print dialog."
+      "print_failed": "Could not open the print dialog.",
+      "private_note_link_unavailable": "This link points to another private note and isn't available in shared view."
     }
   },
   "pt-BR": {
@@ -104,7 +105,8 @@
       "copied_to_clipboard": "Conteúdo copiado para a área de transferência",
       "copy_failed": "Falha ao copiar conteúdo",
       "export_failed": "Falha ao exportar conteúdo",
-      "print_failed": "Não foi possível abrir a caixa de impressão."
+      "print_failed": "Não foi possível abrir a caixa de impressão.",
+      "private_note_link_unavailable": "Este link aponta para outra nota privada e não está disponível na visualização compartilhada."
     }
   },
   "pt-PT": {
@@ -158,7 +160,8 @@
       "copied_to_clipboard": "Conteúdo copiado para a área de transferência",
       "copy_failed": "Falha ao copiar conteúdo",
       "export_failed": "Falha ao exportar conteúdo",
-      "print_failed": "Não foi possível abrir a caixa de impressão."
+      "print_failed": "Não foi possível abrir a caixa de impressão.",
+      "private_note_link_unavailable": "Esta ligação aponta para outra nota privada e não está disponível na vista partilhada."
     }
   },
   "es": {
@@ -212,7 +215,8 @@
       "copied_to_clipboard": "Contenido copiado al portapapeles",
       "copy_failed": "Error al copiar el contenido",
       "export_failed": "Error al exportar el contenido",
-      "print_failed": "No se pudo abrir el diálogo de impresión."
+      "print_failed": "No se pudo abrir el diálogo de impresión.",
+      "private_note_link_unavailable": "Este enlace apunta a otra nota privada y no está disponible en la vista compartida."
     }
   },
   "he": {
@@ -266,7 +270,8 @@
       "copied_to_clipboard": "התוכן הועתק ללוח",
       "copy_failed": "ההעתקה נכשלה",
       "export_failed": "ייצוא התוכן נכשל",
-      "print_failed": "לא ניתן לפתוח את חלון ההדפסה."
+      "print_failed": "לא ניתן לפתוח את חלון ההדפסה.",
+      "private_note_link_unavailable": "קישור זה מצביע על הערה פרטית אחרת ואינו זמין בתצוגה משותפת."
     }
   },
   "ja": {
@@ -320,7 +325,8 @@
       "copied_to_clipboard": "クリップボードにコピーしました",
       "copy_failed": "コピーに失敗しました",
       "export_failed": "エクスポートに失敗しました",
-      "print_failed": "印刷ダイアログを開けませんでした。"
+      "print_failed": "印刷ダイアログを開けませんでした。",
+      "private_note_link_unavailable": "このリンクは別の非公開ノートを指しているため、共有表示では利用できません。"
     }
   },
   "ko": {
@@ -374,7 +380,8 @@
       "copied_to_clipboard": "클립보드에 복사되었습니다",
       "copy_failed": "복사에 실패했습니다",
       "export_failed": "내용을 내보내지 못했습니다",
-      "print_failed": "인쇄 대화상자를 열 수 없었습니다."
+      "print_failed": "인쇄 대화상자를 열 수 없었습니다.",
+      "private_note_link_unavailable": "이 링크는 다른 비공개 노트를 가리키므로 공유 보기에서는 사용할 수 없습니다."
     }
   }
 }

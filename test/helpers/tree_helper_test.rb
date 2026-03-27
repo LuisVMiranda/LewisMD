@@ -30,7 +30,7 @@ class TreeHelperTest < ActionView::TestCase
 
   test "renders folder with children" do
     items = [ {
-      name: "folder1", path: "folder1", type: "folder",
+      name: "folder1", path: "folder1", type: "folder", note_count: 1,
       children: [ { name: "note", path: "folder1/note.md", type: "file", file_type: "markdown" } ]
     } ]
     html = render_tree_items(items, expanded_folders: Set.new, selected_file: "")
@@ -44,7 +44,7 @@ class TreeHelperTest < ActionView::TestCase
 
   test "renders expanded folder without hidden class" do
     items = [ {
-      name: "folder1", path: "folder1", type: "folder",
+      name: "folder1", path: "folder1", type: "folder", note_count: 1,
       children: [ { name: "note", path: "folder1/note.md", type: "file", file_type: "markdown" } ]
     } ]
     html = render_tree_items(items, expanded_folders: Set.new([ "folder1" ]), selected_file: "")
@@ -77,7 +77,7 @@ class TreeHelperTest < ActionView::TestCase
   end
 
   test "renders folders with drag-drop actions" do
-    items = [ { name: "folder1", path: "folder1", type: "folder", children: [] } ]
+    items = [ { name: "folder1", path: "folder1", type: "folder", note_count: 0, children: [] } ]
     html = render_tree_items(items, expanded_folders: Set.new, selected_file: "")
 
     # Data-action values are HTML-encoded by Rails content_tag
@@ -95,11 +95,23 @@ class TreeHelperTest < ActionView::TestCase
   end
 
   test "returns empty string for empty children at non-root depth" do
-    items = [ { name: "empty", path: "empty", type: "folder", children: [] } ]
+    items = [ { name: "empty", path: "empty", type: "folder", note_count: 0, children: [] } ]
     html = render_tree_items(items, expanded_folders: Set.new, selected_file: "")
 
     assert_includes html, "tree-folder"
     # Children div should be present but empty (no "no notes yet" message)
     refute_includes html, t("sidebar.no_notes_yet")
+  end
+
+  test "renders a right-aligned folder note count badge" do
+    items = [ {
+      name: "folder1", path: "folder1", type: "folder", note_count: 3,
+      children: [ { name: "note", path: "folder1/note.md", type: "file", file_type: "markdown" } ]
+    } ]
+
+    html = render_tree_items(items, expanded_folders: Set.new, selected_file: "")
+
+    assert_includes html, 'class="tree-folder-count"'
+    assert_includes html, ">3<"
   end
 end

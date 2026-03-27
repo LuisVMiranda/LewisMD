@@ -101,6 +101,13 @@ describe("rewriteNoteHref", () => {
       .toBe("/notes/Personal/Studies/Espa%C3%B1ol/Glossary.md")
   })
 
+  it("rewrites note paths that contain spaces and dotted note names", () => {
+    expect(rewriteNoteHref("../Wise Up/Notes-27.03", "Personal/Studies/Spanish/2026/Study_Syllabus_A2.md"))
+      .toBe("/notes/Personal/Studies/Spanish/Wise%20Up/Notes-27.03.md")
+    expect(rewriteNoteHref("../Wise%20Up/Notes-27.03", "Personal/Studies/Spanish/2026/Study_Syllabus_A2.md"))
+      .toBe("/notes/Personal/Studies/Spanish/Wise%20Up/Notes-27.03.md")
+  })
+
   it("preserves query strings and anchors when rewriting note paths", () => {
     expect(rewriteNoteHref("./Study_Syllabus_A2?view=compact#goals", "Personal/Studies/Español/2026/Lesson_01.md"))
       .toBe("/notes/Personal/Studies/Espa%C3%B1ol/2026/Study_Syllabus_A2.md?view=compact#goals")

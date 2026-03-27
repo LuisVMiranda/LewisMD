@@ -25,7 +25,8 @@ describe("ExportMenuController", () => {
       "export_menu.create_share_link": "Create shared link",
       "export_menu.copy_share_link": "Copy shared link",
       "export_menu.refresh_share_link": "Refresh shared snapshot",
-      "export_menu.disable_share_link": "Disable shared link"
+      "export_menu.disable_share_link": "Disable shared link",
+      "export_menu.manage_api": "Manage API"
     }
 
     window.t = vi.fn((key) => translations[key] || key)
@@ -57,15 +58,17 @@ describe("ExportMenuController", () => {
   it("renders a compact top-level menu by default", () => {
     const buttons = controller.menuTarget.querySelectorAll("button")
 
-    expect(buttons).toHaveLength(4)
+    expect(buttons).toHaveLength(5)
     expect(buttons[0].dataset.actionId).toBe("copy-html")
     expect(buttons[1].dataset.actionId).toBe("copy-markdown")
     expect(buttons[2].dataset.actionId).toBeUndefined()
     expect(buttons[3].dataset.actionId).toBe("create-share-link")
+    expect(buttons[4].dataset.actionId).toBe("manage-share-api")
     expect(controller.menuTarget.textContent).toContain("Copy Note (Ctrl+C)")
     expect(controller.menuTarget.textContent).toContain("Copy Markdown")
     expect(controller.menuTarget.textContent).toContain("Export files")
     expect(controller.menuTarget.textContent).toContain("Create shared link")
+    expect(controller.menuTarget.textContent).toContain("Manage API")
     expect(controller.menuTarget.textContent).not.toContain("Export HTML")
   })
 
@@ -78,12 +81,14 @@ describe("ExportMenuController", () => {
 
     const buttons = Array.from(controller.menuTarget.querySelectorAll("button"))
 
-    expect(buttons).toHaveLength(6)
+    expect(buttons).toHaveLength(7)
     expect(buttons[3].dataset.actionId).toBe("copy-share-link")
     expect(buttons[5].dataset.actionId).toBe("disable-share-link")
+    expect(buttons[6].dataset.actionId).toBe("manage-share-api")
     expect(controller.menuTarget.textContent).toContain("Copy shared link")
     expect(controller.menuTarget.textContent).toContain("Refresh shared snapshot")
     expect(controller.menuTarget.textContent).toContain("Disable shared link")
+    expect(controller.menuTarget.textContent).toContain("Manage API")
     expect(controller.menuTarget.textContent).not.toContain("Create shared link")
   })
 
@@ -92,8 +97,9 @@ describe("ExportMenuController", () => {
 
     const buttons = controller.menuTarget.querySelectorAll("button")
 
-    expect(buttons).toHaveLength(3)
+    expect(buttons).toHaveLength(4)
     expect(controller.menuTarget.textContent).not.toContain("Create shared link")
+    expect(controller.menuTarget.textContent).toContain("Manage API")
   })
 
   it("uses the shareable value on connect", async () => {
@@ -116,25 +122,27 @@ describe("ExportMenuController", () => {
     await new Promise((resolve) => setTimeout(resolve, 0))
     controller = application.getControllerForElementAndIdentifier(element, "export-menu")
 
-    expect(controller.menuTarget.querySelectorAll("button")).toHaveLength(2)
+    expect(controller.menuTarget.querySelectorAll("button")).toHaveLength(3)
     expect(controller.menuTarget.textContent).toContain("Copy Note (Ctrl+C)")
     expect(controller.menuTarget.textContent).not.toContain("Copy Markdown")
     expect(controller.menuTarget.textContent).not.toContain("Create shared link")
+    expect(controller.menuTarget.textContent).toContain("Manage API")
   })
 
   it("expands and collapses file export actions inline", () => {
     controller.toggleExportGroup({ stopPropagation: vi.fn() })
 
     let buttons = Array.from(controller.menuTarget.querySelectorAll("button"))
-    expect(buttons).toHaveLength(7)
+    expect(buttons).toHaveLength(8)
     expect(buttons[3].dataset.actionId).toBe("export-html")
     expect(controller.menuTarget.textContent).toContain("Export HTML")
     expect(controller.menuTarget.textContent).toContain("Export PDF")
+    expect(controller.menuTarget.textContent).toContain("Manage API")
 
     controller.toggleExportGroup({ stopPropagation: vi.fn() })
 
     buttons = Array.from(controller.menuTarget.querySelectorAll("button"))
-    expect(buttons).toHaveLength(4)
+    expect(buttons).toHaveLength(5)
     expect(controller.menuTarget.textContent).not.toContain("Export HTML")
   })
 

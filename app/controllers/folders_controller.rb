@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 class FoldersController < ApplicationController
+  include ExpandedFoldersParam
+
   before_action :set_folder, only: [ :destroy, :rename ]
 
   def create
@@ -61,7 +63,7 @@ class FoldersController < ApplicationController
 
   def load_tree_for_turbo_stream(selected: nil, remap_from: nil, remap_to: nil)
     @tree = Note.all
-    @expanded_folders = params[:expanded].to_s.split(",").to_set
+    @expanded_folders = parse_expanded_folders_param(params[:expanded])
     if remap_from && remap_to
       @expanded_folders = @expanded_folders.map { |path|
         if path == remap_from || path.start_with?("#{remap_from}/")

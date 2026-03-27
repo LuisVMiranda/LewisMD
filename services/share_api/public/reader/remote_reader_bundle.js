@@ -92,7 +92,8 @@ const DEFAULT_TRANSLATIONS = {
     copied_to_clipboard: "Copied to clipboard.",
     copy_failed: "Could not copy this snapshot.",
     export_failed: "Could not export this snapshot.",
-    print_failed: "Could not open the print dialog."
+    print_failed: "Could not open the print dialog.",
+    private_note_link_unavailable: "This link points to another private note and isn't available in shared view."
   }
 }
 
@@ -219,6 +220,7 @@ export class RemoteShareReader {
     this.activeOutlineId = null
     this.outlineSyncQueued = false
     this.frameScrollTarget = null
+    this.frameInteractionDocument = null
     this.outlineCollapsed = false
   }
 
@@ -247,6 +249,7 @@ export class RemoteShareReader {
     document.removeEventListener("click", this.boundDocumentClick)
     this.frame?.removeEventListener("load", this.boundFrameLoad)
     this.detachFrameScroll()
+    this.detachFrameInteractionHandlers()
     this.themeButton?.removeEventListener("click", this.boundThemeToggle)
     this.themeMenu?.removeEventListener("click", this.boundThemeMenuClick)
     this.localeButton?.removeEventListener("click", this.boundLocaleToggle)
@@ -471,6 +474,7 @@ export class RemoteShareReader {
     this.syncFrameTheme()
     this.applySettings()
     this.rebuildOutline()
+    this.attachFrameInteractionHandlers()
   }
 
   rebuildOutline() {
@@ -532,6 +536,48 @@ export class RemoteShareReader {
 
     this.frameScrollTarget.removeEventListener("scroll", this.boundFrameScroll)
     this.frameScrollTarget = null
+  }
+
+  attachFrameInteractionHandlers() {
+    const frameDocument = this.frameDocument
+    if (!frameDocument) return
+
+    this.detachFrameInteractionHandlers()
+    this.boundFrameBlockedLinkClick ||= (event) => this.onBlockedShareLinkClick(event)
+    this.boundFrameBlockedLinkKeydown ||= (event) => this.onBlockedShareLinkKeydown(event)
+    frameDocument.addEventListener("click", this.boundFrameBlockedLinkClick)
+    frameDocument.addEventListener("keydown", this.boundFrameBlockedLinkKeydown)
+    this.frameInteractionDocument = frameDocument
+  }
+
+  detachFrameInteractionHandlers() {
+    if (!this.frameInteractionDocument) return
+
+    this.frameInteractionDocument.removeEventListener("click", this.boundFrameBlockedLinkClick)
+    this.frameInteractionDocument.removeEventListener("keydown", this.boundFrameBlockedLinkKeydown)
+    this.frameInteractionDocument = null
+  }
+
+  onBlockedShareLinkClick(event) {
+    if (event.defaultPrevented) return
+    if (event.button !== 0) return
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+
+    const blockedLink = event.target.closest('a[data-shared-link-kind="internal-note"]')
+    if (!blockedLink) return
+
+    event.preventDefault()
+    this.showTemporaryMessage(window.t("status.private_note_link_unavailable"))
+  }
+
+  onBlockedShareLinkKeydown(event) {
+    if (!["Enter", " "].includes(event.key)) return
+
+    const blockedLink = event.target.closest('a[data-shared-link-kind="internal-note"]')
+    if (!blockedLink) return
+
+    event.preventDefault()
+    this.showTemporaryMessage(window.t("status.private_note_link_unavailable"))
   }
 
   scheduleOutlineSync() {

@@ -18,6 +18,8 @@ class Config
     "preview_font_family" => { default: "sans", type: :string, env: nil },
     "sidebar_visible" => { default: true, type: :boolean, env: nil },
     "active_mode" => { default: nil, type: :string, env: nil },
+    "last_open_note" => { default: nil, type: :string, env: nil },
+    "explorer_expanded_folders" => { default: nil, type: :string, env: nil },
     "typewriter_mode" => { default: false, type: :boolean, env: nil },
     "editor_indent" => { default: 2, type: :integer, env: nil },
     "editor_line_numbers" => { default: 0, type: :integer, env: nil },
@@ -108,10 +110,30 @@ class Config
     preview_font_family
     sidebar_visible
     active_mode
+    last_open_note
+    explorer_expanded_folders
     typewriter_mode
     editor_indent
     editor_line_numbers
     editor_width
+  ].freeze
+
+  SHARE_MANAGEMENT_KEYS = %w[
+    share_backend
+    share_remote_api_scheme
+    share_remote_api_host
+    share_remote_api_port
+    share_remote_public_base
+    share_remote_timeout_seconds
+    share_remote_verify_tls
+    share_remote_upload_assets
+    share_remote_instance_name
+    share_remote_expiration_days
+    share_remote_healthchecks_ping_url
+    share_remote_alert_webhook_url
+    share_remote_api_token
+    share_remote_signing_secret
+    share_remote_alert_webhook_secret
   ].freeze
 
   # AI provider priority (default order when ai_provider = "auto")
@@ -199,6 +221,9 @@ class Config
         "# preview_font_family = sans",
         "# sidebar_visible = true",
         "# active_mode = raw",
+        "# App-managed explorer resume state (optional)",
+        "# last_open_note = Writing/Current.md",
+        "# explorer_expanded_folders = Personal%2FStudies,Personal%2FStudies%2FEspa%C3%B1ol",
         "# typewriter_mode = false",
         "",
         "# Editor indent: 0 = tab, 1-6 = spaces (default: 2)",
@@ -398,6 +423,20 @@ class Config
           hash[key] = get(key)
         else
           # Just indicate if configured (for frontend status display)
+          hash["#{key}_configured"] = get(key).present?
+        end
+      else
+        hash[key] = get(key)
+      end
+    end
+  end
+
+  def share_management_settings(include_sensitive: false)
+    SHARE_MANAGEMENT_KEYS.each_with_object({}) do |key, hash|
+      if SENSITIVE_KEYS.include?(key)
+        if include_sensitive
+          hash[key] = get(key)
+        else
           hash["#{key}_configured"] = get(key).present?
         end
       else
@@ -797,6 +836,19 @@ class Config
       new_lines.concat(section_lines("# Templates"))
       changed = true
     end
+
+    changed = ensure_setting_lines_present!(
+      existing_lines: existing_lines,
+      new_lines: new_lines,
+      marker: "# UI Settings",
+      key: "last_open_note",
+      lines_to_insert: [
+        "# App-managed explorer resume state (optional)",
+        "# last_open_note = Writing/Current.md",
+        "# explorer_expanded_folders = Personal%2FStudies,Personal%2FStudies%2FEspa%C3%B1ol"
+      ],
+      after_key: "active_mode"
+    ) || changed
 
     unless section_present?(existing_lines, "# Remote Share API", remote_share_keys)
       new_lines << "" if new_lines.last&.strip&.present?

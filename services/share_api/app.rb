@@ -43,6 +43,54 @@ module ShareAPI
     }.freeze
     LIGHT_THEME_IDS = %w[light solarized-light catppuccin-latte rose-pine flexoki-light].freeze
     TOKEN_PATTERN = /\A[a-zA-Z0-9\-_]{8,}\z/
+    EXTERNAL_SCHEME_PATTERN = /\A[a-zA-Z][a-zA-Z\d+.-]*:/
+    SAFE_APP_PREFIXES = %w[
+      /backup/
+      /templates/
+      /folders/
+      /images/
+      /youtube/
+      /ai/
+      /config
+      /translations
+      /shares/
+      /s/
+      /logs/
+      /up
+    ].freeze
+    NON_NOTE_FILE_EXTENSIONS = %w[
+      .avif
+      .bmp
+      .csv
+      .doc
+      .docx
+      .gif
+      .htm
+      .html
+      .jpeg
+      .jpg
+      .json
+      .js
+      .mov
+      .mp3
+      .mp4
+      .pdf
+      .png
+      .ppt
+      .pptx
+      .svg
+      .tar
+      .txt
+      .wav
+      .webm
+      .webp
+      .xls
+      .xlsx
+      .xml
+      .yaml
+      .yml
+      .zip
+    ].freeze
     REMOTE_READER_TRANSLATIONS_PATH = Pathname.new(__dir__).join("public", "reader", "remote_reader_translations.json")
     READER_ASSETS = {
       "/reader/assets/remote_reader_bundle.js" => {
@@ -179,6 +227,14 @@ module ShareAPI
         return create_share(request)
       end
 
+      if request.get? && request.path_info == "/api/v1/admin/status"
+        return admin_status(request)
+      end
+
+      if request.delete? && request.path_info == "/api/v1/admin/shares"
+        return delete_all_shares(request)
+      end
+
       if (match = request.path_info.match(%r{\A/api/v1/shares/([^/]+)\z}))
         token = match[1]
         return update_share(request, token) if request.put?
@@ -189,7 +245,7 @@ module ShareAPI
     end
 
     def create_share(request)
-      body = request.body.read
+      body = request_body_string(request)
       authenticate_write!(request, body)
       payload = parse_payload(body)
       sanitized_fragment = sanitize_payload_fragment(payload.fetch("html_fragment"))
@@ -207,7 +263,7 @@ module ShareAPI
 
     def update_share(request, token)
       validate_token!(token)
-      body = request.body.read
+      body = request_body_string(request)
       authenticate_write!(request, body)
       payload = parse_payload(body)
       sanitized_fragment = sanitize_payload_fragment(payload.fetch("html_fragment"))
@@ -224,11 +280,48 @@ module ShareAPI
 
     def revoke_share(request, token)
       validate_token!(token)
-      body = request.body.read
+      body = request_body_string(request)
       authenticate_write!(request, body)
       share = storage.delete_share(token: token)
 
       json_response(200, share_response(request, share).merge("revoked" => true))
+    end
+
+    def admin_status(request)
+      body = request_body_string(request)
+      authenticate_write!(request, body)
+
+      json_response(
+        200,
+        {
+          "instance_name" => non_blank(config.instance_name),
+          "share_count" => storage.share_count,
+          "storage_writable" => storage.verify_write_access!,
+          "checked_at" => Time.now.utc.iso8601
+        }.compact
+      )
+    end
+
+    def delete_all_shares(request)
+      body = request_body_string(request)
+      authenticate_write!(request, body)
+      cleanup_result = storage.delete_all_shares!
+
+      json_response(
+        200,
+        {
+          "deleted" => true,
+          "deleted_count" => cleanup_result.fetch(:deleted_count),
+          "cleanup" => {
+            "removed_tokens" => cleanup_result.fetch(:deleted_tokens),
+            "invalid_share_files_deleted" => cleanup_result.fetch(:invalid_share_files_deleted),
+            "orphan_snapshot_dirs_deleted" => cleanup_result.fetch(:orphan_snapshot_dirs_deleted),
+            "orphan_asset_dirs_deleted" => cleanup_result.fetch(:orphan_asset_dirs_deleted),
+            "orphan_identity_indexes_deleted" => cleanup_result.fetch(:orphan_identity_indexes_deleted)
+          },
+          "checked_at" => Time.now.utc.iso8601
+        }
+      )
     end
 
     def render_public_share(request, token)
@@ -261,6 +354,10 @@ module ShareAPI
       raise Storage::ValidationError, "Payload exceeds configured size limit" if body.bytesize > config.max_payload_bytes
 
       authenticator.authenticate!(request: request, body: body)
+    end
+
+    def request_body_string(request)
+      request.body&.read.to_s
     end
 
     def parse_payload(body)
@@ -314,7 +411,9 @@ module ShareAPI
         minimum_client_version: 1,
         feature_flags: {
           asset_uploads: true,
-          full_share_shell: true
+          full_share_shell: true,
+          admin_status: true,
+          admin_bulk_delete: true
         },
         max_payload_bytes: config.max_payload_bytes,
         max_asset_bytes: config.max_asset_bytes,
@@ -863,8 +962,9 @@ module ShareAPI
     end
 
     def build_snapshot_document(payload, sanitized_fragment)
+      neutralized_fragment = neutralize_private_note_links(sanitized_fragment)
       snapshot_document_html = payload["snapshot_document_html"].to_s
-      return legacy_snapshot_document(payload: payload, fragment_html: sanitized_fragment) if snapshot_document_html.strip.empty?
+      return legacy_snapshot_document(payload: payload, fragment_html: neutralized_fragment) if snapshot_document_html.strip.empty?
 
       document = parse_snapshot_document(snapshot_document_html)
       style_blocks = document.css("head style").map { |node| node.text.to_s }.reject { |css| css.to_s.strip.empty? }
@@ -879,7 +979,7 @@ module ShareAPI
         theme_id: theme_id,
         color_scheme: color_scheme,
         style_blocks: style_blocks,
-        fragment_html: sanitized_fragment
+        fragment_html: neutralized_fragment
       )
     end
 
@@ -917,7 +1017,7 @@ module ShareAPI
         theme_id: non_blank(payload["theme_id"]),
         color_scheme: inferred_light_theme?(payload["theme_id"]) ? "light" : "dark",
         style_blocks: [],
-        fragment_html: fragment_html
+        fragment_html: neutralize_private_note_links(fragment_html)
       )
     end
 
@@ -950,6 +1050,58 @@ module ShareAPI
       HTML
     end
 
+    def neutralize_private_note_links(fragment_html)
+      fragment = Nokogiri::HTML::DocumentFragment.parse(fragment_html.to_s)
+
+      fragment.css("a").each do |link|
+        href = link["href"].to_s.strip
+        next if href.empty?
+        next unless blocked_private_note_link?(href)
+
+        link.remove_attribute("href")
+        link.remove_attribute("rel")
+        existing_classes = link["class"].to_s.split(/\s+/).reject(&:empty?)
+        link["class"] = (existing_classes + [ "shared-blocked-note-link" ]).uniq.join(" ")
+        link["data-shared-link-kind"] = "internal-note"
+        link["role"] = "button"
+        link["tabindex"] = "0"
+        link["aria-disabled"] = "true"
+      end
+
+      fragment.to_html
+    end
+
+    def blocked_private_note_link?(href)
+      normalized_href = href.to_s.strip
+      return false if normalized_href.empty?
+      return false if normalized_href.start_with?("#", "?")
+      return false if normalized_href.start_with?("//")
+      return false if normalized_href.match?(EXTERNAL_SCHEME_PATTERN)
+
+      path = normalized_href.sub(/[?#].*\z/, "")
+      return false if path.empty?
+      return true if path.start_with?("/notes/")
+      return false if safe_app_path?(path)
+
+      note_like_path?(path)
+    end
+
+    def safe_app_path?(path)
+      SAFE_APP_PREFIXES.any? { |prefix| path == prefix || path.start_with?(prefix) }
+    end
+
+    def note_like_path?(path)
+      normalized_path = path.to_s.tr("\\", "/").sub(%r{\A/+}, "")
+      return false if normalized_path.empty?
+
+      leaf = normalized_path.split("/").last.to_s
+      return false if leaf.empty?
+      return true if leaf == ".fed"
+
+      extension = File.extname(leaf).downcase
+      extension.empty? || extension == ".md" || !NON_NOTE_FILE_EXTENSIONS.include?(extension)
+    end
+
     def remote_snapshot_layout_overrides_css
       <<~CSS
         html {
@@ -977,6 +1129,11 @@ module ShareAPI
           width: min(100%, 72ch);
           max-width: min(100%, 72ch);
           overflow-wrap: break-word;
+        }
+
+        .export-article .shared-blocked-note-link {
+          cursor: pointer;
+          text-decoration-style: dashed;
         }
 
         .export-article img,

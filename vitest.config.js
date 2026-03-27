@@ -9,6 +9,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      '@codemirror/autocomplete': path.resolve(__dirname, 'vendor/javascript/@codemirror--autocomplete.js'),
       'lib': path.resolve(__dirname, 'app/javascript/lib'),
       'marked': path.resolve(__dirname, 'test/javascript/mocks/marked.js'),
       '@hotwired/turbo-rails': path.resolve(__dirname, 'test/javascript/mocks/turbo-rails.js'),

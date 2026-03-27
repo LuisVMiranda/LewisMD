@@ -1,21 +1,23 @@
 # frozen_string_literal: true
 
 class NotesController < ApplicationController
+  include ExpandedFoldersParam
+
   before_action :set_note, only: [ :update, :destroy, :rename ]
 
   def index
     @tree = Note.all
-    @initial_path = params[:file]
-    @initial_note = load_initial_note if @initial_path.present?
     @config_obj = Config.new
-    @config = load_config
-    @expanded_folders = Set.new
+    @initial_path = requested_initial_path.presence || restored_initial_path
+    @initial_note = load_initial_note if @initial_path.present?
+    @config = load_config(@config_obj)
+    @expanded_folders = initial_expanded_folders(selected_path: @initial_path)
     @selected_file = @initial_path || ""
   end
 
   def tree
     @tree = Note.all
-    @expanded_folders = params[:expanded].to_s.split(",").to_set
+    @expanded_folders = parse_expanded_folders_param(params[:expanded])
     @selected_file = params[:selected].to_s
     render partial: "notes/file_tree", layout: false
   end
@@ -39,8 +41,8 @@ class NotesController < ApplicationController
     @initial_path = path
     @initial_note = load_initial_note
     @config_obj = Config.new
-    @config = load_config
-    @expanded_folders = Set.new
+    @config = load_config(@config_obj)
+    @expanded_folders = initial_expanded_folders(selected_path: path)
     @selected_file = path
     render :index, formats: [ :html ]
   end
@@ -153,7 +155,7 @@ class NotesController < ApplicationController
 
   def load_tree_for_turbo_stream(selected: nil)
     @tree = Note.all
-    @expanded_folders = params[:expanded].to_s.split(",").to_set
+    @expanded_folders = parse_expanded_folders_param(params[:expanded])
     @selected_file = selected || params[:selected].to_s
   end
 
@@ -186,8 +188,7 @@ class NotesController < ApplicationController
     }
   end
 
-  def load_config
-    config = Config.new
+  def load_config(config = Config.new)
     {
       settings: config.ui_settings,
       features: {
@@ -213,5 +214,62 @@ class NotesController < ApplicationController
   rescue TemplatesService::InvalidPathError => e
     render json: { error: e.message }, status: :unprocessable_entity
     nil
+  end
+
+  def requested_initial_path
+    raw_path = params[:file].presence
+    return nil if raw_path.blank?
+
+    Note.normalize_path(raw_path)
+  end
+
+  def restored_initial_path
+    saved_path = @config_obj.get("last_open_note").presence
+    return nil if saved_path.blank?
+
+    normalized_path = Note.normalize_path(saved_path)
+    note = Note.new(path: normalized_path)
+    note.exists? ? note.path : nil
+  end
+
+  def initial_expanded_folders(selected_path:)
+    valid_folder_paths = collect_folder_paths(@tree)
+    selected_note_parents = parent_folder_paths(selected_path).select { |path| valid_folder_paths.include?(path) }
+
+    saved_expanded_folders.merge(selected_note_parents).select do |path|
+      valid_folder_paths.include?(path)
+    end.to_set
+  end
+
+  def saved_expanded_folders
+    parse_expanded_folders_param(@config_obj.get("explorer_expanded_folders"))
+  end
+
+  def parent_folder_paths(path)
+    return [] if path.blank?
+
+    parts = path.to_s.split("/")
+    folders = []
+    current_path = +""
+
+    parts[0..-2].each do |part|
+      current_path = current_path.present? ? "#{current_path}/#{part}" : part
+      folders << current_path
+    end
+
+    folders
+  end
+
+  def collect_folder_paths(items)
+    items.each_with_object(Set.new) do |item, paths|
+      next unless item[:type] == "folder" || item["type"] == "folder"
+
+      path = item[:path] || item["path"]
+      next if path.blank?
+
+      paths.add(path)
+      child_items = item[:children] || item["children"] || []
+      paths.merge(collect_folder_paths(child_items))
+    end
   end
 end

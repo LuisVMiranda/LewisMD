@@ -27,6 +27,7 @@ class RemoteShareProviderTest < ActiveSupport::TestCase
       client = mock("remote-share-client")
       client.expects(:create_share).with do |payload|
         assert_equal "Shared Note", payload[:title]
+        assert_equal "note-123", payload[:note_identifier]
         assert_equal 2, payload[:snapshot_version]
         assert_equal 1, payload[:shell_version]
         assert_equal "Shared Note", payload.dig(:shell_payload, :title)
@@ -66,7 +67,7 @@ class RemoteShareProviderTest < ActiveSupport::TestCase
       assert_equal "remote-share-1234", share[:token]
       assert_equal false, share[:stale]
       assert_equal "2026-04-08T12:00:00Z", share[:expires_at]
-      assert_equal "https://shares.example.com/s/remote-share-1234", @registry.active_share_for("shared-note.md")[:url]
+      assert_equal "https://shares.example.com/s/remote-share-1234", @registry.active_share_for("shared-note.md", note_identifier: "note-123")[:url]
     end
   end
 
@@ -129,7 +130,7 @@ class RemoteShareProviderTest < ActiveSupport::TestCase
 
       assert_equal true, share[:created]
       assert_equal "remote-share-5678", share[:token]
-      assert_equal "remote-share-5678", @registry.active_share_for("shared-note.md")[:token]
+      assert_equal "remote-share-5678", @registry.active_share_for("shared-note.md", note_identifier: "note-123")[:token]
     end
   end
 
@@ -156,7 +157,7 @@ class RemoteShareProviderTest < ActiveSupport::TestCase
 
     assert_includes error.message, "timed out"
 
-    stale_share = @registry.active_share_for("shared-note.md")
+    stale_share = @registry.active_share_for("shared-note.md", note_identifier: "note-123")
     assert_equal true, stale_share[:stale]
     assert_equal "Remote share API timed out", stale_share[:last_error]
     assert_equal "https://shares.example.com/s/remote-share-1234", stale_share[:url]
@@ -174,10 +175,10 @@ class RemoteShareProviderTest < ActiveSupport::TestCase
       client: client
     )
 
-    share = provider.revoke(path: "shared-note.md")
+    share = provider.revoke(path: "shared-note.md", note_identifier: "note-123")
 
     assert_equal "remote-share-1234", share[:token]
-    assert_nil @registry.active_share_for("shared-note.md")
+    assert_nil @registry.active_share_for("shared-note.md", note_identifier: "note-123")
   end
 
   private
@@ -185,7 +186,7 @@ class RemoteShareProviderTest < ActiveSupport::TestCase
   def share_payload
     {
       source: "preview",
-      note_identifier: "shared-note.md",
+      note_identifier: "note-123",
       path: "shared-note.md",
       title: "Shared Note",
       html_fragment: '<p><img src="data:image/png;base64,aGVsbG8=" alt="Inline image"></p>',
@@ -235,6 +236,7 @@ class RemoteShareProviderTest < ActiveSupport::TestCase
   def existing_share_metadata
     {
       token: "remote-share-1234",
+      note_identifier: "note-123",
       path: "shared-note.md",
       title: "Shared Note",
       url: "https://shares.example.com/s/remote-share-1234",

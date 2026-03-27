@@ -39,6 +39,8 @@ export default class extends Controller {
 
   connect() {
     this._isSelecting = false // Track mouse selection state
+    this.currentNotePath = null
+    this.availableMarkdownNotes = []
     this.createEditor()
   }
 
@@ -59,7 +61,11 @@ export default class extends Controller {
       lineNumberMode: this.lineNumberModeValue,
       onUpdate: (update) => this.onDocumentChange(update),
       onSelectionChange: (update) => this.onSelectionChange(update),
-      onScroll: (event, view) => this.onScroll(event, view)
+      onScroll: (event, view) => this.onScroll(event, view),
+      noteLinkAutocomplete: {
+        getCurrentNotePath: () => this.currentNotePath,
+        getAvailableNotes: () => this.availableMarkdownNotes
+      }
     })
 
     // Add typewriter extension
@@ -206,6 +212,14 @@ export default class extends Controller {
         insert: text
       }
     })
+  }
+
+  setCurrentNotePath(path) {
+    this.currentNotePath = path || null
+  }
+
+  setAvailableNotes(notes) {
+    this.availableMarkdownNotes = Array.from(notes || [])
   }
 
   /**

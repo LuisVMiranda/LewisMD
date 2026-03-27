@@ -12,8 +12,9 @@ describe("export_menu_helpers", () => {
       exportGroupExpanded: false
     })
 
-    expect(items).toHaveLength(4)
-    expect(items.at(-1).id).toBe("create-share-link")
+    expect(items).toHaveLength(5)
+    expect(items.at(-2).id).toBe("create-share-link")
+    expect(items.at(-1).id).toBe("manage-share-api")
   })
 
   it("includes nested export actions when expanded and active share actions when needed", () => {

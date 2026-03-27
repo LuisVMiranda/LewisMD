@@ -103,6 +103,7 @@ ko:
     copy_failed: 복사에 실패했습니다
     export_failed: 내용을 내보내지 못했습니다
     print_failed: 인쇄 대화상자를 열 수 없었습니다.
+    private_note_link_unavailable: 이 링크는 다른 비공개 노트를 가리키므로 공유 보기에서는 사용할 수 없습니다.
     saved: 저장됨
     unsaved: 저장되지 않은 변경사항
     error_saving: 저장 오류
@@ -161,6 +162,7 @@ ko:
     copy_share_link: 공유 링크 복사
     refresh_share_link: 공유 스냅샷 새로고침
     disable_share_link: 공유 링크 비활성화
+    manage_api: API 관리
   share_view:
     label: 공유 노트
     open_exports: 내보내기 작업 열기
@@ -576,6 +578,7 @@ ko:
     failed_to_upload: 업로드 실패
     templates_markdown_only: 템플릿은 마크다운 노트에서만 사용할 수 있습니다
     failed_to_process_ai: AI로 텍스트 처리 실패
+    share_identity_frontmatter_invalid: LewisMD could not save a stable share identity because the note front matter is malformed.
   confirm:
     delete_note: "노트 \"%{name}\"을 삭제할까요?\n\n이 작업은 되돌릴 수 없습니다."
     delete_folder: "폴더 \"%{name}\"과(와) 그 안의 모든 내용을 삭제할까요?\n\n이 작업은 되돌릴 수 없습니다."
@@ -593,7 +596,6 @@ ko:
   notes:
     show:
       ai_error: 'AI 오류: %{message}'
-
 
 
 

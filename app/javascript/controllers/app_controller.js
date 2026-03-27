@@ -63,7 +63,7 @@ export default class extends Controller {
     "image-picker", "file-finder", "find-replace", "jump-to-line",
     "outline", "export-menu",
     "content-search", "ai-grammar", "video-dialog", "log-viewer",
-    "code-dialog", "customize", "drag-drop"
+    "code-dialog", "customize", "share-management", "drag-drop"
   ]
 
   static values = {
@@ -75,9 +75,11 @@ export default class extends Controller {
     this.currentFile = null
     this.currentFileType = null  // "markdown", "config", or null
     this.expandedFolders = new Set()
+    this.lastOpenMarkdownNotePath = null
     this.readingModeActive = false
     this.recoveryAvailable = false
     this._lastUiStateSignature = null
+    this._lastExplorerResumeStateSignature = null
     this._codemirrorReady = false
     this._restoringPersistedUiState = false
     this._transientPreviewPreparation = false
@@ -147,7 +149,9 @@ export default class extends Controller {
       clearTimeout(this._initialFileTimeout)
       this._initialFileTimeout = null
     }
+    this.hydrateExpandedFoldersFromTree()
     this.handleInitialFile()
+    this.captureExplorerResumeStateSignature()
     this._removeSplashScreen()
   }
 
@@ -217,6 +221,7 @@ export default class extends Controller {
   getEditorConfigController() { return this.editorConfigOutlets[0] ?? null }
   getOutlineController() { return this.outlineOutlets[0] ?? null }
   getExportMenuController() { return this.exportMenuOutlets?.[0] ?? null }
+  getShareManagementController() { return this.shareManagementOutlets?.[0] ?? null }
 
   outlineOutletConnected() {
     this.refreshOutline()
@@ -318,12 +323,16 @@ export default class extends Controller {
         this.updatePathDisplay(displayPath)
         this.expandParentFolders(path)
         this.showEditor(content, fileType)
+        this.rememberCurrentMarkdownNote({ persist: false })
         this.refreshTree()
         return
       }
 
       if (!exists) {
         // File was requested but doesn't exist
+        if (this.clearRememberedLastOpenNote(path)) {
+          this.persistExplorerResumeState()
+        }
         this.showFileNotFoundMessage(path, error || window.t("errors.file_not_found"))
         // Update URL to root without adding history entry
         this.updateUrl(null, { replace: true })
@@ -387,10 +396,103 @@ export default class extends Controller {
     }
   }
 
+  hydrateExpandedFoldersFromTree() {
+    if (!this.fileTreeTarget) return
+
+    const expandedFolders = Array.from(this.fileTreeTarget.querySelectorAll(".tree-folder"))
+      .filter((folderEl) => {
+        const children = folderEl.querySelector(".tree-children")
+        return children && !children.classList.contains("hidden")
+      })
+      .map((folderEl) => folderEl.dataset.path)
+      .filter(Boolean)
+
+    this.expandedFolders = new Set(expandedFolders)
+  }
+
+  serializeExpandedFoldersForConfig() {
+    return this.sortedExpandedFolders()
+      .map((path) => encodeURIComponent(path))
+      .join(",")
+  }
+
+  sortedExpandedFolders() {
+    return Array.from(this.expandedFolders).sort((left, right) => left.localeCompare(right))
+  }
+
+  serializeExpandedFoldersForRequest() {
+    return JSON.stringify(this.sortedExpandedFolders())
+  }
+
+  currentExplorerResumeState() {
+    return {
+      last_open_note: this.lastOpenMarkdownNotePath || "",
+      explorer_expanded_folders: this.serializeExpandedFoldersForConfig()
+    }
+  }
+
+  captureExplorerResumeStateSignature() {
+    this._lastExplorerResumeStateSignature = JSON.stringify(this.currentExplorerResumeState())
+  }
+
+  persistExplorerResumeState() {
+    const nextState = this.currentExplorerResumeState()
+    const nextSignature = JSON.stringify(nextState)
+    if (nextSignature === this._lastExplorerResumeStateSignature) return
+
+    this._lastExplorerResumeStateSignature = nextSignature
+    this.saveConfig(nextState)
+  }
+
+  rememberCurrentMarkdownNote({ persist = true } = {}) {
+    if (!this.currentFile || !this.isMarkdownFile()) return
+
+    this.lastOpenMarkdownNotePath = this.currentFile
+    if (persist) {
+      this.persistExplorerResumeState()
+    }
+  }
+
+  clearRememberedLastOpenNote(path = null) {
+    if (!this.lastOpenMarkdownNotePath) return false
+
+    if (!path) {
+      this.lastOpenMarkdownNotePath = null
+      return true
+    }
+
+    const normalizedPath = String(path)
+    const matchesRememberedNote =
+      this.lastOpenMarkdownNotePath === normalizedPath ||
+      this.lastOpenMarkdownNotePath.startsWith(`${normalizedPath}/`)
+
+    if (!matchesRememberedNote) return false
+
+    this.lastOpenMarkdownNotePath = null
+    return true
+  }
+
+  remapRememberedLastOpenNote(oldPath, newPath) {
+    if (!this.lastOpenMarkdownNotePath) return false
+
+    if (this.lastOpenMarkdownNotePath === oldPath) {
+      this.lastOpenMarkdownNotePath = newPath
+      return true
+    }
+
+    if (this.lastOpenMarkdownNotePath.startsWith(`${oldPath}/`)) {
+      this.lastOpenMarkdownNotePath = `${newPath}${this.lastOpenMarkdownNotePath.slice(oldPath.length)}`
+      return true
+    }
+
+    return false
+  }
+
   showFileNotFoundMessage(path, message) {
     this.currentFile = null
     this.currentFileType = null
     this.clearCurrentShare()
+    this.refreshNoteLinkAutocompleteContext()
     this.editorPlaceholderTarget.classList.add("hidden")
     this.editorTarget.classList.remove("hidden")
     this.editorToolbarTarget.classList.add("hidden")
@@ -416,6 +518,7 @@ export default class extends Controller {
     this.currentFileType = null
     this.clearCurrentShare()
     this.getPreviewController()?.setCurrentNotePath?.(null)
+    this.refreshNoteLinkAutocompleteContext()
     this.updatePathDisplay(null)
     this.editorPlaceholderTarget.classList.remove("hidden")
     this.editorTarget.classList.add("hidden")
@@ -445,6 +548,8 @@ export default class extends Controller {
       children.classList.remove("hidden")
       chevron.classList.add("expanded")
     }
+
+    this.persistExplorerResumeState()
   }
 
   // === Drag and Drop Event Handler ===
@@ -483,11 +588,14 @@ export default class extends Controller {
       this.updateUrl(newPath)
     }
 
+    this.remapRememberedLastOpenNote(oldPath, newPath)
+
     if (this.currentFile) {
       this.refreshCurrentShareState()
     }
 
     // Tree is already updated by Turbo Stream
+    this.persistExplorerResumeState()
   }
 
   // === File Selection and Editor ===
@@ -504,6 +612,9 @@ export default class extends Controller {
 
       if (!response.ok) {
         if (response.statusCode === 404) {
+          if (this.clearRememberedLastOpenNote(path)) {
+            this.persistExplorerResumeState()
+          }
           this.showFileNotFoundMessage(path, window.t("errors.note_not_found"))
           if (updateHistory) {
             this.updateUrl(null)
@@ -525,6 +636,7 @@ export default class extends Controller {
       this.expandParentFolders(path)
 
       this.showEditor(data.content, fileType)
+      this.rememberCurrentMarkdownNote()
       this.refreshTree()
 
       // Update URL for bookmarkability
@@ -559,14 +671,15 @@ export default class extends Controller {
     }
 
     // Set content via CodeMirror controller
-    const codemirrorController = this.getCodemirrorController()
-    if (codemirrorController) {
-      codemirrorController.setValue(content)
-      codemirrorController.focus()
-    } else {
-      // Fallback to hidden textarea
-      this.textareaTarget.value = content
-    }
+      const codemirrorController = this.getCodemirrorController()
+      if (codemirrorController) {
+        codemirrorController.setValue(content)
+        this.refreshNoteLinkAutocompleteContext()
+        codemirrorController.focus()
+      } else {
+        // Fallback to hidden textarea
+        this.textareaTarget.value = content
+      }
 
     // Only show toolbar and preview for markdown files
     const isMarkdown = fileType === "markdown"
@@ -595,6 +708,17 @@ export default class extends Controller {
     this.applyEditorSettings()
     this.refreshCurrentShareState()
     this.emitUiStateChanged("file-loaded")
+  }
+
+  refreshNoteLinkAutocompleteContext() {
+    const codemirrorController = this.getCodemirrorController()
+    if (!codemirrorController) return
+
+    codemirrorController.setCurrentNotePath(this.isMarkdownFile() ? this.currentFile : null)
+    const notes = this.fileTreeTarget
+      ? this.getFilesFromTree().filter((file) => file.file_type === "markdown" || file.path.endsWith(".md"))
+      : []
+    codemirrorController.setAvailableNotes(notes)
   }
 
   setCurrentShare(share) {
@@ -1552,8 +1676,44 @@ export default class extends Controller {
     }
   }
 
+  async flushPendingAutosaveForShare() {
+    const autosaveController = this.getAutosaveController()
+    if (autosaveController?.saveTimeout) {
+      await autosaveController.saveNow()
+    }
+  }
+
+  applySharedNoteContent(share) {
+    const nextContent = share?.note_content
+    if (!nextContent || !this.isMarkdownFile()) return
+
+    const codemirrorController = this.getCodemirrorController()
+    if (!codemirrorController) return
+
+    const currentContent = codemirrorController.getValue()
+    if (currentContent === nextContent) return
+
+    const currentSelection = codemirrorController.getSelection()
+    const currentCursor = codemirrorController.getCursorPosition().offset
+    const prefixDelta = nextContent.endsWith(currentContent) ? nextContent.length - currentContent.length : 0
+    const nextCursor = Math.min(currentCursor + prefixDelta, nextContent.length)
+
+    codemirrorController.setValue(nextContent)
+
+    if (currentSelection.from !== currentSelection.to && prefixDelta > 0) {
+      const nextAnchor = Math.min(currentSelection.from + prefixDelta, nextContent.length)
+      const nextHead = Math.min(currentSelection.to + prefixDelta, nextContent.length)
+      codemirrorController.setSelection(nextAnchor, nextHead)
+    } else {
+      codemirrorController.setSelection(nextCursor, nextCursor)
+    }
+
+    this.refreshNoteLinkAutocompleteContext()
+  }
+
   async createShareLink() {
     try {
+      await this.flushPendingAutosaveForShare()
       const snapshot = await this.buildCurrentShareSnapshot()
       if (!snapshot) return false
 
@@ -1567,6 +1727,7 @@ export default class extends Controller {
       })
 
       const share = await this.parseShareResponse(response)
+      this.applySharedNoteContent(share)
       this.setCurrentShare(share)
 
       return this.copyTextToClipboard(share.url, {
@@ -1599,6 +1760,7 @@ export default class extends Controller {
     }
 
     try {
+      await this.flushPendingAutosaveForShare()
       const snapshot = await this.buildCurrentShareSnapshot()
       if (!snapshot) return false
 
@@ -1611,6 +1773,7 @@ export default class extends Controller {
       })
 
       const share = await this.parseShareResponse(response)
+      this.applySharedNoteContent(share)
       this.setCurrentShare(share)
       this.showTemporaryMessage(window.t("status.share_link_refreshed"))
       return true
@@ -1643,6 +1806,14 @@ export default class extends Controller {
     }
   }
 
+  openShareManagement() {
+    this.getShareManagementController()?.open()
+  }
+
+  async onShareManagementSharesCleared() {
+    await this.refreshCurrentShareState()
+  }
+
   async onExportMenuSelected(event) {
     const actionId = event.detail?.actionId
 
@@ -1673,6 +1844,9 @@ export default class extends Controller {
         return
       case "disable-share-link":
         await this.disableShareLink()
+        return
+      case "manage-share-api":
+        this.openShareManagement()
         return
       default:
         return
@@ -2236,6 +2410,7 @@ export default class extends Controller {
     const { path } = event.detail
     this.expandedFolders.add(path)
     // Tree is already updated by Turbo Stream
+    this.persistExplorerResumeState()
   }
 
   onFileRenamed(event) {
@@ -2267,22 +2442,38 @@ export default class extends Controller {
       this.updateUrl(newPath)
     }
 
+    this.remapRememberedLastOpenNote(oldPath, newPath)
+
     if (this.currentFile) {
       this.refreshCurrentShareState()
     }
 
     // Tree is already updated by Turbo Stream
+    this.persistExplorerResumeState()
   }
 
   onFileDeleted(event) {
-    const { path } = event.detail
+    const { path, type } = event.detail
+
+    if (type === "folder") {
+      this.expandedFolders = new Set(
+        Array.from(this.expandedFolders).filter((expandedPath) => expandedPath !== path && !expandedPath.startsWith(`${path}/`))
+      )
+    }
+
+    this.clearRememberedLastOpenNote(path)
+
+    const deletedCurrentFile =
+      this.currentFile === path ||
+      (type === "folder" && this.currentFile?.startsWith(`${path}/`))
 
     // Clear editor if deleted file was currently open
-    if (this.currentFile === path) {
+    if (deletedCurrentFile) {
       this.showEditorPlaceholder("file-cleared")
     }
 
     // Tree is already updated by Turbo Stream
+    this.persistExplorerResumeState()
   }
 
   onFileOperationsStatusMessage(event) {
@@ -2333,12 +2524,13 @@ export default class extends Controller {
 
   async refreshTree() {
     try {
-      const expanded = [...this.expandedFolders].join(",")
+      const expanded = this.serializeExpandedFoldersForRequest()
       const selected = this.currentFile || ""
       const response = await get(`/notes/tree?expanded=${encodeURIComponent(expanded)}&selected=${encodeURIComponent(selected)}`)
       if (response.ok) {
         const html = await response.text
         this.fileTreeTarget.innerHTML = html
+        this.refreshNoteLinkAutocompleteContext()
       }
     } catch (error) {
       console.error("Error refreshing tree:", error)

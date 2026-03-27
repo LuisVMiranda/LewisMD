@@ -11,7 +11,8 @@ module SharePublishers
       share_service.create_or_find(
         path: path,
         title: title,
-        snapshot_html: snapshot_html
+        snapshot_html: snapshot_html,
+        note_identifier: share_payload&.dig(:note_identifier)
       )
     end
 
@@ -19,7 +20,8 @@ module SharePublishers
       share_service.refresh(
         path: path,
         title: title,
-        snapshot_html: snapshot_html
+        snapshot_html: snapshot_html,
+        note_identifier: share_payload&.dig(:note_identifier)
       )
     end
 

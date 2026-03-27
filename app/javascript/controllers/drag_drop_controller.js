@@ -13,7 +13,11 @@ export default class extends Controller {
     const appEl = document.querySelector('[data-controller~="app"]')
     if (!appEl) return ""
     const app = this.application.getControllerForElementAndIdentifier(appEl, "app")
-    return app?.expandedFolders ? [...app.expandedFolders].join(",") : ""
+    if (!app?.expandedFolders) return ""
+
+    return app.serializeExpandedFoldersForRequest
+      ? app.serializeExpandedFoldersForRequest()
+      : JSON.stringify(Array.from(app.expandedFolders).sort((left, right) => left.localeCompare(right)))
   }
 
   connect() {

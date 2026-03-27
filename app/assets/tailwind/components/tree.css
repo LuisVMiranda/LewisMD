@@ -41,6 +41,19 @@
     transform: rotate(90deg);
   }
 
+  .tree-item .tree-folder-name {
+    min-width: 0;
+  }
+
+  .tree-item .tree-folder-count {
+    margin-left: auto;
+    padding-left: 0.5rem;
+    flex-shrink: 0;
+    font-size: 0.75rem;
+    line-height: 1;
+    color: var(--theme-text-muted);
+  }
+
   .tree-children {
     padding-left: 1rem;
   }

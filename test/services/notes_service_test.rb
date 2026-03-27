@@ -38,8 +38,35 @@ class NotesServiceTest < ActiveSupport::TestCase
     folder = tree.first
     assert_equal "folder", folder[:type]
     assert_equal "folder1", folder[:name]
+    assert_equal 1, folder[:note_count]
     assert_equal 1, folder[:children].length
     assert_equal "nested", folder[:children].first[:name]
+  end
+
+  test "list_tree includes recursive markdown note counts for folders" do
+    create_test_folder("folder1/deep")
+    create_test_note("folder1/note1.md")
+    create_test_note("folder1/deep/note2.md")
+    create_test_note("folder1/deep/note3.md")
+
+    tree = @service.list_tree
+    folder = tree.find { |item| item[:type] == "folder" && item[:path] == "folder1" }
+    deep_folder = folder[:children].find { |item| item[:type] == "folder" && item[:path] == "folder1/deep" }
+
+    assert_equal 3, folder[:note_count]
+    assert_equal 2, deep_folder[:note_count]
+  end
+
+  test "list_tree folder note counts ignore config and non-markdown files" do
+    create_test_folder("folder1")
+    create_test_note("folder1/note1.md")
+    @test_notes_dir.join("folder1/image.png").write("png")
+    @test_notes_dir.join("folder1/.fed").write("theme = dark")
+
+    tree = @service.list_tree
+    folder = tree.find { |item| item[:type] == "folder" && item[:path] == "folder1" }
+
+    assert_equal 1, folder[:note_count]
   end
 
   test "list_tree sorts folders before files" do

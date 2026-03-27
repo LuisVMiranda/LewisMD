@@ -15,9 +15,11 @@ class SharePayloadBuilderTest < ActiveSupport::TestCase
   end
 
   test "build extracts a sanitized fragment and payload metadata from a standalone share document" do
+    note_identifier = SecureRandom.uuid
     payload = @builder.build(
       path: "shared-note.md",
       title: "Shared Note",
+      note_identifier: note_identifier,
       document_html: <<~HTML
         <!DOCTYPE html>
         <html lang="pt-BR" data-theme="nord">
@@ -51,7 +53,7 @@ class SharePayloadBuilderTest < ActiveSupport::TestCase
     assert_equal 2, payload[:snapshot_version]
     assert_equal 1, payload[:shell_version]
     assert_equal "shared-note.md", payload[:path]
-    assert_equal "shared-note.md", payload[:note_identifier]
+    assert_equal note_identifier, payload[:note_identifier]
     assert_equal "Shared Note", payload[:title]
     assert_equal "pt-BR", payload[:locale]
     assert_equal "nord", payload[:theme_id]
@@ -169,5 +171,38 @@ class SharePayloadBuilderTest < ActiveSupport::TestCase
     assert_equal "local_preview", uploaded_asset[:source_type]
     assert_equal "diagram.png", uploaded_asset[:filename]
     assert_equal Base64.strict_encode64("png-bytes"), uploaded_asset[:content_base64]
+  end
+
+  test "build neutralizes internal LewisMD note links in shared snapshots" do
+    payload = @builder.build(
+      path: "shared-note.md",
+      title: "Shared Note",
+      document_html: <<~HTML
+        <html lang="en">
+          <body>
+            <article class="export-article">
+              <p><a href="/notes/Personal/Studies/Español/2026/Practice_Area_A2.md">Practice area</a></p>
+              <p><a href="../Study_Syllabus_A2">Relative note</a></p>
+              <p><a href="../Wise Up/Notes-27.03">Dotted note</a></p>
+              <p><a href="https://example.com/reference">External</a></p>
+            </article>
+          </body>
+        </html>
+      HTML
+    )
+
+    assert_includes payload[:html_fragment], 'data-shared-link-kind="internal-note"'
+    assert_includes payload[:html_fragment], 'class="shared-blocked-note-link"'
+    refute_includes payload[:html_fragment], "/notes/Personal/Studies/Español/2026/Practice_Area_A2.md"
+    refute_includes payload[:html_fragment], "../Study_Syllabus_A2"
+    refute_includes payload[:html_fragment], "../Wise Up/Notes-27.03"
+    assert_includes payload[:html_fragment], "https://example.com/reference"
+
+    assert_includes payload[:snapshot_document_html], 'data-shared-link-kind="internal-note"'
+    assert_includes payload[:snapshot_document_html], ".shared-blocked-note-link"
+    refute_includes payload[:snapshot_document_html], "/notes/Personal/Studies/Español/2026/Practice_Area_A2.md"
+    refute_includes payload[:snapshot_document_html], "../Study_Syllabus_A2"
+    refute_includes payload[:snapshot_document_html], "../Wise Up/Notes-27.03"
+    assert_includes payload[:snapshot_document_html], "https://example.com/reference"
   end
 end

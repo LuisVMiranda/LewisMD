@@ -225,11 +225,13 @@ class NotesService
           mtime: entry.mtime.to_i
         }
       elsif entry.directory?
+        child_items = build_tree(entry, relative_base)
         {
           name: basename,
           path: relative_path,
           type: "folder",
-          children: build_tree(entry, relative_base)
+          children: child_items,
+          note_count: count_markdown_notes(child_items)
         }
       elsif entry.extname == ".md"
         {
@@ -239,6 +241,20 @@ class NotesService
           file_type: "markdown",
           mtime: entry.mtime.to_i
         }
+      end
+    end
+  end
+
+  def count_markdown_notes(items)
+    items.sum do |item|
+      item_type = item[:type] || item["type"]
+
+      if item_type == "folder"
+        item[:note_count] || item["note_count"] || 0
+      elsif item_type == "file" && (item[:file_type] || item["file_type"]) == "markdown"
+        1
+      else
+        0
       end
     end
   end

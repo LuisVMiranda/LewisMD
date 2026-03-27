@@ -65,6 +65,10 @@ Rails.application.routes.draw do
 
   # Snapshot share API
   post "shares", to: "shares#create"
+  get "shares/admin", to: "share_management#show", as: :share_admin
+  patch "shares/admin", to: "share_management#update"
+  post "shares/admin/recheck", to: "share_management#recheck", as: :recheck_share_admin
+  delete "shares/admin", to: "share_management#destroy"
   get "shares/*path", to: "shares#lookup", as: :share_status, format: false
   patch "shares/*path", to: "shares#update", as: :update_share, format: false
   delete "shares/*path", to: "shares#destroy", as: :destroy_share, format: false

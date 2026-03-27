@@ -42,6 +42,39 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, 'data-type="file"'
   end
 
+  test "index restores the saved last open note when no explicit note is requested" do
+    create_test_folder("Writing/Drafts")
+    create_test_note("Writing/Drafts/current.md", "# Current Draft")
+    @test_notes_dir.join(".fed").write(<<~CONFIG)
+      last_open_note = "Writing/Drafts/current.md"
+    CONFIG
+
+    get root_url
+    assert_response :success
+
+    assert_select "div[data-controller~='app']" do |elements|
+      assert_equal "Writing/Drafts/current.md", elements.first["data-app-initial-path-value"]
+    end
+    assert_includes response.body, "Current Draft"
+    assert_select "div.tree-folder[data-path='Writing'] .tree-chevron.expanded", minimum: 1
+    assert_select "div.tree-folder[data-path='Writing/Drafts'] .tree-chevron.expanded", minimum: 1
+  end
+
+  test "index ignores an invalid saved last open note" do
+    @test_notes_dir.join(".fed").write(<<~CONFIG)
+      last_open_note = "Writing/Missing.md"
+    CONFIG
+
+    get root_url
+    assert_response :success
+
+    assert_select "div[data-controller~='app']" do |elements|
+      el = elements.first
+      assert_equal "", el["data-app-initial-path-value"]
+      assert_equal "{}", el["data-app-initial-note-value"]
+    end
+  end
+
   test "index renders localized reading mode and text width tooltips" do
     get root_url(locale: "pt-BR")
     assert_response :success
@@ -78,6 +111,33 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, 'class="tree-chevron expanded"'
     # Selected file should have selected class
     assert_includes response.body, 'class="tree-item selected"'
+  end
+
+  test "tree accepts encoded expanded params" do
+    create_test_folder("Folder 1/Sub")
+    create_test_note("Folder 1/Sub/note.md")
+
+    get notes_tree_url, params: { expanded: "Folder%201,Folder%201%2FSub", selected: "Folder 1/Sub/note.md" }
+    assert_response :success
+
+    assert_select "div.tree-folder[data-path='Folder 1'] .tree-chevron.expanded", minimum: 1
+    assert_select "div.tree-folder[data-path='Folder 1/Sub'] .tree-chevron.expanded", minimum: 1
+    assert_select "div.tree-item.selected[data-path='Folder 1/Sub/note.md']", 1
+  end
+
+  test "tree accepts JSON expanded params with commas in folder names" do
+    create_test_folder("Clients, VIP/2026")
+    create_test_note("Clients, VIP/2026/note.md")
+
+    get notes_tree_url, params: {
+      expanded: JSON.generate([ "Clients, VIP", "Clients, VIP/2026" ]),
+      selected: "Clients, VIP/2026/note.md"
+    }
+    assert_response :success
+
+    assert_select "div.tree-folder[data-path='Clients, VIP'] .tree-chevron.expanded", minimum: 1
+    assert_select "div.tree-folder[data-path='Clients, VIP/2026'] .tree-chevron.expanded", minimum: 1
+    assert_select "div.tree-item.selected[data-path='Clients, VIP/2026/note.md']", 1
   end
 
   # === show ===
@@ -467,12 +527,39 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
 
   test "index with file query param loads initial note" do
     create_test_note("from_param.md", "# From Param")
+    create_test_note("saved.md", "# Saved Note")
+    @test_notes_dir.join(".fed").write(<<~CONFIG)
+      last_open_note = saved.md
+    CONFIG
 
     get root_url(file: "from_param.md")
     assert_response :success
 
     assert_select "div[data-controller~='app']"
     assert_match "From Param", response.body
+    refute_match "Saved Note", response.body
+    assert_select "div[data-controller~='app']" do |elements|
+      assert_equal "from_param.md", elements.first["data-app-initial-path-value"]
+    end
+  end
+
+  test "show restores saved expanded folders while also revealing the selected note" do
+    create_test_folder("Projects/Deep")
+    create_test_note("Projects/Deep/current.md", "# Current")
+    create_test_folder("Archive/2026")
+    create_test_note("Archive/2026/past.md", "# Past")
+    @test_notes_dir.join(".fed").write(<<~CONFIG)
+      explorer_expanded_folders = Archive,Archive%2F2026
+    CONFIG
+
+    get note_url(path: "Projects/Deep/current.md")
+    assert_response :success
+
+    assert_select "div.tree-folder[data-path='Archive'] .tree-chevron.expanded", minimum: 1
+    assert_select "div.tree-folder[data-path='Archive/2026'] .tree-chevron.expanded", minimum: 1
+    assert_select "div.tree-folder[data-path='Projects'] .tree-chevron.expanded", minimum: 1
+    assert_select "div.tree-folder[data-path='Projects/Deep'] .tree-chevron.expanded", minimum: 1
+    assert_select "div.tree-item.selected[data-path='Projects/Deep/current.md']", 1
   end
 
   test "index renders editor config partial" do

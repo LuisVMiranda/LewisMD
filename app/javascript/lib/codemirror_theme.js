@@ -157,6 +157,43 @@ export function createEditorTheme(options = {}) {
       backgroundColor: "var(--theme-bg-secondary)"
     },
 
+    ".cm-tooltip-autocomplete > ul": {
+      fontFamily: fontFamily,
+      maxHeight: "15rem"
+    },
+
+    ".cm-tooltip-autocomplete > ul > li": {
+      borderRadius: "0.25rem",
+      margin: "0.125rem",
+      padding: "0.4rem 0.55rem"
+    },
+
+    ".cm-tooltip-autocomplete > ul > li[aria-selected]": {
+      backgroundColor: "var(--theme-accent)",
+      color: "var(--theme-accent-text)"
+    },
+
+    ".cm-completionLabel": {
+      color: "inherit"
+    },
+
+    ".cm-completionDetail": {
+      color: "var(--theme-text-muted)",
+      fontStyle: "normal",
+      marginLeft: "0.75rem"
+    },
+
+    ".cm-tooltip-autocomplete > ul > li[aria-selected] .cm-completionDetail": {
+      color: "var(--theme-accent-text)",
+      opacity: "0.8"
+    },
+
+    ".cm-completionMatchedText": {
+      color: "inherit",
+      textDecoration: "none",
+      fontWeight: "600"
+    },
+
     // Fat cursor (for vim mode if added later)
     ".cm-fat-cursor": {
       backgroundColor: "var(--theme-accent)",

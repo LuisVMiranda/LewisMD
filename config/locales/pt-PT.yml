@@ -103,6 +103,7 @@ pt-PT:
     copy_failed: Falha ao copiar conteúdo
     export_failed: Falha ao exportar conteúdo
     print_failed: Não foi possível abrir a caixa de impressão.
+    private_note_link_unavailable: Esta ligação aponta para outra nota privada e não está disponível na vista partilhada.
     saved: Guardado
     unsaved: Alterações por guardar
     error_saving: Erro ao guardar
@@ -161,6 +162,7 @@ pt-PT:
     copy_share_link: Copiar ligação partilhada
     refresh_share_link: Atualizar instantâneo partilhado
     disable_share_link: Desativar ligação partilhada
+    manage_api: Gerir API
   share_view:
     label: Nota partilhada
     open_exports: Abrir ações de exportação
@@ -576,6 +578,7 @@ pt-PT:
     failed_to_upload: Falha ao enviar
     templates_markdown_only: Os modelos estão disponíveis apenas para notas markdown
     failed_to_process_ai: Falha ao processar texto com IA
+    share_identity_frontmatter_invalid: O LewisMD não conseguiu guardar uma identidade estável de partilha porque o front matter da nota está malformado.
   confirm:
     delete_note: "Eliminar a nota \"%{name}\"?\n\nEsta ação não pode ser anulada."
     delete_folder: "Eliminar a pasta \"%{name}\" e tudo o que está dentro dela?\n\nEsta ação não pode ser anulada."

@@ -27,10 +27,13 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
 
     data = JSON.parse(response.body)
     assert data["token"].present?
+    assert data["note_identifier"].present?
+    assert data["note_content"].present?
     assert_equal "shared-note.md", data["path"]
     assert_equal "Shared Note", data["title"]
     assert_equal true, data["created"]
     assert_equal share_snapshot_url(token: data["token"]), data["url"]
+    assert_includes File.read(@test_notes_dir.join("shared-note.md")), "lewismd_note_id: #{data["note_identifier"]}"
 
     assert @test_notes_dir.join(".frankmd/shares/#{data["token"]}.json").exist?
     assert @test_notes_dir.join(".frankmd/share_snapshots/#{data["token"]}.html").exist?
@@ -59,6 +62,7 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
     repeated = JSON.parse(response.body)
     assert_equal original["token"], repeated["token"]
     assert_equal false, repeated["created"]
+    assert_equal original["note_identifier"], repeated["note_identifier"]
     assert_includes File.read(@test_notes_dir.join(".frankmd/share_snapshots/#{original["token"]}.html")), "Version One"
   end
 
@@ -177,6 +181,31 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
     assert_equal share_snapshot_url(token: created_share["token"]), data["url"]
   end
 
+  test "lookup returns the existing share after the note is renamed" do
+    post shares_url,
+      params: {
+        path: "shared-note.md",
+        title: "Shared Note",
+        html: "<html><body>Version One</body></html>"
+      },
+      as: :json
+    created_share = JSON.parse(response.body)
+
+    post rename_note_url(path: "shared-note.md"),
+      params: { new_path: "renamed/shared-note.md" },
+      as: :json
+
+    assert_response :success
+
+    get share_status_url(path: "renamed/shared-note.md"), as: :json
+
+    assert_response :success
+    data = JSON.parse(response.body)
+    assert_equal created_share["token"], data["token"]
+    assert_equal "renamed/shared-note.md", data["path"]
+    assert_equal share_snapshot_url(token: created_share["token"]), data["url"]
+  end
+
   test "lookup returns 404 when the note has no active share" do
     get share_status_url(path: "shared-note.md"), as: :json
 
@@ -204,6 +233,7 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
 
     updated = JSON.parse(response.body)
     assert_equal original["token"], updated["token"]
+    assert_equal original["note_identifier"], updated["note_identifier"]
     assert_equal "Shared Note Refreshed", updated["title"]
     assert_includes File.read(@test_notes_dir.join(".frankmd/share_snapshots/#{original["token"]}.html")), "Version Two"
   end
@@ -262,6 +292,26 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
 
     data = JSON.parse(response.body)
     assert_equal true, data["revoked"]
+    refute @test_notes_dir.join(".frankmd/share_snapshots/#{created_share["token"]}.html").exist?
+  end
+
+  test "destroy revokes the existing share after the note is renamed" do
+    post shares_url,
+      params: {
+        path: "shared-note.md",
+        title: "Shared Note",
+        html: "<html><body>Version One</body></html>"
+      },
+      as: :json
+    created_share = JSON.parse(response.body)
+
+    post rename_note_url(path: "shared-note.md"),
+      params: { new_path: "renamed/shared-note.md" },
+      as: :json
+
+    delete destroy_share_url(path: "renamed/shared-note.md"), as: :json
+
+    assert_response :success
     refute @test_notes_dir.join(".frankmd/share_snapshots/#{created_share["token"]}.html").exist?
   end
 

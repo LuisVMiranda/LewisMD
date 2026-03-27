@@ -94,6 +94,17 @@ describe("codemirror_extensions", () => {
       const extensions = createExtensions({ onScroll })
       expect(extensions.length).toBeGreaterThan(0)
     })
+
+    it("accepts note link autocomplete context callbacks", () => {
+      const extensions = createExtensions({
+        noteLinkAutocomplete: {
+          getCurrentNotePath: () => "notes/example.md",
+          getAvailableNotes: () => [{ path: "notes/other.md", file_type: "markdown" }]
+        }
+      })
+
+      expect(extensions.length).toBeGreaterThan(0)
+    })
   })
 
   describe("createReadOnlyExtensions()", () => {

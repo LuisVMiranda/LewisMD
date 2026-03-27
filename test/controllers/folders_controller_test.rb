@@ -169,6 +169,27 @@ class FoldersControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, 'data-path="other"'
   end
 
+  test "rename turbo stream remaps JSON expanded folders with commas in the path" do
+    create_test_folder("Clients, VIP")
+    create_test_folder("Clients, VIP/src")
+    create_test_note("Clients, VIP/src/main.md")
+    create_test_folder("Archive")
+    create_test_note("Archive/note.md")
+
+    post rename_folder_url(path: "Clients, VIP"),
+      params: {
+        new_path: "Partners, Gold",
+        expanded: JSON.generate([ "Clients, VIP", "Clients, VIP/src", "Archive" ])
+      },
+      headers: { "Accept" => "text/vnd.turbo-stream.html" }
+    assert_response :success
+
+    assert_select "div.tree-folder[data-path='Partners, Gold'] .tree-chevron.expanded", minimum: 1
+    assert_select "div.tree-folder[data-path='Partners, Gold/src'] .tree-chevron.expanded", minimum: 1
+    assert_select "div.tree-folder[data-path='Archive'] .tree-chevron.expanded", minimum: 1
+    refute_includes response.body, 'data-path="Clients, VIP"'
+  end
+
   test "rename turbo stream keeps unrelated expanded folders unchanged" do
     create_test_folder("alpha")
     create_test_note("alpha/note.md")

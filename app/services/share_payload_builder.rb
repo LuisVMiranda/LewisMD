@@ -56,6 +56,7 @@ class SharePayloadBuilder
   ].freeze
 
   DATA_URI_PATTERN = %r{\Adata:(?<mime>[-\w.+/]+)?(?:;charset=[^;,]+)?;base64,(?<data>.+)\z}i
+  EXTERNAL_SCHEME_PATTERN = /\A[a-zA-Z][a-zA-Z\d+.-]*:/.freeze
   LOCAL_PREVIEW_PATH = %r{\A/images/preview/(?<path>.+)\z}
   MIME_EXTENSIONS = {
     "image/avif" => "avif",
@@ -77,12 +78,59 @@ class SharePayloadBuilder
     default_width: 72,
     font_family: "default"
   }.freeze
+  SAFE_APP_PREFIXES = %w[
+    /backup/
+    /templates/
+    /folders/
+    /images/
+    /youtube/
+    /ai/
+    /config
+    /translations
+    /shares/
+    /s/
+    /logs/
+    /up
+  ].freeze
+  NON_NOTE_FILE_EXTENSIONS = %w[
+    .avif
+    .bmp
+    .csv
+    .doc
+    .docx
+    .gif
+    .htm
+    .html
+    .jpeg
+    .jpg
+    .json
+    .js
+    .mov
+    .mp3
+    .mp4
+    .pdf
+    .png
+    .ppt
+    .pptx
+    .svg
+    .tar
+    .txt
+    .wav
+    .webm
+    .webp
+    .xls
+    .xlsx
+    .xml
+    .yaml
+    .yml
+    .zip
+  ].freeze
 
   def initialize(sanitizer: Rails::HTML5::SafeListSanitizer.new)
     @sanitizer = sanitizer
   end
 
-  def build(path:, title:, document_html:)
+  def build(path:, title:, document_html:, note_identifier: nil)
     normalized_path = normalize_path(path)
     raise ShareService::InvalidShareError, "Snapshot HTML is required" if document_html.to_s.strip.blank?
 
@@ -103,12 +151,14 @@ class SharePayloadBuilder
     )
     asset_manifest, assets = build_assets(sanitized_fragment)
 
+    normalized_note_identifier = note_identifier.to_s.strip.presence || normalized_path
+
     {
       snapshot_version: SNAPSHOT_VERSION,
       shell_version: SHELL_VERSION,
       source: "preview",
       path: normalized_path,
-      note_identifier: normalized_path,
+      note_identifier: normalized_note_identifier,
       title: normalized_note_title,
       html_fragment: normalized_fragment_html,
       snapshot_document_html: snapshot_document_html,
@@ -183,6 +233,8 @@ class SharePayloadBuilder
       href = link["href"].to_s.strip
       if href.blank?
         link.remove_attribute("href")
+      elsif blocked_private_note_link?(href)
+        neutralize_private_note_link!(link)
       else
         link["rel"] = "noopener noreferrer nofollow"
       end
@@ -236,7 +288,7 @@ class SharePayloadBuilder
 
   def build_snapshot_document(document:, title:, locale:, theme_id:, fragment_html:)
     color_scheme = extract_color_scheme(document, theme_id)
-    style_blocks = extract_style_blocks(document)
+    style_blocks = extract_style_blocks(document) + [ shared_snapshot_style_block ]
 
     head_parts = [
       '<meta charset="utf-8">',
@@ -279,6 +331,58 @@ class SharePayloadBuilder
   def wrap_style_block(css_text)
     escaped = css_text.to_s.gsub(%r{</style}i, '<\/style')
     "<style>\n#{escaped}\n</style>"
+  end
+
+  def blocked_private_note_link?(href)
+    normalized_href = href.to_s.strip
+    return false if normalized_href.blank?
+    return false if normalized_href.start_with?("#", "?")
+    return false if normalized_href.start_with?("//")
+    return false if normalized_href.match?(EXTERNAL_SCHEME_PATTERN)
+
+    path = normalized_href.sub(/[?#].*\z/, "")
+    return false if path.blank?
+    return true if path.start_with?("/notes/")
+    return false if safe_app_path?(path)
+
+    note_like_path?(path)
+  end
+
+  def safe_app_path?(path)
+    SAFE_APP_PREFIXES.any? { |prefix| path == prefix || path.start_with?(prefix) }
+  end
+
+  def note_like_path?(path)
+    normalized_path = path.to_s.tr("\\", "/").sub(%r{\A/+}, "")
+    return false if normalized_path.blank?
+
+    leaf = normalized_path.split("/").last.to_s
+    return false if leaf.blank?
+    return true if leaf == ".fed"
+
+    extension = File.extname(leaf).downcase
+    extension.empty? || extension == ".md" || !NON_NOTE_FILE_EXTENSIONS.include?(extension)
+  end
+
+  def neutralize_private_note_link!(link)
+    link.remove_attribute("href")
+    link.remove_attribute("rel")
+
+    existing_classes = link["class"].to_s.split(/\s+/).reject(&:blank?)
+    link["class"] = (existing_classes + [ "shared-blocked-note-link" ]).uniq.join(" ")
+    link["data-shared-link-kind"] = "internal-note"
+    link["role"] = "button"
+    link["tabindex"] = "0"
+    link["aria-disabled"] = "true"
+  end
+
+  def shared_snapshot_style_block
+    <<~CSS
+      .export-article .shared-blocked-note-link {
+        cursor: pointer;
+        text-decoration-style: dashed;
+      }
+    CSS
   end
 
   def theme_attribute(theme_id)
