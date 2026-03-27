@@ -311,6 +311,16 @@ describe("AppController shared UI state", () => {
     expect(outlineController.setActiveLine).toHaveBeenCalledWith(9)
   })
 
+  it("loads a note when the preview emits a note-link-selected event", async () => {
+    controller.loadFile = vi.fn().mockResolvedValue(undefined)
+
+    await controller.onPreviewNoteLinkSelected({
+      detail: { path: "Personal/Studies/Español/2026/Practice_Area_A2.md" }
+    })
+
+    expect(controller.loadFile).toHaveBeenCalledWith("Personal/Studies/Español/2026/Practice_Area_A2.md")
+  })
+
   it("jumps to the selected outline line and syncs preview when visible", () => {
     controller.jumpToLine = vi.fn()
     previewController.isVisible = true

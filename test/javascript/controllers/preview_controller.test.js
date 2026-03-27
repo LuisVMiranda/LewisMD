@@ -169,6 +169,23 @@ describe("PreviewController", () => {
       expect(anchor.getAttribute("href")).toBe("/notes/Personal/Studies/Espa%C3%B1ol/2026/Study_Syllabus_A2.md")
     })
 
+    it("dispatches note-link-selected when a rendered LewisMD note link is clicked", () => {
+      controller.render("[Study syllabus](Study_Syllabus_A2)", {
+        currentNotePath: "Personal/Studies/Español/2026/Lesson_01.md"
+      })
+
+      const dispatchSpy = vi.spyOn(controller, "dispatch")
+      const anchor = controller.contentTarget.querySelector("a")
+      const clickEvent = new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 })
+
+      anchor.dispatchEvent(clickEvent)
+
+      expect(clickEvent.defaultPrevented).toBe(true)
+      expect(dispatchSpy).toHaveBeenCalledWith("note-link-selected", {
+        detail: { path: "Personal/Studies/Español/2026/Study_Syllabus_A2.md" }
+      })
+    })
+
     it("does nothing when hidden", () => {
       controller.panelTarget.classList.add("hidden")
       controller.render("# Test")

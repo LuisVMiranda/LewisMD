@@ -771,6 +771,13 @@ export default class extends Controller {
     this.syncOutlineActiveLine(sourceLine)
   }
 
+  async onPreviewNoteLinkSelected(event) {
+    const path = event.detail?.path
+    if (!path) return
+
+    await this.loadFile(path)
+  }
+
   onOutlineSelected(event) {
     const lineNumber = event.detail?.lineNumber
     if (!Number.isInteger(lineNumber)) return

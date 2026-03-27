@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest"
 import {
   encodePath,
   rewriteNoteHref,
+  extractNotePathFromLewisUrl,
   extractYouTubeId
 } from "../../app/javascript/lib/url_utils.js"
 
@@ -115,5 +116,19 @@ describe("rewriteNoteHref", () => {
     expect(rewriteNoteHref("#section-2")).toBeNull()
     expect(rewriteNoteHref("appendix.pdf", "Personal/Studies/Español/2026/Lesson_01.md")).toBeNull()
     expect(rewriteNoteHref("/images/example.png")).toBe("/images/example.png")
+  })
+})
+
+describe("extractNotePathFromLewisUrl", () => {
+  it("extracts and decodes note paths from LewisMD note routes", () => {
+    expect(extractNotePathFromLewisUrl(
+      "/notes/Personal/Studies/Espa%C3%B1ol/2026/Practice_Area_A2.md",
+      "http://localhost:3000"
+    )).toBe("Personal/Studies/Español/2026/Practice_Area_A2.md")
+  })
+
+  it("returns null for non-note and external URLs", () => {
+    expect(extractNotePathFromLewisUrl("/images/example.png", "http://localhost:3000")).toBeNull()
+    expect(extractNotePathFromLewisUrl("https://example.com/notes/test.md", "http://localhost:3000")).toBeNull()
   })
 })

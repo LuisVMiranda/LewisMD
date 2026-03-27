@@ -3,6 +3,7 @@ import { calculateLineFromScroll } from "lib/scroll_utils"
 import { parseWithLineNumbers, findElementByLine, findLineAtScroll } from "lib/markdown_line_mapper"
 import { stripMarkdownFrontmatter } from "lib/markdown_frontmatter"
 import { buildRenderedDocumentPayload } from "lib/rendered_document_payload"
+import { extractNotePathFromLewisUrl } from "lib/url_utils"
 
 // Preview Controller
 // Handles markdown preview panel rendering, zoom, and scroll sync
@@ -38,6 +39,10 @@ export default class extends Controller {
     this._isUpdatingContent = false // Prevents preview scroll from syncing to editor during content updates
     this._contentUpdateTimeout = null
     this.currentNotePath = null
+    this.boundContentClick = this.onContentClick.bind(this)
+    if (this.hasContentTarget) {
+      this.contentTarget.addEventListener("click", this.boundContentClick)
+    }
     this.applyZoom()
   }
 
@@ -53,6 +58,9 @@ export default class extends Controller {
   }
 
   disconnect() {
+    if (this.hasContentTarget && this.boundContentClick) {
+      this.contentTarget.removeEventListener("click", this.boundContentClick)
+    }
     if (this.syncScrollTimeout) {
       cancelAnimationFrame(this.syncScrollTimeout)
     }
@@ -66,6 +74,23 @@ export default class extends Controller {
       clearTimeout(this._contentUpdateTimeout)
     }
     this.editorTextarea = null
+  }
+
+  onContentClick(event) {
+    if (event.defaultPrevented) return
+    if (event.button !== 0) return
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+
+    const anchor = event.target.closest("a[href]")
+    if (!anchor || !this.hasContentTarget || !this.contentTarget.contains(anchor)) return
+    if (anchor.hasAttribute("download")) return
+    if (anchor.target && anchor.target !== "_self") return
+
+    const notePath = extractNotePathFromLewisUrl(anchor.href)
+    if (!notePath) return
+
+    event.preventDefault()
+    this.dispatch("note-link-selected", { detail: { path: notePath } })
   }
 
   // Mark that scroll was initiated by editor (prevents reverse sync)

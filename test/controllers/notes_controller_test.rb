@@ -421,6 +421,25 @@ class NotesControllerTest < ActionDispatch::IntegrationTest
     assert_match "Hugo Post", response.body
   end
 
+  test "show with HTML request decodes accented nested paths for initial note data" do
+    create_test_folder("Personal/Studies/Español/2026")
+    create_test_note("Personal/Studies/Español/2026/Practice_Area_A2.md", "# Practice Area")
+
+    get "/notes/Personal/Studies/Espa%C3%B1ol/2026/Practice_Area_A2.md"
+    assert_response :success
+
+    assert_select "div[data-controller~='app'][data-app-initial-path-value]" do |elements|
+      assert_equal "Personal/Studies/Español/2026/Practice_Area_A2.md", elements.first["data-app-initial-path-value"]
+    end
+
+    assert_select "div[data-controller~='app'][data-app-initial-note-value]" do |elements|
+      note_data = JSON.parse(elements.first["data-app-initial-note-value"])
+      assert_equal true, note_data["exists"]
+      assert_equal "Personal/Studies/Español/2026/Practice_Area_A2.md", note_data["path"]
+      assert_equal "# Practice Area", note_data["content"]
+    end
+  end
+
   test "show with HTML request for missing file renders SPA with error state" do
     get note_url(path: "nonexistent/file.md")
     assert_response :success

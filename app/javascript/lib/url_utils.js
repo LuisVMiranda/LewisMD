@@ -118,6 +118,22 @@ export function rewriteNoteHref(href, currentNotePath = null) {
   return `/notes/${encodePath(resolvedNotePath)}${query}${hash}`
 }
 
+export function extractNotePathFromLewisUrl(href, currentOrigin = null) {
+  const normalizedHref = String(href ?? "").trim()
+  if (!normalizedHref) return null
+
+  const origin = currentOrigin || window.location.origin
+  const url = new URL(normalizedHref, origin)
+
+  if (url.origin !== origin) return null
+  if (!url.pathname.startsWith("/notes/")) return null
+
+  const encodedPath = url.pathname.slice("/notes/".length)
+  if (!encodedPath) return null
+
+  return encodedPath.split("/").map((segment) => decodeURIComponent(segment)).join("/")
+}
+
 /**
  * Extract YouTube video ID from various URL formats
  * @param {string} url - YouTube URL or video ID

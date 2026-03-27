@@ -1,6 +1,6 @@
 <aside data-controller="preview"
         data-preview-zoom-value="<%= @config&.dig('preview_zoom') || 100 %>"
-        data-action="preview:zoom-changed->app#onPreviewZoomChanged preview:toggled->app#onPreviewToggled preview:toggled->scroll-sync#onPreviewToggled preview:scroll->scroll-sync#onPreviewScroll"
+        data-action="preview:zoom-changed->app#onPreviewZoomChanged preview:toggled->app#onPreviewToggled preview:toggled->scroll-sync#onPreviewToggled preview:scroll->scroll-sync#onPreviewScroll preview:note-link-selected->app#onPreviewNoteLinkSelected"
         class="flex-none border-l border-[var(--theme-border)] flex-col bg-[var(--theme-bg-primary)] hidden relative"
         style="width: var(--preview-width, 40%);"
         data-preview-target="panel"
