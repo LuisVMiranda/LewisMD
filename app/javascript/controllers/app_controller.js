@@ -1825,10 +1825,18 @@ export default class extends Controller {
   }
 
   async onShareManagementSharesCleared() {
+    if (this.currentShare) {
+      this.clearCurrentShare()
+    }
+
     await this.refreshCurrentShareState()
   }
 
-  async onShareManagementShareDeleted() {
+  async onShareManagementShareDeleted(event) {
+    if (this.currentShareMatchesManagementDeletion(event?.detail)) {
+      this.clearCurrentShare()
+    }
+
     await this.refreshCurrentShareState()
   }
 
@@ -1837,6 +1845,16 @@ export default class extends Controller {
     if (!path) return
 
     await this.loadFile(path)
+  }
+
+  currentShareMatchesManagementDeletion(detail = {}) {
+    if (!this.currentShare) return false
+
+    return [
+      detail.token && detail.token === this.currentShare.token,
+      detail.path && detail.path === this.currentFile,
+      detail.noteIdentifier && detail.noteIdentifier === this.currentShare.note_identifier
+    ].some(Boolean)
   }
 
   async onExportMenuSelected(event) {

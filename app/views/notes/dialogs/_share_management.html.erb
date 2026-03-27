@@ -55,98 +55,94 @@
           <p class="text-xs text-[var(--theme-text-muted)] mt-1"><%= t("share_management.secrets_hint", default: "Leave secret fields blank to keep the current value.") %></p>
         </div>
 
-        <form data-share-management-target="form" class="grid gap-6 xl:grid-cols-2">
-          <div class="space-y-4">
-            <label class="block">
-              <span class="block text-xs font-medium text-[var(--theme-text-secondary)] mb-1.5"><%= t("share_management.fields.share_backend", default: "Share backend") %></span>
-              <select
-                name="share_backend"
-                data-action="change->share-management#onBackendChanged"
-                class="w-full text-sm bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] rounded border border-[var(--theme-border)] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[var(--theme-accent)]"
-              >
-                <option value="local">local</option>
-                <option value="remote">remote</option>
-              </select>
-            </label>
+        <form data-share-management-target="form" class="grid gap-4 md:grid-cols-2">
+          <label class="block">
+            <span class="block text-xs font-medium text-[var(--theme-text-secondary)] mb-1.5"><%= t("share_management.fields.share_backend", default: "Share backend") %></span>
+            <select
+              name="share_backend"
+              data-action="change->share-management#onBackendChanged"
+              class="w-full text-sm bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] rounded border border-[var(--theme-border)] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[var(--theme-accent)]"
+            >
+              <option value="local">local</option>
+              <option value="remote">remote</option>
+            </select>
+          </label>
 
-            <label class="block">
-              <span class="block text-xs font-medium text-[var(--theme-text-secondary)] mb-1.5"><%= t("share_management.fields.share_remote_api_scheme", default: "API scheme") %></span>
-              <select
-                name="share_remote_api_scheme"
-                class="w-full text-sm bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] rounded border border-[var(--theme-border)] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[var(--theme-accent)]"
-              >
-                <option value="https">https</option>
-                <option value="http">http</option>
-              </select>
-            </label>
+          <label class="block">
+            <span class="block text-xs font-medium text-[var(--theme-text-secondary)] mb-1.5"><%= t("share_management.fields.share_remote_api_scheme", default: "API scheme") %></span>
+            <select
+              name="share_remote_api_scheme"
+              class="w-full text-sm bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] rounded border border-[var(--theme-border)] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[var(--theme-accent)]"
+            >
+              <option value="https">https</option>
+              <option value="http">http</option>
+            </select>
+          </label>
 
-            <label class="block">
-              <span class="block text-xs font-medium text-[var(--theme-text-secondary)] mb-1.5"><%= t("share_management.fields.share_remote_api_host", default: "API host") %></span>
-              <input name="share_remote_api_host" type="text" class="w-full text-sm bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] rounded border border-[var(--theme-border)] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[var(--theme-accent)]">
-            </label>
+          <label class="block">
+            <span class="block text-xs font-medium text-[var(--theme-text-secondary)] mb-1.5"><%= t("share_management.fields.share_remote_api_host", default: "API host") %></span>
+            <input name="share_remote_api_host" type="text" class="w-full text-sm bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] rounded border border-[var(--theme-border)] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[var(--theme-accent)]">
+          </label>
 
-            <label class="block">
-              <span class="block text-xs font-medium text-[var(--theme-text-secondary)] mb-1.5"><%= t("share_management.fields.share_remote_api_port", default: "API port") %></span>
-              <input name="share_remote_api_port" type="number" min="1" class="w-full text-sm bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] rounded border border-[var(--theme-border)] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[var(--theme-accent)]">
-            </label>
+          <label class="block">
+            <span class="block text-xs font-medium text-[var(--theme-text-secondary)] mb-1.5"><%= t("share_management.fields.share_remote_api_port", default: "API port") %></span>
+            <input name="share_remote_api_port" type="number" min="1" class="w-full text-sm bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] rounded border border-[var(--theme-border)] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[var(--theme-accent)]">
+          </label>
 
-            <label class="block">
-              <span class="block text-xs font-medium text-[var(--theme-text-secondary)] mb-1.5"><%= t("share_management.fields.share_remote_public_base", default: "Public base URL") %></span>
-              <input name="share_remote_public_base" type="url" class="w-full text-sm bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] rounded border border-[var(--theme-border)] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[var(--theme-accent)]">
-            </label>
+          <label class="block">
+            <span class="block text-xs font-medium text-[var(--theme-text-secondary)] mb-1.5"><%= t("share_management.fields.share_remote_public_base", default: "Public base URL") %></span>
+            <input name="share_remote_public_base" type="url" class="w-full text-sm bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] rounded border border-[var(--theme-border)] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[var(--theme-accent)]">
+          </label>
 
-            <label class="block">
-              <span class="block text-xs font-medium text-[var(--theme-text-secondary)] mb-1.5"><%= t("share_management.fields.share_remote_timeout_seconds", default: "Timeout (seconds)") %></span>
-              <input name="share_remote_timeout_seconds" type="number" min="1" class="w-full text-sm bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] rounded border border-[var(--theme-border)] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[var(--theme-accent)]">
-            </label>
+          <label class="block">
+            <span class="block text-xs font-medium text-[var(--theme-text-secondary)] mb-1.5"><%= t("share_management.fields.share_remote_timeout_seconds", default: "Timeout (seconds)") %></span>
+            <input name="share_remote_timeout_seconds" type="number" min="1" class="w-full text-sm bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] rounded border border-[var(--theme-border)] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[var(--theme-accent)]">
+          </label>
 
-            <label class="block">
-              <span class="block text-xs font-medium text-[var(--theme-text-secondary)] mb-1.5"><%= t("share_management.fields.share_remote_expiration_days", default: "Default expiration (days)") %></span>
-              <input name="share_remote_expiration_days" type="number" min="0" class="w-full text-sm bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] rounded border border-[var(--theme-border)] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[var(--theme-accent)]">
-            </label>
+          <label class="block">
+            <span class="block text-xs font-medium text-[var(--theme-text-secondary)] mb-1.5"><%= t("share_management.fields.share_remote_expiration_days", default: "Default expiration (days)") %></span>
+            <input name="share_remote_expiration_days" type="number" min="0" class="w-full text-sm bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] rounded border border-[var(--theme-border)] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[var(--theme-accent)]">
+          </label>
 
-            <label class="block">
-              <span class="block text-xs font-medium text-[var(--theme-text-secondary)] mb-1.5"><%= t("share_management.fields.share_remote_instance_name", default: "Instance name") %></span>
-              <input name="share_remote_instance_name" type="text" class="w-full text-sm bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] rounded border border-[var(--theme-border)] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[var(--theme-accent)]">
-            </label>
-          </div>
+          <label class="block">
+            <span class="block text-xs font-medium text-[var(--theme-text-secondary)] mb-1.5"><%= t("share_management.fields.share_remote_instance_name", default: "Instance name") %></span>
+            <input name="share_remote_instance_name" type="text" class="w-full text-sm bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] rounded border border-[var(--theme-border)] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[var(--theme-accent)]">
+          </label>
 
-          <div class="space-y-4">
-            <label class="flex items-center gap-2 rounded border border-[var(--theme-border)] bg-[var(--theme-bg-secondary)] px-3 py-2">
-              <input name="share_remote_verify_tls" type="checkbox" class="rounded border-[var(--theme-border)] text-[var(--theme-accent)] focus:ring-[var(--theme-accent)]">
-              <span class="text-sm"><%= t("share_management.fields.share_remote_verify_tls", default: "Verify TLS") %></span>
-            </label>
+          <label class="flex items-center gap-2 rounded border border-[var(--theme-border)] bg-[var(--theme-bg-secondary)] px-3 py-2">
+            <input name="share_remote_verify_tls" type="checkbox" class="rounded border-[var(--theme-border)] text-[var(--theme-accent)] focus:ring-[var(--theme-accent)]">
+            <span class="text-sm"><%= t("share_management.fields.share_remote_verify_tls", default: "Verify TLS") %></span>
+          </label>
 
-            <label class="flex items-center gap-2 rounded border border-[var(--theme-border)] bg-[var(--theme-bg-secondary)] px-3 py-2">
-              <input name="share_remote_upload_assets" type="checkbox" class="rounded border-[var(--theme-border)] text-[var(--theme-accent)] focus:ring-[var(--theme-accent)]">
-              <span class="text-sm"><%= t("share_management.fields.share_remote_upload_assets", default: "Upload embedded assets") %></span>
-            </label>
+          <label class="flex items-center gap-2 rounded border border-[var(--theme-border)] bg-[var(--theme-bg-secondary)] px-3 py-2">
+            <input name="share_remote_upload_assets" type="checkbox" class="rounded border-[var(--theme-border)] text-[var(--theme-accent)] focus:ring-[var(--theme-accent)]">
+            <span class="text-sm"><%= t("share_management.fields.share_remote_upload_assets", default: "Upload embedded assets") %></span>
+          </label>
 
-            <label class="block">
-              <span class="block text-xs font-medium text-[var(--theme-text-secondary)] mb-1.5"><%= t("share_management.fields.share_remote_healthchecks_ping_url", default: "Healthchecks ping URL") %></span>
-              <input name="share_remote_healthchecks_ping_url" type="url" class="w-full text-sm bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] rounded border border-[var(--theme-border)] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[var(--theme-accent)]">
-            </label>
+          <label class="block">
+            <span class="block text-xs font-medium text-[var(--theme-text-secondary)] mb-1.5"><%= t("share_management.fields.share_remote_healthchecks_ping_url", default: "Healthchecks ping URL") %></span>
+            <input name="share_remote_healthchecks_ping_url" type="url" class="w-full text-sm bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] rounded border border-[var(--theme-border)] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[var(--theme-accent)]">
+          </label>
 
-            <label class="block">
-              <span class="block text-xs font-medium text-[var(--theme-text-secondary)] mb-1.5"><%= t("share_management.fields.share_remote_alert_webhook_url", default: "Alert webhook URL") %></span>
-              <input name="share_remote_alert_webhook_url" type="url" class="w-full text-sm bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] rounded border border-[var(--theme-border)] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[var(--theme-accent)]">
-            </label>
+          <label class="block">
+            <span class="block text-xs font-medium text-[var(--theme-text-secondary)] mb-1.5"><%= t("share_management.fields.share_remote_alert_webhook_url", default: "Alert webhook URL") %></span>
+            <input name="share_remote_alert_webhook_url" type="url" class="w-full text-sm bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] rounded border border-[var(--theme-border)] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[var(--theme-accent)]">
+          </label>
 
-            <label class="block">
-              <span class="block text-xs font-medium text-[var(--theme-text-secondary)] mb-1.5"><%= t("share_management.fields.share_remote_api_token", default: "API token") %></span>
-              <input name="share_remote_api_token" data-secret-setting="true" type="password" autocomplete="new-password" class="w-full text-sm bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] rounded border border-[var(--theme-border)] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[var(--theme-accent)]">
-            </label>
+          <label class="block">
+            <span class="block text-xs font-medium text-[var(--theme-text-secondary)] mb-1.5"><%= t("share_management.fields.share_remote_api_token", default: "API token") %></span>
+            <input name="share_remote_api_token" data-secret-setting="true" type="password" autocomplete="new-password" class="w-full text-sm bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] rounded border border-[var(--theme-border)] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[var(--theme-accent)]">
+          </label>
 
-            <label class="block">
-              <span class="block text-xs font-medium text-[var(--theme-text-secondary)] mb-1.5"><%= t("share_management.fields.share_remote_signing_secret", default: "Signing secret") %></span>
-              <input name="share_remote_signing_secret" data-secret-setting="true" type="password" autocomplete="new-password" class="w-full text-sm bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] rounded border border-[var(--theme-border)] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[var(--theme-accent)]">
-            </label>
+          <label class="block">
+            <span class="block text-xs font-medium text-[var(--theme-text-secondary)] mb-1.5"><%= t("share_management.fields.share_remote_signing_secret", default: "Signing secret") %></span>
+            <input name="share_remote_signing_secret" data-secret-setting="true" type="password" autocomplete="new-password" class="w-full text-sm bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] rounded border border-[var(--theme-border)] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[var(--theme-accent)]">
+          </label>
 
-            <label class="block">
-              <span class="block text-xs font-medium text-[var(--theme-text-secondary)] mb-1.5"><%= t("share_management.fields.share_remote_alert_webhook_secret", default: "Alert webhook secret") %></span>
-              <input name="share_remote_alert_webhook_secret" data-secret-setting="true" type="password" autocomplete="new-password" class="w-full text-sm bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] rounded border border-[var(--theme-border)] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[var(--theme-accent)]">
-            </label>
-          </div>
+          <label class="block">
+            <span class="block text-xs font-medium text-[var(--theme-text-secondary)] mb-1.5"><%= t("share_management.fields.share_remote_alert_webhook_secret", default: "Alert webhook secret") %></span>
+            <input name="share_remote_alert_webhook_secret" data-secret-setting="true" type="password" autocomplete="new-password" class="w-full text-sm bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] rounded border border-[var(--theme-border)] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[var(--theme-accent)]">
+          </label>
         </form>
       </section>
 

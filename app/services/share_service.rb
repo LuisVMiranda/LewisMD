@@ -85,17 +85,7 @@ class ShareService
     )
     raise NotFoundError, "Share not found for #{normalized_path}" unless metadata
 
-    revoked_metadata = metadata.merge(
-      updated_at: Time.current.iso8601,
-      revoked: true
-    )
-
-    write_metadata(revoked_metadata)
-
-    file = snapshot_file(revoked_metadata[:token])
-    file.delete if file.exist?
-
-    revoked_metadata
+    revoke_matching_shares(metadata)
   end
 
   def find_by_token(token)
@@ -138,17 +128,7 @@ class ShareService
     metadata = metadata_for_token(token)
     raise NotFoundError, "Share not found for token #{token}" unless metadata
 
-    revoked_metadata = metadata.except(:snapshot_file, :snapshot_missing).merge(
-      updated_at: Time.current.iso8601,
-      revoked: true
-    )
-
-    write_metadata(revoked_metadata)
-
-    file = snapshot_file(revoked_metadata[:token])
-    file.delete if file.exist?
-
-    revoked_metadata
+    revoke_matching_shares(metadata.except(:snapshot_file, :snapshot_missing))
   end
 
   def active_share_for(path, note_identifier: nil, require_snapshot: true)
@@ -284,6 +264,49 @@ class ShareService
     updated_metadata = metadata.merge(updates)
     write_metadata(updated_metadata)
     updated_metadata
+  end
+
+  def revoke_matching_shares(metadata)
+    revoked_at = Time.current.iso8601
+
+    matching_metadata_entries(metadata).each do |entry|
+      revoked_metadata = entry[:metadata].merge(
+        updated_at: revoked_at,
+        revoked: true
+      )
+
+      write_metadata(revoked_metadata)
+
+      file = snapshot_file(revoked_metadata[:token])
+      file.delete if file.exist?
+    end
+
+    metadata.merge(
+      updated_at: revoked_at,
+      revoked: true
+    )
+  end
+
+  def matching_metadata_entries(metadata)
+    normalized_path = metadata[:path]
+    normalized_note_identifier = normalize_note_identifier(metadata[:note_identifier])
+    token = metadata[:token]
+
+    metadata_files.filter_map do |file|
+      parsed = parse_metadata_file(file)
+      next unless parsed
+      next if parsed[:revoked]
+
+      matches = parsed[:token] == token ||
+        (normalized_note_identifier.present? && parsed[:note_identifier] == normalized_note_identifier) ||
+        parsed[:path] == normalized_path
+      next unless matches
+
+      {
+        file: file,
+        metadata: parsed
+      }
+    end
   end
 
   def write_snapshot(token, snapshot_html)

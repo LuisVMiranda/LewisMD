@@ -350,7 +350,8 @@ describe("ShareManagementController", () => {
     expect(deletedSpy.mock.calls[0][0].detail).toEqual({
       token: "remote-share-1234",
       path: "Personal/Studies/Study_Syllabus_A2.md",
-      backend: "remote"
+      backend: "remote",
+      noteIdentifier: "uuid-123"
     })
   })
 

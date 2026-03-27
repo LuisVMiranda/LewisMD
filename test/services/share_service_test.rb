@@ -174,4 +174,41 @@ class ShareServiceTest < ActiveSupport::TestCase
     assert_equal true, shares.first[:snapshot_missing]
     assert_equal "other-note.md", shares.first[:path]
   end
+
+  test "revoke_by_token revokes duplicate local share records for the same note identity" do
+    original = @service.create_or_find(
+      path: "shared-note.md",
+      title: "Shared Note",
+      snapshot_html: "<html><body>Version One</body></html>",
+      note_identifier: @note_identifier
+    )
+
+    duplicate_token = "b" * 32
+    duplicate_metadata = {
+      token: duplicate_token,
+      note_identifier: @note_identifier,
+      path: "shared-note.md",
+      title: "Shared Note Duplicate",
+      snapshot_path: ".frankmd/share_snapshots/#{duplicate_token}.html",
+      created_at: Time.current.iso8601,
+      updated_at: Time.current.iso8601,
+      revoked: false
+    }
+
+    FileUtils.mkdir_p(@test_notes_dir.join(".frankmd/shares"))
+    File.write(@test_notes_dir.join(".frankmd/shares/#{duplicate_token}.json"), JSON.pretty_generate(duplicate_metadata))
+    FileUtils.mkdir_p(@test_notes_dir.join(".frankmd/share_snapshots"))
+    File.write(@test_notes_dir.join(".frankmd/share_snapshots/#{duplicate_token}.html"), "<html><body>Duplicate</body></html>")
+
+    @service.revoke_by_token(original[:token])
+
+    original_metadata = JSON.parse(File.read(@test_notes_dir.join(".frankmd/shares/#{original[:token]}.json")))
+    duplicate_saved_metadata = JSON.parse(File.read(@test_notes_dir.join(".frankmd/shares/#{duplicate_token}.json")))
+
+    assert_equal true, original_metadata["revoked"]
+    assert_equal true, duplicate_saved_metadata["revoked"]
+    refute @test_notes_dir.join(".frankmd/share_snapshots/#{original[:token]}.html").exist?
+    refute @test_notes_dir.join(".frankmd/share_snapshots/#{duplicate_token}.html").exist?
+    assert_nil @service.active_share_for("shared-note.md", note_identifier: @note_identifier, require_snapshot: false)
+  end
 end

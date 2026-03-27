@@ -134,6 +134,7 @@ class SharesController < ApplicationController
   def share_response(share, identity_result = nil)
     response = {
       token: share[:token],
+      note_identifier: share[:note_identifier],
       path: share[:path],
       title: share[:title],
       url: share[:url].presence || share_snapshot_url(token: share[:token]),

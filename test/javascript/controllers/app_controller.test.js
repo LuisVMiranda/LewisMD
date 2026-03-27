@@ -507,6 +507,41 @@ describe("AppController shared UI state", () => {
     expect(exportMenuController.openMenu).toHaveBeenCalledTimes(1)
   })
 
+  it("clears the current share immediately when manage API deletes the current note share", async () => {
+    controller.currentShare = {
+      token: "abc123",
+      note_identifier: "uuid-123",
+      url: "http://localhost:7591/s/abc123"
+    }
+    controller.clearCurrentShare = vi.fn()
+    controller.refreshCurrentShareState = vi.fn().mockResolvedValue(null)
+
+    await controller.onShareManagementShareDeleted({
+      detail: {
+        token: "abc123",
+        path: "notes/test.md",
+        noteIdentifier: "uuid-123"
+      }
+    })
+
+    expect(controller.clearCurrentShare).toHaveBeenCalledTimes(1)
+    expect(controller.refreshCurrentShareState).toHaveBeenCalledTimes(1)
+  })
+
+  it("clears the current share immediately when manage API deletes all shares", async () => {
+    controller.currentShare = {
+      token: "abc123",
+      url: "http://localhost:7591/s/abc123"
+    }
+    controller.clearCurrentShare = vi.fn()
+    controller.refreshCurrentShareState = vi.fn().mockResolvedValue(null)
+
+    await controller.onShareManagementSharesCleared()
+
+    expect(controller.clearCurrentShare).toHaveBeenCalledTimes(1)
+    expect(controller.refreshCurrentShareState).toHaveBeenCalledTimes(1)
+  })
+
   it("applies note content returned from share creation and preserves body-relative cursor position", () => {
     const nextContent = "---\nlewismd_note_id: 1234\n---\n# Example\n\nBody"
     codemirrorController.getCursorPosition.mockReturnValue({ line: 1, column: 6, offset: 5 })
