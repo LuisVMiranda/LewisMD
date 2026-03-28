@@ -235,7 +235,7 @@ class ShareManagementController < ApplicationController
       end
 
       if status[:max_payload_bytes] && status[:max_asset_bytes] &&
-          status[:max_asset_bytes] > status[:max_payload_bytes] &&
+          status[:max_payload_bytes] < minimum_payload_bytes_for_asset_limit(status[:max_asset_bytes]) &&
           @config.get("share_remote_upload_assets") != false
         warnings << security_warning(
           id: "payload_limit_inconsistent",
@@ -289,6 +289,10 @@ class ShareManagementController < ApplicationController
   def positive_integer(value)
     integer = value.to_i
     integer.positive? ? integer : nil
+  end
+
+  def minimum_payload_bytes_for_asset_limit(max_asset_bytes)
+    ((max_asset_bytes.to_i * 4.0) / 3.0).ceil
   end
 
   def https_scheme?

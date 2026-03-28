@@ -56,19 +56,10 @@
         </div>
 
         <form data-share-management-target="form" class="grid grid-cols-3 gap-4">
-          <details open class="group h-fit rounded-lg border border-[var(--theme-border)] bg-[var(--theme-bg-primary)]">
-            <summary class="flex cursor-pointer list-none items-start justify-between gap-3 px-4 py-4 [&::-webkit-details-marker]:hidden">
-              <div>
-                <h4 class="text-[11px] uppercase tracking-wide text-[var(--theme-text-muted)]"><%= t("share_management.connection_groups.endpoint", default: "Endpoint") %></h4>
-                <p class="mt-1 text-xs text-[var(--theme-text-muted)]"><%= t("share_management.connection_groups.endpoint_hint", default: "Core relay location and routing details.") %></p>
-              </div>
-              <span class="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--theme-border)] bg-[var(--theme-bg-secondary)] text-[var(--theme-text-muted)] transition-colors group-hover:bg-[var(--theme-bg-hover)]">
-                <svg class="h-4 w-4 transition-transform duration-200 group-open:rotate-180" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                  <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 011.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
-                </svg>
-              </span>
-            </summary>
-
+          <section class="h-fit rounded-lg border border-[var(--theme-border)] bg-[var(--theme-bg-primary)]">
+            <div class="px-4 py-4">
+              <h4 class="text-[11px] uppercase tracking-wide text-[var(--theme-text-muted)]"><%= t("share_management.connection_groups.endpoint", default: "Endpoint") %></h4>
+            </div>
             <div class="space-y-6 border-t border-[var(--theme-border)] px-4 py-5">
               <label class="block py-1">
                 <span class="block pb-2.5 pt-1 text-xs font-medium text-[var(--theme-text-secondary)]"><%= t("share_management.fields.share_backend", default: "Share backend") %></span>
@@ -108,21 +99,12 @@
                 <input name="share_remote_public_base" type="url" class="w-full rounded border border-[var(--theme-border)] bg-[var(--theme-bg-secondary)] px-3 py-3 text-sm text-[var(--theme-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--theme-accent)]">
               </label>
             </div>
-          </details>
+          </section>
 
-          <details open class="group h-fit rounded-lg border border-[var(--theme-border)] bg-[var(--theme-bg-primary)]">
-            <summary class="flex cursor-pointer list-none items-start justify-between gap-3 px-4 py-4 [&::-webkit-details-marker]:hidden">
-              <div>
-                <h4 class="text-[11px] uppercase tracking-wide text-[var(--theme-text-muted)]"><%= t("share_management.connection_groups.behavior", default: "Behavior") %></h4>
-                <p class="mt-1 text-xs text-[var(--theme-text-muted)]"><%= t("share_management.connection_groups.behavior_hint", default: "Publishing defaults, timeouts, and observability hooks.") %></p>
-              </div>
-              <span class="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--theme-border)] bg-[var(--theme-bg-secondary)] text-[var(--theme-text-muted)] transition-colors group-hover:bg-[var(--theme-bg-hover)]">
-                <svg class="h-4 w-4 transition-transform duration-200 group-open:rotate-180" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                  <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 011.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
-                </svg>
-              </span>
-            </summary>
-
+          <section class="h-fit rounded-lg border border-[var(--theme-border)] bg-[var(--theme-bg-primary)]">
+            <div class="px-4 py-4">
+              <h4 class="text-[11px] uppercase tracking-wide text-[var(--theme-text-muted)]"><%= t("share_management.connection_groups.behavior", default: "Behavior") %></h4>
+            </div>
             <div class="space-y-6 border-t border-[var(--theme-border)] px-4 py-5">
               <label class="block py-1">
                 <span class="block pb-2.5 pt-1 text-xs font-medium text-[var(--theme-text-secondary)]"><%= t("share_management.fields.share_remote_timeout_seconds", default: "Timeout (seconds)") %></span>
@@ -149,21 +131,12 @@
                 <input name="share_remote_alert_webhook_url" type="url" class="w-full rounded border border-[var(--theme-border)] bg-[var(--theme-bg-secondary)] px-3 py-3 text-sm text-[var(--theme-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--theme-accent)]">
               </label>
             </div>
-          </details>
+          </section>
 
-          <details open class="group h-fit rounded-lg border border-[var(--theme-border)] bg-[var(--theme-bg-primary)]">
-            <summary class="flex cursor-pointer list-none items-start justify-between gap-3 px-4 py-4 [&::-webkit-details-marker]:hidden">
-              <div>
-                <h4 class="text-[11px] uppercase tracking-wide text-[var(--theme-text-muted)]"><%= t("share_management.connection_groups.security", default: "Security") %></h4>
-                <p class="mt-1 text-xs text-[var(--theme-text-muted)]"><%= t("share_management.connection_groups.security_hint", default: "Secrets and transport-related publishing controls.") %></p>
-              </div>
-              <span class="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--theme-border)] bg-[var(--theme-bg-secondary)] text-[var(--theme-text-muted)] transition-colors group-hover:bg-[var(--theme-bg-hover)]">
-                <svg class="h-4 w-4 transition-transform duration-200 group-open:rotate-180" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                  <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 011.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
-                </svg>
-              </span>
-            </summary>
-
+          <section class="h-fit rounded-lg border border-[var(--theme-border)] bg-[var(--theme-bg-primary)]">
+            <div class="px-4 py-4">
+              <h4 class="text-[11px] uppercase tracking-wide text-[var(--theme-text-muted)]"><%= t("share_management.connection_groups.security", default: "Security") %></h4>
+            </div>
             <div class="space-y-6 border-t border-[var(--theme-border)] px-4 py-5">
               <label class="block py-1">
                 <span class="block pb-2.5 pt-1 text-xs font-medium text-[var(--theme-text-secondary)]"><%= t("share_management.fields.share_remote_api_token", default: "API token") %></span>
@@ -190,7 +163,7 @@
                 <span class="text-sm leading-5"><%= t("share_management.fields.share_remote_upload_assets", default: "Upload embedded assets") %></span>
               </label>
             </div>
-          </details>
+          </section>
         </form>
       </section>
 

@@ -233,4 +233,20 @@ describe("ShareViewController", () => {
     expect(clickEvent.defaultPrevented).toBe(true)
     expect(controller.showTemporaryMessage).toHaveBeenCalledWith("Private note unavailable")
   })
+
+  it("navigates public share links at the top level instead of inside the iframe", () => {
+    controller.onFrameLoad()
+    controller.navigateToTopLevelUrl = vi.fn()
+
+    const publicShareLink = frameDocument.createElement("a")
+    publicShareLink.href = "https://lewismd.miralab.in/s/FlfudKAxSg8-OfT99GZwNuqh"
+    publicShareLink.textContent = "Chapter 2"
+    article.appendChild(publicShareLink)
+
+    const clickEvent = new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 })
+    publicShareLink.dispatchEvent(clickEvent)
+
+    expect(clickEvent.defaultPrevented).toBe(true)
+    expect(controller.navigateToTopLevelUrl).toHaveBeenCalledWith("https://lewismd.miralab.in/s/FlfudKAxSg8-OfT99GZwNuqh")
+  })
 })

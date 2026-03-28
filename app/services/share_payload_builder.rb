@@ -57,6 +57,7 @@ class SharePayloadBuilder
 
   DATA_URI_PATTERN = %r{\Adata:(?<mime>[-\w.+/]+)?(?:;charset=[^;,]+)?;base64,(?<data>.+)\z}i
   EXTERNAL_SCHEME_PATTERN = /\A[a-zA-Z][a-zA-Z\d+.-]*:/.freeze
+  PUBLIC_SHARE_PATH_PATTERN = %r{\A/s/[a-zA-Z0-9\-_]{8,}\z}.freeze
   LOCAL_PREVIEW_PATH = %r{\A/images/preview/(?<path>.+)\z}
   MIME_EXTENSIONS = {
     "image/avif" => "avif",
@@ -236,6 +237,7 @@ class SharePayloadBuilder
       elsif blocked_private_note_link?(href)
         neutralize_private_note_link!(link)
       else
+        mark_public_share_link!(link) if public_share_link?(href)
         link["rel"] = "noopener noreferrer nofollow"
       end
     end
@@ -374,6 +376,28 @@ class SharePayloadBuilder
     link["role"] = "button"
     link["tabindex"] = "0"
     link["aria-disabled"] = "true"
+  end
+
+  def public_share_link?(href)
+    normalized_href = href.to_s.strip
+    return false if normalized_href.blank?
+    return false if normalized_href.start_with?("#", "?")
+    return false if normalized_href.start_with?("//")
+
+    public_share_path_for(normalized_href).match?(PUBLIC_SHARE_PATH_PATTERN)
+  end
+
+  def public_share_path_for(href)
+    return href.sub(/[?#].*\z/, "") unless href.match?(EXTERNAL_SCHEME_PATTERN)
+
+    URI.parse(href).path.to_s
+  rescue URI::InvalidURIError
+    ""
+  end
+
+  def mark_public_share_link!(link)
+    link["data-shared-link-kind"] = "public-share"
+    link["target"] = "_top"
   end
 
   def shared_snapshot_style_block

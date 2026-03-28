@@ -129,6 +129,7 @@ class ShareApiAppTest < ActiveSupport::TestCase
     assert_includes last_response.body, "LewisMDRemoteReader"
     assert_includes last_response.body, "private_note_link_unavailable"
     assert_includes last_response.body, 'a[data-shared-link-kind="internal-note"]'
+    assert_includes last_response.body, "PUBLIC_SHARE_PATH_PATTERN"
 
     get "/reader/assets/remote_reader_bundle.css"
 
@@ -353,17 +354,17 @@ class ShareApiAppTest < ActiveSupport::TestCase
     refute_includes last_response.body, "<script>"
   end
 
-  test "snapshot route neutralizes private note links while preserving external links" do
+  test "snapshot route neutralizes private note links and marks public share links for top-level navigation" do
     body = JSON.generate(
       valid_payload.merge(
-        "html_fragment" => '<p><a href="/notes/private/secret.md">Secret</a> <a href="../Wise Up/Notes-27.03">Dotted</a> and <a href="https://example.com/reference">Reference</a></p>',
+        "html_fragment" => '<p><a href="/notes/private/secret.md">Secret</a> <a href="../Wise Up/Notes-27.03">Dotted</a> <a href="https://shares.example.com/s/SecondShare12">Public share</a> and <a href="https://example.com/reference">Reference</a></p>',
         "snapshot_document_html" => <<~HTML
           <!doctype html>
           <html lang="en" data-theme="dark">
             <body>
               <main class="export-shell">
                 <article class="export-article">
-                  <p><a href="/notes/private/secret.md">Secret</a> <a href="../Wise Up/Notes-27.03">Dotted</a> and <a href="https://example.com/reference">Reference</a></p>
+                  <p><a href="/notes/private/secret.md">Secret</a> <a href="../Wise Up/Notes-27.03">Dotted</a> <a href="https://shares.example.com/s/SecondShare12">Public share</a> and <a href="https://example.com/reference">Reference</a></p>
                 </article>
               </main>
             </body>
@@ -380,8 +381,11 @@ class ShareApiAppTest < ActiveSupport::TestCase
     assert_equal 200, last_response.status
     assert_includes last_response.body, 'data-shared-link-kind="internal-note"'
     assert_includes last_response.body, 'class="shared-blocked-note-link"'
+    assert_includes last_response.body, 'data-shared-link-kind="public-share"'
+    assert_includes last_response.body, 'target="_top"'
     refute_includes last_response.body, "/notes/private/secret.md"
     refute_includes last_response.body, "../Wise Up/Notes-27.03"
+    assert_includes last_response.body, "https://shares.example.com/s/SecondShare12"
     assert_includes last_response.body, "https://example.com/reference"
   end
 

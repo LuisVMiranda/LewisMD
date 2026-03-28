@@ -184,6 +184,7 @@ class SharePayloadBuilderTest < ActiveSupport::TestCase
               <p><a href="/notes/Personal/Studies/Español/2026/Practice_Area_A2.md">Practice area</a></p>
               <p><a href="../Study_Syllabus_A2">Relative note</a></p>
               <p><a href="../Wise Up/Notes-27.03">Dotted note</a></p>
+              <p><a href="https://shares.example.com/s/SecondShare12">Other shared chapter</a></p>
               <p><a href="https://example.com/reference">External</a></p>
             </article>
           </body>
@@ -196,6 +197,9 @@ class SharePayloadBuilderTest < ActiveSupport::TestCase
     refute_includes payload[:html_fragment], "/notes/Personal/Studies/Español/2026/Practice_Area_A2.md"
     refute_includes payload[:html_fragment], "../Study_Syllabus_A2"
     refute_includes payload[:html_fragment], "../Wise Up/Notes-27.03"
+    assert_includes payload[:html_fragment], 'data-shared-link-kind="public-share"'
+    assert_includes payload[:html_fragment], 'target="_top"'
+    assert_includes payload[:html_fragment], "https://shares.example.com/s/SecondShare12"
     assert_includes payload[:html_fragment], "https://example.com/reference"
 
     assert_includes payload[:snapshot_document_html], 'data-shared-link-kind="internal-note"'
@@ -203,6 +207,9 @@ class SharePayloadBuilderTest < ActiveSupport::TestCase
     refute_includes payload[:snapshot_document_html], "/notes/Personal/Studies/Español/2026/Practice_Area_A2.md"
     refute_includes payload[:snapshot_document_html], "../Study_Syllabus_A2"
     refute_includes payload[:snapshot_document_html], "../Wise Up/Notes-27.03"
+    assert_includes payload[:snapshot_document_html], 'data-shared-link-kind="public-share"'
+    assert_includes payload[:snapshot_document_html], 'target="_top"'
+    assert_includes payload[:snapshot_document_html], "https://shares.example.com/s/SecondShare12"
     assert_includes payload[:snapshot_document_html], "https://example.com/reference"
   end
 end

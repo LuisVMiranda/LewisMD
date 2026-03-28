@@ -23,6 +23,8 @@ class ShareApiDeploymentArtifactsTest < ActiveSupport::TestCase
     assert_includes env_example, "LEWISMD_SHARE_MONITOR_STORAGE_GROWTH_MB="
     assert_includes env_example, "LEWISMD_SHARE_MAX_EXPIRATION_DAYS="
     assert_includes env_example, "LEWISMD_SHARE_EXPIRY_SWEEP_MINUTES="
+    assert_includes env_example, "LEWISMD_SHARE_MAX_PAYLOAD_BYTES=8000000"
+    assert_includes env_example, "LEWISMD_SHARE_MAX_ASSET_BYTES=5000000"
   end
 
   test "compose file keeps share-api internal and caddy public" do

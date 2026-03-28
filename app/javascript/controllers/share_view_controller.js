@@ -17,6 +17,7 @@ const ZOOM_STEP = 10
 const MIN_WIDTH = 48
 const MAX_WIDTH = 96
 const WIDTH_STEP = 4
+const PUBLIC_SHARE_PATH_PATTERN = /^\/s\/[A-Za-z0-9_-]{8,}$/
 
 const FONT_FAMILIES = {
   default: "",
@@ -323,6 +324,13 @@ export default class extends Controller {
     if (event.button !== 0) return
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
 
+    const publicShareUrl = this.publicShareUrlForEvent(event)
+    if (publicShareUrl) {
+      event.preventDefault()
+      this.navigateToTopLevelUrl(publicShareUrl)
+      return
+    }
+
     const blockedLink = event.target.closest('a[data-shared-link-kind="internal-note"]')
     if (!blockedLink) return
 
@@ -333,11 +341,58 @@ export default class extends Controller {
   onBlockedShareLinkKeydown(event) {
     if (!["Enter", " "].includes(event.key)) return
 
+    const publicShareUrl = this.publicShareUrlForEvent(event)
+    if (publicShareUrl) {
+      event.preventDefault()
+      this.navigateToTopLevelUrl(publicShareUrl)
+      return
+    }
+
     const blockedLink = event.target.closest('a[data-shared-link-kind="internal-note"]')
     if (!blockedLink) return
 
     event.preventDefault()
     this.showTemporaryMessage(window.t("status.private_note_link_unavailable"))
+  }
+
+  publicShareUrlForEvent(event) {
+    const link = event.target.closest("a[href]")
+    if (!link) return null
+
+    if (link.dataset.sharedLinkKind === "public-share") {
+      return this.resolveFrameLinkUrl(link.getAttribute("href"))
+    }
+
+    const href = link.getAttribute("href")
+    const resolvedUrl = this.resolveFrameLinkUrl(href)
+    if (!resolvedUrl) return null
+
+    try {
+      const url = new URL(resolvedUrl)
+      return PUBLIC_SHARE_PATH_PATTERN.test(url.pathname) ? resolvedUrl : null
+    } catch {
+      return null
+    }
+  }
+
+  resolveFrameLinkUrl(href) {
+    const normalizedHref = href?.trim()
+    if (!normalizedHref || normalizedHref.startsWith("#") || normalizedHref.startsWith("?")) return null
+
+    try {
+      return new URL(normalizedHref, window.location.href).toString()
+    } catch {
+      return null
+    }
+  }
+
+  navigateToTopLevelUrl(url) {
+    try {
+      const targetWindow = this.frameWindow?.top || window.top || window
+      targetWindow.location.assign(url)
+    } catch {
+      window.location.assign(url)
+    }
   }
 
   get articleElement() {

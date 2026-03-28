@@ -84,8 +84,8 @@ class ShareManagementControllerTest < ActionDispatch::IntegrationTest
     assert_equal true, data.dig("status", "capabilities", "admin_bulk_delete")
     assert_equal 30, data.dig("status", "local_default_expiration_days")
     assert_equal 365, data.dig("status", "remote_max_expiration_days")
-    assert data.dig("status", "warnings").any? { |warning| warning["id"] == "payload_limit_inconsistent" }
     assert data.dig("status", "warnings").any? { |warning| warning["id"] == "cloudflare_edge_checklist" }
+    refute data.dig("status", "warnings").any? { |warning| warning["id"] == "payload_limit_inconsistent" }
   end
 
   test "show surfaces legacy tls and expiry mismatch warnings" do
@@ -305,7 +305,7 @@ class ShareManagementControllerTest < ActionDispatch::IntegrationTest
         body: {
           api_version: "1",
           max_expiration_days: 365,
-          max_payload_bytes: 200_000,
+          max_payload_bytes: 8_000_000,
           max_asset_bytes: 5_000_000,
           max_asset_count: 16,
           feature_flags: {

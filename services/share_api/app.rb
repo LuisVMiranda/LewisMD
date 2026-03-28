@@ -5,6 +5,7 @@ require "json"
 require "pathname"
 require "rack"
 require "nokogiri"
+require "uri"
 require_relative "lib/share_api/authenticator"
 require_relative "lib/share_api/configuration"
 require_relative "lib/share_api/fragment_sanitizer"
@@ -44,6 +45,7 @@ module ShareAPI
     LIGHT_THEME_IDS = %w[light solarized-light catppuccin-latte rose-pine flexoki-light].freeze
     TOKEN_PATTERN = /\A[a-zA-Z0-9\-_]{8,}\z/
     EXTERNAL_SCHEME_PATTERN = /\A[a-zA-Z][a-zA-Z\d+.-]*:/
+    PUBLIC_SHARE_PATH_PATTERN = %r{\A/s/[a-zA-Z0-9\-_]{8,}\z}.freeze
     SAFE_APP_PREFIXES = %w[
       /backup/
       /templates/
@@ -997,7 +999,7 @@ module ShareAPI
     end
 
     def build_snapshot_document(payload, sanitized_fragment)
-      neutralized_fragment = neutralize_private_note_links(sanitized_fragment)
+      neutralized_fragment = normalize_shared_snapshot_links(sanitized_fragment)
       snapshot_document_html = payload["snapshot_document_html"].to_s
       return legacy_snapshot_document(payload: payload, fragment_html: neutralized_fragment) if snapshot_document_html.strip.empty?
 
@@ -1052,7 +1054,7 @@ module ShareAPI
         theme_id: non_blank(payload["theme_id"]),
         color_scheme: inferred_light_theme?(payload["theme_id"]) ? "light" : "dark",
         style_blocks: [],
-        fragment_html: neutralize_private_note_links(fragment_html)
+        fragment_html: normalize_shared_snapshot_links(fragment_html)
       )
     end
 
@@ -1085,25 +1087,54 @@ module ShareAPI
       HTML
     end
 
-    def neutralize_private_note_links(fragment_html)
+    def normalize_shared_snapshot_links(fragment_html)
       fragment = Nokogiri::HTML::DocumentFragment.parse(fragment_html.to_s)
 
       fragment.css("a").each do |link|
         href = link["href"].to_s.strip
         next if href.empty?
-        next unless blocked_private_note_link?(href)
-
-        link.remove_attribute("href")
-        link.remove_attribute("rel")
-        existing_classes = link["class"].to_s.split(/\s+/).reject(&:empty?)
-        link["class"] = (existing_classes + [ "shared-blocked-note-link" ]).uniq.join(" ")
-        link["data-shared-link-kind"] = "internal-note"
-        link["role"] = "button"
-        link["tabindex"] = "0"
-        link["aria-disabled"] = "true"
+        if blocked_private_note_link?(href)
+          neutralize_private_note_link!(link)
+        elsif public_share_link?(href)
+          mark_public_share_link!(link)
+        end
       end
 
       fragment.to_html
+    end
+
+    def neutralize_private_note_link!(link)
+      link.remove_attribute("href")
+      link.remove_attribute("rel")
+      existing_classes = link["class"].to_s.split(/\s+/).reject(&:empty?)
+      link["class"] = (existing_classes + [ "shared-blocked-note-link" ]).uniq.join(" ")
+      link["data-shared-link-kind"] = "internal-note"
+      link["role"] = "button"
+      link["tabindex"] = "0"
+      link["aria-disabled"] = "true"
+    end
+
+    def public_share_link?(href)
+      normalized_href = href.to_s.strip
+      return false if normalized_href.empty?
+      return false if normalized_href.start_with?("#", "?")
+      return false if normalized_href.start_with?("//")
+
+      public_share_path_for(normalized_href).match?(PUBLIC_SHARE_PATH_PATTERN)
+    end
+
+    def public_share_path_for(href)
+      return href.sub(/[?#].*\z/, "") unless href.match?(EXTERNAL_SCHEME_PATTERN)
+
+      URI.parse(href).path.to_s
+    rescue URI::InvalidURIError
+      ""
+    end
+
+    def mark_public_share_link!(link)
+      link["data-shared-link-kind"] = "public-share"
+      link["target"] = "_top"
+      link["rel"] = "noopener noreferrer nofollow"
     end
 
     def blocked_private_note_link?(href)
