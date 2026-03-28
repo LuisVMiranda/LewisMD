@@ -43,7 +43,6 @@ API_TOKEN=""
 SIGNING_SECRET=""
 PUMA_MAX_THREADS="5"
 WEB_CONCURRENCY="1"
-VERIFY_TLS="true"
 INSTANCE_NAME=""
 ENABLE_MONITORING="true"
 MONITOR_INTERVAL_MINUTES="5"
@@ -263,8 +262,8 @@ prompt_public_scheme() {
     read -r -p "Select 1 or 2 [1]: " scheme_answer
     scheme_answer="${scheme_answer:-1}"
     case "$scheme_answer" in
-      1) PUBLIC_SCHEME="https"; VERIFY_TLS="true"; return ;;
-      2) PUBLIC_SCHEME="http"; VERIFY_TLS="false"; return ;;
+      1) PUBLIC_SCHEME="https"; return ;;
+      2) PUBLIC_SCHEME="http"; return ;;
       *) warn "Please choose 1 or 2." ;;
     esac
   done
@@ -417,7 +416,6 @@ gather_answers() {
       HTTPS_PORT="443"
       SITE_ADDRESS="$PUBLIC_HOST"
       PUBLIC_BASE="$(build_public_base "$PUBLIC_SCHEME" "$PUBLIC_HOST" "$HTTPS_PORT")"
-      VERIFY_TLS="true"
     else
       warn "Managed Caddy raw IP mode is HTTP-only and should be treated as a fallback or test path."
       if ! prompt_yes_no "Continue with raw IP / HTTP mode?" "n"; then
@@ -428,7 +426,6 @@ gather_answers() {
       HTTPS_PORT=""
       SITE_ADDRESS="http://$PUBLIC_HOST"
       PUBLIC_BASE="$(build_public_base "$PUBLIC_SCHEME" "$PUBLIC_HOST" "$HTTP_PORT")"
-      VERIFY_TLS="false"
     fi
   else
     warn "External reverse proxy mode assumes an existing public edge such as Nginx will forward traffic to LewisMD on localhost."
@@ -741,6 +738,65 @@ $SITE_ADDRESS {
     -Server
   }
 
+  @api_write path /api/v1/*
+  request_body @api_write {
+    max_size {\$LEWISMD_SHARE_MAX_PAYLOAD_BYTES}
+  }
+
+  @up_wrong_method {
+    path /up
+    not method GET
+  }
+  respond @up_wrong_method 405
+
+  @capabilities_wrong_method {
+    path /api/v1/capabilities
+    not method GET
+  }
+  respond @capabilities_wrong_method 405
+
+  @admin_status_wrong_method {
+    path /api/v1/admin/status
+    not method GET
+  }
+  respond @admin_status_wrong_method 405
+
+  @admin_shares_wrong_method {
+    path /api/v1/admin/shares
+    not method DELETE
+  }
+  respond @admin_shares_wrong_method 405
+
+  @shares_collection_wrong_method {
+    path /api/v1/shares
+    not method POST
+  }
+  respond @shares_collection_wrong_method 405
+
+  @shares_member_wrong_method {
+    path /api/v1/shares/*
+    not method PUT DELETE
+  }
+  respond @shares_member_wrong_method 405
+
+  @public_share_wrong_method {
+    path /s/*
+    not method GET
+  }
+  respond @public_share_wrong_method 405
+
+  @snapshot_wrong_method {
+    path /snapshots/*
+    not method GET
+  }
+  respond @snapshot_wrong_method 405
+
+  @asset_wrong_method {
+    path /assets/*
+    not method GET
+  }
+  respond @asset_wrong_method 405
+
   reverse_proxy share-api:9292
 
   log {
@@ -757,6 +813,65 @@ $SITE_ADDRESS {
   header {
     -Server
   }
+
+  @api_write path /api/v1/*
+  request_body @api_write {
+    max_size {\$LEWISMD_SHARE_MAX_PAYLOAD_BYTES}
+  }
+
+  @up_wrong_method {
+    path /up
+    not method GET
+  }
+  respond @up_wrong_method 405
+
+  @capabilities_wrong_method {
+    path /api/v1/capabilities
+    not method GET
+  }
+  respond @capabilities_wrong_method 405
+
+  @admin_status_wrong_method {
+    path /api/v1/admin/status
+    not method GET
+  }
+  respond @admin_status_wrong_method 405
+
+  @admin_shares_wrong_method {
+    path /api/v1/admin/shares
+    not method DELETE
+  }
+  respond @admin_shares_wrong_method 405
+
+  @shares_collection_wrong_method {
+    path /api/v1/shares
+    not method POST
+  }
+  respond @shares_collection_wrong_method 405
+
+  @shares_member_wrong_method {
+    path /api/v1/shares/*
+    not method PUT DELETE
+  }
+  respond @shares_member_wrong_method 405
+
+  @public_share_wrong_method {
+    path /s/*
+    not method GET
+  }
+  respond @public_share_wrong_method 405
+
+  @snapshot_wrong_method {
+    path /snapshots/*
+    not method GET
+  }
+  respond @snapshot_wrong_method 405
+
+  @asset_wrong_method {
+    path /assets/*
+    not method GET
+  }
+  respond @asset_wrong_method 405
 
   reverse_proxy share-api:9292
 
@@ -852,6 +967,7 @@ services:
     build:
       context: "$SERVICE_SOURCE_DIR"
     restart: unless-stopped
+    read_only: true
     env_file:
       - "$RUNTIME_ENV_FILE"
     environment:
@@ -859,6 +975,15 @@ services:
       PORT: 9292
     volumes:
       - "$STORAGE_HOST_PATH:/var/lib/lewismd-share"
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 256
+    mem_limit: 256m
+    cpus: 1.0
 EOF
 
   if [[ "$EDGE_MODE" == "managed_caddy" ]]; then
@@ -890,6 +1015,7 @@ EOF
   caddy:
     image: caddy:2.9-alpine
     restart: unless-stopped
+    read_only: true
     env_file:
       - "$RUNTIME_ENV_FILE"
     depends_on:
@@ -906,6 +1032,17 @@ EOF
       - "$RUNTIME_CADDY_FILE:/etc/caddy/Caddyfile:ro"
       - "$CADDY_DATA_PATH:/data"
       - "$CADDY_CONFIG_PATH:/config"
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    pids_limit: 256
+    mem_limit: 128m
+    cpus: 0.5
     networks:
       - share-backplane
 EOF
@@ -1229,8 +1366,8 @@ share_remote_api_port = $api_port
 share_remote_public_base = $PUBLIC_BASE
 share_remote_api_token = $API_TOKEN
 share_remote_signing_secret = $SIGNING_SECRET
+# TLS certificate verification is always enforced for HTTPS remote shares.
 share_remote_timeout_seconds = 10
-share_remote_verify_tls = $VERIFY_TLS
 share_remote_upload_assets = true
 share_remote_expiration_days = $LOCAL_SHARE_EXPIRATION_DAYS
 share_remote_instance_name = $INSTANCE_NAME
@@ -1293,6 +1430,16 @@ print_success_summary() {
   echo "  Copy the generated .fed block from:"
   echo "  $RUNTIME_SUMMARY_FILE"
   echo "  into the .fed file used by the local LewisMD app."
+  echo
+  echo "Cloudflare hardening checklist:"
+  echo "  1. Confirm the share hostname is orange-cloud proxied in Cloudflare."
+  echo "  2. Set Cloudflare SSL/TLS mode to Full (strict)."
+  echo "  3. Add rate limits:"
+  echo "     - /s/*, /snapshots/*, /assets/* => 240 requests / 60 seconds / IP => Managed Challenge for 2 minutes"
+  echo "     - /up, /api/v1/capabilities => 60 requests / 60 seconds / IP => Block for 1 minute"
+  echo "     - POST|PUT|DELETE /api/v1/* => 30 requests / 60 seconds / IP => Block for 2 minutes"
+  echo "  4. Verify the public hostname still reaches $PUBLIC_BASE/up after Cloudflare is configured."
+  echo "  5. Restrict direct-origin access when possible (Cloudflare IP allowlist or Authenticated Origin Pulls)."
   echo "  Operator guide: $REPO_ROOT/docs/remote_share_api.md"
 }
 

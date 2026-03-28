@@ -280,6 +280,8 @@ Useful behavior notes:
 - remote shares can expire automatically via `share_remote_expiration_days`
 - expired or revoked shares stop serving immediately and are swept from disk later
 - the VPS installer supports both a bundled Caddy edge and an existing reverse proxy such as Nginx
+- the recommended edge is Cloudflare in front of managed Caddy, with Cloudflare SSL/TLS mode set to `Full (strict)`
+- the remote share API operator guide includes Cloudflare rate-limit recipes and origin-hardening notes in `docs/remote_share_api.md`
 
 For the full install, monitoring, upgrade, backup, uninstall, and recovery
 guide, see:

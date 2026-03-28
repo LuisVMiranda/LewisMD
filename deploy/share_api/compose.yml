@@ -3,6 +3,7 @@ services:
     build:
       context: ../../services/share_api
     restart: unless-stopped
+    read_only: true
     env_file:
       - ./.env
     environment:
@@ -10,6 +11,15 @@ services:
       PORT: 9292
     volumes:
       - ${LEWISMD_SHARE_STORAGE_HOST_PATH:-./data/storage}:/var/lib/lewismd-share
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 256
+    mem_limit: 256m
+    cpus: 1.0
     expose:
       - "9292"
     healthcheck:
@@ -24,6 +34,7 @@ services:
   caddy:
     image: caddy:2.9-alpine
     restart: unless-stopped
+    read_only: true
     env_file:
       - ./.env
     depends_on:
@@ -36,6 +47,17 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - ${LEWISMD_SHARE_CADDY_DATA_PATH:-./data/caddy-data}:/data
       - ${LEWISMD_SHARE_CADDY_CONFIG_PATH:-./data/caddy-config}:/config
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    pids_limit: 256
+    mem_limit: 128m
+    cpus: 0.5
     networks:
       - share-backplane
 

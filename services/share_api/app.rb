@@ -169,7 +169,8 @@ module ShareAPI
       @storage = storage || Storage.new(
         storage_path: config.storage_path,
         max_asset_bytes: config.max_asset_bytes,
-        max_asset_count: config.max_asset_count
+        max_asset_count: config.max_asset_count,
+        max_expiration_days: config.max_expiration_days
       )
       @sanitizer = sanitizer
       @authenticator = Authenticator.new(config: config, storage: @storage)
@@ -183,6 +184,10 @@ module ShareAPI
         json_response(200, { status: "ok" })
       in [ "GET", "/api/v1/capabilities" ]
         json_response(200, capabilities_payload)
+      in [ _, "/up" ]
+        method_not_allowed_json_response("GET")
+      in [ _, "/api/v1/capabilities" ]
+        method_not_allowed_json_response("GET")
       else
         route_dynamic(request)
       end
@@ -215,30 +220,43 @@ module ShareAPI
         return render_public_share(request, match[1])
       end
 
+      return method_not_allowed_plain_response("GET") if request.path_info.match?(%r{\A/s/[^/]+\z})
+
       if request.get? && (match = request.path_info.match(%r{\A/snapshots/([^/]+)\z}))
         return render_snapshot_document(match[1])
       end
+
+      return method_not_allowed_plain_response("GET") if request.path_info.match?(%r{\A/snapshots/[^/]+\z})
 
       if request.get? && (match = request.path_info.match(%r{\A/assets/([^/]+)/(.+)\z}))
         return render_asset(match[1], match[2])
       end
 
+      return method_not_allowed_plain_response("GET") if request.path_info.match?(%r{\A/assets/[^/]+/.+\z})
+
       if request.post? && request.path_info == "/api/v1/shares"
         return create_share(request)
       end
+
+      return method_not_allowed_json_response("POST") if request.path_info == "/api/v1/shares"
 
       if request.get? && request.path_info == "/api/v1/admin/status"
         return admin_status(request)
       end
 
+      return method_not_allowed_json_response("GET") if request.path_info == "/api/v1/admin/status"
+
       if request.delete? && request.path_info == "/api/v1/admin/shares"
         return delete_all_shares(request)
       end
+
+      return method_not_allowed_json_response("DELETE") if request.path_info == "/api/v1/admin/shares"
 
       if (match = request.path_info.match(%r{\A/api/v1/shares/([^/]+)\z}))
         token = match[1]
         return update_share(request, token) if request.put?
         return revoke_share(request, token) if request.delete?
+        return method_not_allowed_json_response("PUT, DELETE")
       end
 
       not_found_response(request)
@@ -417,7 +435,8 @@ module ShareAPI
         },
         max_payload_bytes: config.max_payload_bytes,
         max_asset_bytes: config.max_asset_bytes,
-        max_asset_count: config.max_asset_count
+        max_asset_count: config.max_asset_count,
+        max_expiration_days: config.max_expiration_days
       }
     end
 
@@ -781,6 +800,22 @@ module ShareAPI
         status,
         json_headers,
         [ JSON.generate(payload) ]
+      ]
+    end
+
+    def method_not_allowed_json_response(allow_header)
+      [
+        405,
+        json_headers.merge("Allow" => allow_header),
+        [ JSON.generate({ error: "Method not allowed" }) ]
+      ]
+    end
+
+    def method_not_allowed_plain_response(allow_header)
+      [
+        405,
+        missing_asset_headers.merge("Allow" => allow_header),
+        [ "Method not allowed" ]
       ]
     end
 

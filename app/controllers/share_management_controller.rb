@@ -3,6 +3,8 @@
 class ShareManagementController < ApplicationController
   wrap_parameters false
 
+  SECURITY_WARNING_SEVERITIES = %w[info warning danger].freeze
+
   before_action :set_config
 
   def show
@@ -15,6 +17,8 @@ class ShareManagementController < ApplicationController
       render json: { error: t("errors.no_valid_settings") }, status: :unprocessable_entity
       return
     end
+
+    updates["share_remote_verify_tls"] = true
 
     if @config.update(updates)
       @config = Config.new(base_path: @config.base_path)
@@ -109,24 +113,31 @@ class ShareManagementController < ApplicationController
       backend: backend,
       remote_enabled: backend == "remote",
       public_base: @config.get("share_remote_public_base"),
+      local_default_expiration_days: configured_expiration_days,
+      remote_max_expiration_days: nil,
       capabilities: {},
       reachable: nil,
       admin_enabled: false,
       remote_share_count: nil,
       storage_writable: nil,
       checked_at: Time.current.iso8601,
-      message: t("share_management.local_mode_message", default: "Local sharing stores snapshots on this machine.")
+      message: t("share_management.local_mode_message", default: "Local sharing stores snapshots on this machine."),
+      warnings: []
     }
 
-    return status unless backend == "remote"
+    return append_share_management_warnings(status) unless backend == "remote"
 
     capabilities = remote_client.fetch_capabilities
     feature_flags = capabilities["feature_flags"].is_a?(Hash) ? capabilities["feature_flags"] : {}
     status[:capabilities] = feature_flags
+    status[:remote_max_expiration_days] = positive_integer(capabilities["max_expiration_days"])
+    status[:max_payload_bytes] = positive_integer(capabilities["max_payload_bytes"])
+    status[:max_asset_bytes] = positive_integer(capabilities["max_asset_bytes"])
+    status[:max_asset_count] = positive_integer(capabilities["max_asset_count"])
     status[:reachable] = true
     status[:message] = t("share_management.remote_reachable", default: "Remote share API is reachable.")
 
-    return status unless feature_flags["admin_status"]
+    return append_share_management_warnings(status) unless feature_flags["admin_status"]
 
     admin_status = remote_client.fetch_admin_status
     status[:admin_enabled] = true
@@ -134,12 +145,12 @@ class ShareManagementController < ApplicationController
     status[:storage_writable] = admin_status["storage_writable"]
     status[:checked_at] = admin_status["checked_at"] || status[:checked_at]
     status[:instance_name] = admin_status["instance_name"] if admin_status["instance_name"].present?
-    status
+    append_share_management_warnings(status)
   rescue RemoteShareClient::Error => e
     status[:reachable] = false
     status[:error] = e.message
     status[:message] = t("share_management.remote_unreachable", default: "Remote share API couldn't be reached.")
-    status
+    append_share_management_warnings(status)
   end
 
   def permitted_share_management_updates
@@ -147,6 +158,145 @@ class ShareManagementController < ApplicationController
       .permit(*Config::SHARE_MANAGEMENT_KEYS)
       .to_h
       .reject { |key, value| Config::SENSITIVE_KEYS.include?(key) && value.to_s.strip.empty? }
+  end
+
+  def append_share_management_warnings(status)
+    status[:warnings] = build_share_management_warnings(status)
+    status
+  end
+
+  def build_share_management_warnings(status)
+    warnings = []
+
+    if @config.get("share_remote_verify_tls") == false
+      warnings << security_warning(
+        id: "legacy_insecure_tls_config",
+        severity: "danger",
+        title: t("share_management.warnings.legacy_tls_title", default: "Legacy insecure TLS setting detected"),
+        message: t(
+          "share_management.warnings.legacy_tls_message",
+          default: "This config still contains share_remote_verify_tls = false from an older setup. LewisMD now always verifies HTTPS certificates and ignores the insecure legacy value."
+        ),
+        remediation: t(
+          "share_management.warnings.legacy_tls_remediation",
+          default: "Save the Manage API form once to rewrite the stored setting back to the secure default."
+        )
+      )
+    end
+
+    if remote_backend?
+      unless https_value?(@config.get("share_remote_public_base")) && https_scheme?
+        warnings << security_warning(
+          id: "remote_endpoint_not_https",
+          severity: "danger",
+          title: t("share_management.warnings.https_title", default: "Remote share traffic is not fully HTTPS"),
+          message: t(
+            "share_management.warnings.https_message",
+            default: "The remote share API scheme and public base should both use HTTPS for production publishing."
+          ),
+          remediation: t(
+            "share_management.warnings.https_remediation",
+            default: "Use an HTTPS public base and, with Cloudflare, set SSL/TLS mode to Full (strict)."
+          )
+        )
+      end
+
+      if status[:reachable] && !(status.dig(:capabilities, "admin_status") && status.dig(:capabilities, "admin_bulk_delete"))
+        warnings << security_warning(
+          id: "remote_admin_features_unavailable",
+          severity: "warning",
+          title: t("share_management.warnings.admin_title", default: "Remote admin features are unavailable"),
+          message: t(
+            "share_management.warnings.admin_message",
+            default: "The remote share API is reachable, but it does not advertise the admin endpoints needed for status checks and bulk cleanup."
+          ),
+          remediation: t(
+            "share_management.warnings.admin_remediation",
+            default: "Upgrade the VPS share-api image so it exposes admin_status and admin_bulk_delete capabilities."
+          )
+        )
+      end
+
+      if status[:local_default_expiration_days] && status[:remote_max_expiration_days] &&
+          status[:local_default_expiration_days] > status[:remote_max_expiration_days]
+        warnings << security_warning(
+          id: "remote_expiration_clamped",
+          severity: "warning",
+          title: t("share_management.warnings.expiry_title", default: "Local expiry exceeds the server maximum"),
+          message: t(
+            "share_management.warnings.expiry_message",
+            default: "This LewisMD client is configured to request a longer default expiry than the remote share API allows."
+          ),
+          remediation: t(
+            "share_management.warnings.expiry_remediation",
+            default: "Lower the local default expiration days or raise the server maximum if that policy change is intentional."
+          )
+        )
+      end
+
+      if status[:max_payload_bytes] && status[:max_asset_bytes] &&
+          status[:max_asset_bytes] > status[:max_payload_bytes] &&
+          @config.get("share_remote_upload_assets") != false
+        warnings << security_warning(
+          id: "payload_limit_inconsistent",
+          severity: "warning",
+          title: t("share_management.warnings.payload_title", default: "Payload and asset size limits are inconsistent"),
+          message: t(
+            "share_management.warnings.payload_message",
+            default: "The remote API reports a smaller overall payload cap than its per-asset limit, so large uploads may still be rejected."
+          ),
+          remediation: t(
+            "share_management.warnings.payload_remediation",
+            default: "Keep the total payload limit above the largest allowed asset size, or lower the asset cap to match."
+          )
+        )
+      end
+
+      warnings << security_warning(
+        id: "cloudflare_edge_checklist",
+        severity: "info",
+        title: t("share_management.warnings.cloudflare_title", default: "Cloudflare edge hardening still needs operator confirmation"),
+        message: t(
+          "share_management.warnings.cloudflare_message",
+          default: "This deployment expects a Cloudflare-proxied share hostname in front of Caddy. Cloudflare rate limiting and strict TLS are not configured from inside LewisMD."
+        ),
+        remediation: t(
+          "share_management.warnings.cloudflare_remediation",
+          default: "Confirm the hostname is orange-cloud proxied, set SSL/TLS mode to Full (strict), add the documented rate-limit rules, and restrict direct-origin access when possible."
+        )
+      )
+    end
+
+    warnings
+  end
+
+  def security_warning(id:, severity:, title:, message:, remediation:)
+    raise ArgumentError, "Unsupported security warning severity" unless SECURITY_WARNING_SEVERITIES.include?(severity)
+
+    {
+      id: id,
+      severity: severity,
+      title: title,
+      message: message,
+      remediation: remediation
+    }
+  end
+
+  def configured_expiration_days
+    positive_integer(@config.get("share_remote_expiration_days"))
+  end
+
+  def positive_integer(value)
+    integer = value.to_i
+    integer.positive? ? integer : nil
+  end
+
+  def https_scheme?
+    @config.get("share_remote_api_scheme").to_s.casecmp("https").zero?
+  end
+
+  def https_value?(value)
+    value.to_s.strip.downcase.start_with?("https://")
   end
 
   def remote_backend?

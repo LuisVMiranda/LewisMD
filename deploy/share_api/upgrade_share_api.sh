@@ -266,6 +266,8 @@ main() {
   if [[ -n "$BACKUP_OUTPUT" ]]; then
     printf '%s\n' "$BACKUP_OUTPUT"
   fi
+  log "Cloudflare checklist: keep the share hostname orange-cloud proxied, use Full (strict), and apply the documented rate limits before treating the edge as hardened."
+  log "If this VPS was installed before the security-hardening release, rerun the installer or manually merge the new runtime compose/Caddy files so the container and edge hardening settings take effect."
 }
 
 main "$@"

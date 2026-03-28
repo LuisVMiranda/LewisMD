@@ -111,6 +111,63 @@ The installer supports two deployment topologies:
 The `external_reverse_proxy` mode is the right choice when the VPS already runs
 Nginx or another shared public edge.
 
+## Cloudflare And TLS
+
+The recommended deployment shape for LewisMD remote shares is:
+
+- Cloudflare at the public edge
+- managed Caddy on the VPS origin
+- HTTPS end to end
+
+Important TLS note:
+
+- if your Cloudflare zone is already set to `Full (strict)`, you do **not**
+  need to change anything for this hardening pass
+- if it is set to `Flexible` or plain `Full`, change it to `Full (strict)`
+  before treating the deployment as complete
+
+Why this matters:
+
+- `Full (strict)` protects the Cloudflare-to-origin TLS leg
+- LewisMD now always verifies HTTPS certificates for the local app to
+  Cloudflare/public-host leg
+
+Current LewisMD builds no longer support turning off HTTPS certificate
+verification for normal remote publishing. Older `.fed` files may still contain
+a legacy insecure TLS override, but that value is treated as a warning and
+rewritten back to the secure default the next time you save the remote-share
+settings.
+
+Future stronger measures to consider:
+
+- Cloudflare Authenticated Origin Pulls
+- origin firewall allowlisting for Cloudflare IP ranges
+
+## Cloudflare Rate Limiting
+
+LewisMD does not configure Cloudflare for you. Apply these moderate default
+rules manually in Cloudflare WAF Rate Limiting:
+
+- public reader endpoints: `/s/*`, `/snapshots/*`, `/assets/*`
+  - threshold: `240 requests / 60 seconds / client IP`
+  - action: `Managed Challenge`
+  - mitigation timeout: `2 minutes`
+- public metadata endpoints: `/up`, `/api/v1/capabilities`
+  - threshold: `60 requests / 60 seconds / client IP`
+  - action: `Block`
+  - mitigation timeout: `1 minute`
+- authenticated write/admin endpoints: `POST|PUT|DELETE /api/v1/*`
+  - threshold: `30 requests / 60 seconds / client IP`
+  - action: `Block`
+  - mitigation timeout: `2 minutes`
+
+Those rules are the actual edge protection layer. The bundled Caddy config only
+adds origin-side request shaping and method filtering as defense in depth.
+
+If direct-origin access to the VPS is still possible, Cloudflare rate limits can
+be bypassed by requests sent straight to the origin IP. Treat Cloudflare as
+necessary but not sufficient until you also restrict direct-origin access.
+
 ## Local LewisMD Configuration
 
 After installation, copy the generated block from:
@@ -130,7 +187,6 @@ The key values include:
 - `share_remote_public_base`
 - `share_remote_api_token`
 - `share_remote_signing_secret`
-- `share_remote_verify_tls`
 - `share_remote_upload_assets`
 - `share_remote_expiration_days`
 - `share_remote_instance_name`
@@ -172,6 +228,11 @@ Relevant runtime settings include:
 - `LEWISMD_SHARE_MAX_EXPIRATION_DAYS`
 - `LEWISMD_SHARE_MONITOR_SWEEPER_STALE_MINUTES`
 - `LEWISMD_SHARE_MONITOR_STORAGE_GROWTH_MB`
+
+The standalone share API now enforces `LEWISMD_SHARE_MAX_EXPIRATION_DAYS`
+server-side on create and update. The local LewisMD app clamps its requested
+expiry to the server maximum when the remote capabilities payload advertises it,
+but the VPS remains the final enforcement point.
 
 The public share shell and snapshot routes are also served with strict
 `Cache-Control: no-store` headers so expired or revoked notes do not linger as

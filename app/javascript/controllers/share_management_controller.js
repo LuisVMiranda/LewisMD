@@ -334,23 +334,20 @@ export default class extends Controller {
       .join(", ")
 
     const message = this.status.error || this.status.message || "-"
-    const upgradeHint = backend === "remote" && this.status.reachable && !capabilities.admin_bulk_delete
-      ? this.translate(
-          "share_management.status.upgrade_required",
-          "Upgrade the remote share API image to enable admin cleanup and publishing overview controls."
-        )
-      : null
 
     const rows = [
       [ this.translate("share_management.status.backend", "Backend"), this.escapeHtml(backend) ],
       [ this.translate("share_management.status.public_base", "Public base"), this.escapeHtml(this.status.public_base || this.settings.share_remote_public_base || "-") ],
       [ this.translate("share_management.status.reachable", "Reachable"), this.reachableLabel(this.status.reachable) ],
       [ this.translate("share_management.status.admin", "Admin features"), this.booleanLabel(this.status.admin_enabled) ],
+      [ this.translate("share_management.status.local_default_expiry", "Local default expiry"), this.expirationLabel(this.status.local_default_expiration_days) ],
+      [ this.translate("share_management.status.remote_max_expiry", "Remote max expiry"), this.expirationLabel(this.status.remote_max_expiration_days) ],
       [ this.translate("share_management.status.share_count", "Published shares"), this.valueLabel(this.status.remote_share_count) ],
       [ this.translate("share_management.status.storage_writable", "Storage writable"), this.booleanLabel(this.status.storage_writable) ],
       [ this.translate("share_management.status.capabilities", "Capabilities"), this.escapeHtml(capabilityList || "-") ],
       [ this.translate("share_management.status.message", "Message"), this.escapeHtml(message) ]
     ]
+    const warnings = Array.isArray(this.status.warnings) ? this.status.warnings : []
 
     this.statusPanelTarget.innerHTML = `
       <div class="space-y-3">
@@ -362,11 +359,7 @@ export default class extends Controller {
             </div>
           `).join("")}
         </dl>
-        ${upgradeHint ? `
-          <div class="rounded border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-300">
-            ${this.escapeHtml(upgradeHint)}
-          </div>
-        ` : ""}
+        ${this.renderWarningCards(warnings)}
       </div>
     `
   }
@@ -551,6 +544,43 @@ export default class extends Controller {
   valueLabel(value) {
     if (value === null || value === undefined || value === "") return "-"
     return this.escapeHtml(String(value))
+  }
+
+  expirationLabel(value) {
+    if (value === null || value === undefined || value === "") return "-"
+    return `${this.escapeHtml(String(value))} ${this.escapeHtml(this.translate("share_management.status.days", "days"))}`
+  }
+
+  renderWarningCards(warnings) {
+    if (!warnings.length) return ""
+
+    return `
+      <div class="space-y-3">
+        ${warnings.map((warning) => `
+          <div class="${this.warningCardClasses(warning.severity)}">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <p class="text-[11px] font-semibold uppercase tracking-wide">${this.escapeHtml(warning.title || "Warning")}</p>
+                <p class="mt-1 text-sm">${this.escapeHtml(warning.message || "")}</p>
+                ${warning.remediation ? `<p class="mt-2 text-xs opacity-90">${this.escapeHtml(warning.remediation)}</p>` : ""}
+              </div>
+              <span class="rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em]">${this.escapeHtml(warning.severity || "info")}</span>
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    `
+  }
+
+  warningCardClasses(severity) {
+    switch (severity) {
+    case "danger":
+      return "rounded border border-red-500/35 bg-red-500/10 px-3 py-3 text-red-700 dark:text-red-300"
+    case "warning":
+      return "rounded border border-amber-500/35 bg-amber-500/10 px-3 py-3 text-amber-700 dark:text-amber-300"
+    default:
+      return "rounded border border-sky-500/35 bg-sky-500/10 px-3 py-3 text-sky-700 dark:text-sky-300"
+    }
   }
 
   formatTimestamp(value) {

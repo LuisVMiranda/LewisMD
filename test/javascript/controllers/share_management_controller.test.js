@@ -36,9 +36,11 @@ describe("ShareManagementController", () => {
         "share_management.status.admin": "Admin features",
         "share_management.status.share_count": "Published shares",
         "share_management.status.storage_writable": "Storage writable",
+        "share_management.status.local_default_expiry": "Local default expiry",
+        "share_management.status.remote_max_expiry": "Remote max expiry",
+        "share_management.status.days": "days",
         "share_management.status.capabilities": "Capabilities",
         "share_management.status.message": "Message",
-        "share_management.status.upgrade_required": "Upgrade required",
         "share_management.yes": "Yes",
         "share_management.no": "No",
         "share_management.tabs.status": "Status",
@@ -88,7 +90,6 @@ describe("ShareManagementController", () => {
           <input name="share_remote_public_base" type="url">
           <input name="share_remote_timeout_seconds" type="number">
           <input name="share_remote_expiration_days" type="number">
-          <input name="share_remote_verify_tls" type="checkbox">
           <input name="share_remote_upload_assets" type="checkbox">
           <input name="share_remote_instance_name" type="text">
           <input name="share_remote_healthchecks_ping_url" type="url">
@@ -152,7 +153,6 @@ describe("ShareManagementController", () => {
         share_remote_api_port: 443,
         share_remote_public_base: "https://shares.example.com",
         share_remote_timeout_seconds: 10,
-        share_remote_verify_tls: true,
         share_remote_upload_assets: true,
         share_remote_instance_name: "my-vps",
         share_remote_expiration_days: 30,
@@ -167,13 +167,16 @@ describe("ShareManagementController", () => {
         public_base: "https://shares.example.com",
         reachable: true,
         admin_enabled: true,
+        local_default_expiration_days: 30,
+        remote_max_expiration_days: 365,
         remote_share_count: 4,
         storage_writable: true,
         capabilities: {
           admin_status: true,
           admin_bulk_delete: true
         },
-        message: "Remote share API is reachable."
+        message: "Remote share API is reachable.",
+        warnings: []
       },
       ...overrides
     }
@@ -220,6 +223,31 @@ describe("ShareManagementController", () => {
     expect(controller.statusPanelTarget.textContent).toContain("Published shares")
     expect(controller.statusPanelTarget.textContent).toContain("4")
     expect(controller.statusPanelTarget.textContent).toContain("ONLINE")
+    expect(controller.statusPanelTarget.textContent).toContain("30 days")
+    expect(controller.statusPanelTarget.textContent).toContain("365 days")
+  })
+
+  it("renders visible security warnings in the status tab", async () => {
+    global.fetch = vi.fn().mockResolvedValueOnce(response(payload({
+      status: {
+        ...payload().status,
+        warnings: [
+          {
+            id: "legacy_insecure_tls_config",
+            severity: "danger",
+            title: "Legacy insecure TLS setting detected",
+            message: "TLS verification is always enforced now.",
+            remediation: "Save the form once to rewrite the stored setting."
+          }
+        ]
+      }
+    })))
+
+    await controller.open()
+
+    expect(controller.statusPanelTarget.textContent).toContain("Legacy insecure TLS setting detected")
+    expect(controller.statusPanelTarget.textContent).toContain("TLS verification is always enforced now.")
+    expect(controller.statusPanelTarget.textContent).toContain("danger")
   })
 
   it("saves updated settings through the local admin proxy", async () => {

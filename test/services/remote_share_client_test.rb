@@ -25,12 +25,36 @@ class RemoteShareClientTest < ActiveSupport::TestCase
 
   test "fetch_capabilities caches the capabilities payload" do
     stub_request(:get, "https://shares.example.com/api/v1/capabilities")
-      .to_return(status: 200, body: { api_version: "1", feature_flags: { asset_uploads: true, full_share_shell: true } }.to_json)
+      .to_return(status: 200, body: { api_version: "1", feature_flags: { asset_uploads: true, full_share_shell: true }, max_expiration_days: 365 }.to_json)
 
     capabilities = @client.fetch_capabilities
 
     assert_equal "1", capabilities["api_version"]
+    assert_equal 365, capabilities["max_expiration_days"]
     assert_equal capabilities, @client.last_capabilities
+  end
+
+  test "fetch_capabilities always verifies tls even when the legacy setting is false" do
+    @config.update(share_remote_verify_tls: false)
+
+    http = mock("http")
+    request = mock("request")
+    response = stub(body: { api_version: "1" }.to_json, code: "200")
+
+    Net::HTTP.expects(:new).with("shares.example.com", 443).returns(http)
+    http.expects(:use_ssl=).with(true)
+    http.expects(:open_timeout=).with(10)
+    http.expects(:read_timeout=).with(10)
+    http.expects(:use_ssl?).returns(true)
+    http.expects(:verify_mode=).with(OpenSSL::SSL::VERIFY_PEER)
+    Net::HTTP::Get.expects(:new).returns(request)
+    request.stubs(:[]=)
+    http.expects(:request).with(request).returns(response)
+    response.stubs(:is_a?).with(Net::HTTPSuccess).returns(true)
+
+    capabilities = @client.fetch_capabilities
+
+    assert_equal "1", capabilities["api_version"]
   end
 
   test "create_share sends signed authenticated requests and returns the public url" do

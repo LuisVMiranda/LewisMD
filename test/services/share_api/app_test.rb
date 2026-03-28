@@ -48,6 +48,21 @@ class ShareApiAppTest < ActiveSupport::TestCase
     assert_equal true, payload.dig("feature_flags", "full_share_shell")
     assert_equal true, payload.dig("feature_flags", "admin_status")
     assert_equal true, payload.dig("feature_flags", "admin_bulk_delete")
+    assert_equal 365, payload["max_expiration_days"]
+  end
+
+  test "invalid methods on shaped routes return 405" do
+    post "/up"
+    assert_equal 405, last_response.status
+    assert_equal "GET", last_response.headers["Allow"]
+
+    get "/api/v1/admin/shares"
+    assert_equal 405, last_response.status
+    assert_equal "DELETE", last_response.headers["Allow"]
+
+    post "/s/token-123"
+    assert_equal 405, last_response.status
+    assert_equal "GET", last_response.headers["Allow"]
   end
 
   test "admin status returns authenticated relay status details" do
@@ -395,6 +410,16 @@ class ShareApiAppTest < ActiveSupport::TestCase
     get "/snapshots/#{token}"
 
     assert_includes last_response.body, "Version Two"
+  end
+
+  test "share create rejects expirations beyond the configured maximum" do
+    over_limit_expiration = (Time.now.utc + 366.days).iso8601
+    body = JSON.generate(valid_payload.merge("expires_at" => over_limit_expiration))
+
+    post "/api/v1/shares", body, signed_headers(method: "POST", path: "/api/v1/shares", body: body)
+
+    assert_equal 422, last_response.status
+    assert_includes JSON.parse(last_response.body)["error"], "configured maximum of 365 days"
   end
 
   test "different notes receive different public tokens and remain accessible simultaneously" do

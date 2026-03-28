@@ -33,8 +33,40 @@ class ShareApiDeploymentArtifactsTest < ActiveSupport::TestCase
 
     assert_nil share_api["ports"]
     assert_equal [ "9292" ], share_api["expose"]
+    assert_equal true, share_api["read_only"]
+    assert_equal [ "/tmp" ], share_api["tmpfs"]
+    assert_equal [ "no-new-privileges:true" ], share_api["security_opt"]
+    assert_equal [ "ALL" ], share_api["cap_drop"]
+    assert_equal 256, share_api["pids_limit"]
+    assert_equal "256m", share_api["mem_limit"]
+    assert_equal 1.0, share_api["cpus"]
     assert_equal({ "condition" => "service_healthy" }, caddy.dig("depends_on", "share-api"))
     assert_equal [ "${LEWISMD_SHARE_HTTP_PORT:-80}:80", "${LEWISMD_SHARE_HTTPS_PORT:-443}:443" ], caddy["ports"]
+    assert_equal true, caddy["read_only"]
+    assert_equal [ "/tmp" ], caddy["tmpfs"]
+    assert_equal [ "no-new-privileges:true" ], caddy["security_opt"]
+    assert_equal [ "ALL" ], caddy["cap_drop"]
+    assert_equal [ "NET_BIND_SERVICE" ], caddy["cap_add"]
+    assert_equal 256, caddy["pids_limit"]
+    assert_equal "128m", caddy["mem_limit"]
+    assert_equal 0.5, caddy["cpus"]
+  end
+
+  test "caddyfile adds request shaping and method guards for public and api routes" do
+    caddyfile = deployment_file("Caddyfile")
+
+    assert_includes caddyfile, "request_body @api_write"
+    assert_includes caddyfile, "max_size {$LEWISMD_SHARE_MAX_PAYLOAD_BYTES}"
+    assert_includes caddyfile, "@up_wrong_method"
+    assert_includes caddyfile, "@capabilities_wrong_method"
+    assert_includes caddyfile, "@admin_status_wrong_method"
+    assert_includes caddyfile, "@admin_shares_wrong_method"
+    assert_includes caddyfile, "@shares_collection_wrong_method"
+    assert_includes caddyfile, "@shares_member_wrong_method"
+    assert_includes caddyfile, "@public_share_wrong_method"
+    assert_includes caddyfile, "@snapshot_wrong_method"
+    assert_includes caddyfile, "@asset_wrong_method"
+    assert_includes caddyfile, "respond @asset_wrong_method 405"
   end
 
   test "installer summary and prompts cover managed caddy and external reverse proxy workflows" do
@@ -59,6 +91,10 @@ class ShareApiDeploymentArtifactsTest < ActiveSupport::TestCase
     assert_includes installer, "Operator guide: $REPO_ROOT/docs/remote_share_api.md"
     assert_includes installer, 'chown -R "${SHARE_API_UID}:${SHARE_API_GID}" "$STORAGE_HOST_PATH"'
     assert_includes installer, "logs --no-color --tail=200 share-api"
+    assert_includes installer, "Cloudflare hardening checklist:"
+    assert_includes installer, "Full (strict)"
+    assert_includes installer, "/s/*, /snapshots/*, /assets/* => 240 requests / 60 seconds / IP => Managed Challenge for 2 minutes"
+    refute_includes installer, "share_remote_verify_tls = $VERIFY_TLS"
   end
 
   test "upgrade script creates a backup by default and handles managed caddy separately" do
@@ -111,6 +147,13 @@ class ShareApiDeploymentArtifactsTest < ActiveSupport::TestCase
     assert_includes guide, "nginx-lewismd-share.conf"
     assert_includes guide, "lewismd-share-sweeper.timer"
     assert_includes guide, "share_remote_expiration_days"
+    assert_includes guide, "Cloudflare And TLS"
+    assert_includes guide, "Full (strict)"
+    assert_includes guide, "Cloudflare Rate Limiting"
+    assert_includes guide, "240 requests / 60 seconds / client IP"
+    assert_includes guide, "30 requests / 60 seconds / client IP"
+    assert_includes guide, "always verifies HTTPS certificates"
+    refute_includes guide, "share_remote_verify_tls"
     assert_includes guide, "different notes get different public links"
     assert_includes guide, "same note keeps one active public link"
     assert_includes guide, "legacy fragment-only shares continue to work"

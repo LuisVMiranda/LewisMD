@@ -39,6 +39,7 @@ class ShareManagementControllerTest < ActionDispatch::IntegrationTest
     config.update(
       share_backend: "remote",
       share_remote_api_host: "shares.example.com",
+      share_remote_verify_tls: false,
       share_remote_api_token: "token-123",
       share_remote_signing_secret: "signing-secret"
     )
@@ -52,6 +53,7 @@ class ShareManagementControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     reloaded = Config.new(base_path: @test_notes_dir)
     assert_equal "relay.example.com", reloaded.get("share_remote_api_host")
+    assert_equal true, reloaded.get("share_remote_verify_tls")
     assert_equal "token-123", reloaded.get("share_remote_api_token")
     assert_equal "signing-secret", reloaded.get("share_remote_signing_secret")
   end
@@ -80,6 +82,46 @@ class ShareManagementControllerTest < ActionDispatch::IntegrationTest
     assert_equal true, data.dig("status", "storage_writable")
     assert_equal true, data.dig("status", "capabilities", "admin_status")
     assert_equal true, data.dig("status", "capabilities", "admin_bulk_delete")
+    assert_equal 30, data.dig("status", "local_default_expiration_days")
+    assert_equal 365, data.dig("status", "remote_max_expiration_days")
+    assert data.dig("status", "warnings").any? { |warning| warning["id"] == "payload_limit_inconsistent" }
+    assert data.dig("status", "warnings").any? { |warning| warning["id"] == "cloudflare_edge_checklist" }
+  end
+
+  test "show surfaces legacy tls and expiry mismatch warnings" do
+    configure_remote_share_backend
+    Config.new(base_path: @test_notes_dir).update(
+      share_remote_verify_tls: false,
+      share_remote_expiration_days: 45
+    )
+    stub_request(:get, "https://shares.example.com/api/v1/capabilities")
+      .to_return(
+        status: 200,
+        body: {
+          api_version: "1",
+          max_expiration_days: 7,
+          max_payload_bytes: 200_000,
+          max_asset_bytes: 5_000_000,
+          max_asset_count: 16,
+          feature_flags: {
+            asset_uploads: true,
+            full_share_shell: true
+          }
+        }.to_json
+      )
+
+    get share_admin_url, as: :json
+
+    assert_response :success
+    data = JSON.parse(response.body)
+    warning_ids = data.dig("status", "warnings").map { |warning| warning["id"] }
+
+    assert_includes warning_ids, "legacy_insecure_tls_config"
+    assert_includes warning_ids, "remote_admin_features_unavailable"
+    assert_includes warning_ids, "remote_expiration_clamped"
+    assert_includes warning_ids, "payload_limit_inconsistent"
+    assert_equal 45, data.dig("status", "local_default_expiration_days")
+    assert_equal 7, data.dig("status", "remote_max_expiration_days")
   end
 
   test "destroy wipes remote shares and clears the local registry" do
@@ -262,6 +304,10 @@ class ShareManagementControllerTest < ActionDispatch::IntegrationTest
         status: 200,
         body: {
           api_version: "1",
+          max_expiration_days: 365,
+          max_payload_bytes: 200_000,
+          max_asset_bytes: 5_000_000,
+          max_asset_count: 16,
           feature_flags: {
             asset_uploads: true,
             full_share_shell: true,

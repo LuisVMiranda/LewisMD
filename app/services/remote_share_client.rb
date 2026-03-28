@@ -119,7 +119,7 @@ class RemoteShareClient
     http.use_ssl = uri.scheme == "https"
     http.open_timeout = timeout_seconds
     http.read_timeout = timeout_seconds
-    http.verify_mode = verify_tls? ? OpenSSL::SSL::VERIFY_PEER : OpenSSL::SSL::VERIFY_NONE
+    http.verify_mode = OpenSSL::SSL::VERIFY_PEER if http.use_ssl?
 
     request_class = case method.to_sym
     when :get then Net::HTTP::Get
@@ -236,9 +236,5 @@ class RemoteShareClient
   def timeout_seconds
     timeout = config.get("share_remote_timeout_seconds").to_i
     timeout.positive? ? timeout : 10
-  end
-
-  def verify_tls?
-    config.get("share_remote_verify_tls") != false
   end
 end

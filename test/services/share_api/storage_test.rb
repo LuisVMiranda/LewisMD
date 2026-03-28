@@ -11,7 +11,8 @@ class ShareApiStorageTest < ActiveSupport::TestCase
     @storage = ShareAPI::Storage.new(
       storage_path: @storage_path,
       max_asset_bytes: 5_000_000,
-      max_asset_count: 16
+      max_asset_count: 16,
+      max_expiration_days: 50_000
     )
   end
 

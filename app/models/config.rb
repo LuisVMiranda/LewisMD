@@ -125,7 +125,6 @@ class Config
     share_remote_api_port
     share_remote_public_base
     share_remote_timeout_seconds
-    share_remote_verify_tls
     share_remote_upload_assets
     share_remote_instance_name
     share_remote_expiration_days
@@ -268,7 +267,7 @@ class Config
         "# share_remote_api_port = 443",
         "# share_remote_public_base = https://shares.example.com",
         "# share_remote_timeout_seconds = 10",
-        "# share_remote_verify_tls = true",
+        "# TLS certificate verification is always enforced for HTTPS remote shares.",
         "# share_remote_upload_assets = true",
         "# share_remote_instance_name = my-vps",
         "# Automatically expire remote shares after this many days.",

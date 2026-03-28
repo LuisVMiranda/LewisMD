@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "nokogiri"
+require "time"
 
 module SharePublishers
   class RemoteShareProvider
@@ -95,7 +96,7 @@ module SharePublishers
         path: path,
         note_identifier: payload[:note_identifier].presence || path,
         title: title,
-        expires_at: payload[:expires_at].presence || requested_expires_at
+        expires_at: effective_expires_at(payload[:expires_at].presence || requested_expires_at)
       )
     end
 
@@ -178,6 +179,27 @@ module SharePublishers
       return nil unless expiration_days.positive?
 
       expiration_days.days.from_now.iso8601
+    end
+
+    def effective_expires_at(expires_at)
+      return nil if expires_at.blank?
+
+      requested_time = Time.iso8601(expires_at.to_s)
+      max_days = remote_max_expiration_days
+      return requested_time.utc.iso8601 unless max_days
+
+      [ requested_time, max_days.days.from_now ].min.utc.iso8601
+    rescue ArgumentError
+      expires_at
+    end
+
+    def remote_max_expiration_days
+      value = remote_capabilities["max_expiration_days"].to_i
+      value.positive? ? value : nil
+    end
+
+    def remote_capabilities
+      client.last_capabilities || client.fetch_capabilities || {}
     end
 
     def republish_missing_remote_share(payload:, existing_share:)

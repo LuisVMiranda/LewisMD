@@ -5,6 +5,65 @@
     -Server
   }
 
+  @api_write path /api/v1/*
+  request_body @api_write {
+    max_size {$LEWISMD_SHARE_MAX_PAYLOAD_BYTES}
+  }
+
+  @up_wrong_method {
+    path /up
+    not method GET
+  }
+  respond @up_wrong_method 405
+
+  @capabilities_wrong_method {
+    path /api/v1/capabilities
+    not method GET
+  }
+  respond @capabilities_wrong_method 405
+
+  @admin_status_wrong_method {
+    path /api/v1/admin/status
+    not method GET
+  }
+  respond @admin_status_wrong_method 405
+
+  @admin_shares_wrong_method {
+    path /api/v1/admin/shares
+    not method DELETE
+  }
+  respond @admin_shares_wrong_method 405
+
+  @shares_collection_wrong_method {
+    path /api/v1/shares
+    not method POST
+  }
+  respond @shares_collection_wrong_method 405
+
+  @shares_member_wrong_method {
+    path /api/v1/shares/*
+    not method PUT DELETE
+  }
+  respond @shares_member_wrong_method 405
+
+  @public_share_wrong_method {
+    path /s/*
+    not method GET
+  }
+  respond @public_share_wrong_method 405
+
+  @snapshot_wrong_method {
+    path /snapshots/*
+    not method GET
+  }
+  respond @snapshot_wrong_method 405
+
+  @asset_wrong_method {
+    path /assets/*
+    not method GET
+  }
+  respond @asset_wrong_method 405
+
   reverse_proxy share-api:9292
 
   log {

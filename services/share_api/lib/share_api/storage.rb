@@ -32,10 +32,11 @@ module ShareAPI
       image/webp
     ].freeze
 
-    def initialize(storage_path:, max_asset_bytes:, max_asset_count:)
+    def initialize(storage_path:, max_asset_bytes:, max_asset_count:, max_expiration_days:)
       @storage_path = Pathname.new(storage_path).expand_path
       @max_asset_bytes = max_asset_bytes
       @max_asset_count = max_asset_count
+      @max_expiration_days = max_expiration_days
       FileUtils.mkdir_p(storage_root)
     end
 
@@ -282,7 +283,7 @@ module ShareAPI
 
     private
 
-    attr_reader :storage_path, :max_asset_bytes, :max_asset_count
+    attr_reader :storage_path, :max_asset_bytes, :max_asset_count, :max_expiration_days
 
     def storage_root
       @storage_root ||= storage_path
@@ -410,6 +411,7 @@ module ShareAPI
     def normalize_share(share)
       normalized_share = share.dup
       normalized_share["expires_at"] = normalized_timestamp_or_nil(normalized_share["expires_at"])
+      validate_expiration_window!(normalized_share["expires_at"])
       normalized_share
     end
 
@@ -419,6 +421,16 @@ module ShareAPI
       Time.iso8601(value.to_s).utc.iso8601
     rescue ArgumentError
       raise ValidationError, "expires_at must be an ISO8601 timestamp"
+    end
+
+    def validate_expiration_window!(expires_at)
+      return if expires_at.to_s.strip.empty?
+      return unless max_expiration_days.to_i.positive?
+
+      maximum_allowed = Time.now.utc + (max_expiration_days.to_i * 86_400)
+      return unless Time.iso8601(expires_at) > maximum_allowed
+
+      raise ValidationError, "expires_at exceeds the configured maximum of #{max_expiration_days} days"
     end
 
     def prepare_assets(assets)

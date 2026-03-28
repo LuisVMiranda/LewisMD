@@ -6,6 +6,7 @@ module ShareAPI
     DEFAULT_MAX_PAYLOAD_BYTES = 200_000
     DEFAULT_MAX_ASSET_BYTES = 5_000_000
     DEFAULT_MAX_ASSET_COUNT = 16
+    DEFAULT_MAX_EXPIRATION_DAYS = 365
 
     def initialize(env: ENV, root: File.expand_path("../..", __dir__))
       @env = env
@@ -46,6 +47,10 @@ module ShareAPI
 
     def max_asset_count
       integer_env("LEWISMD_SHARE_MAX_ASSET_COUNT", DEFAULT_MAX_ASSET_COUNT)
+    end
+
+    def max_expiration_days
+      integer_env("LEWISMD_SHARE_MAX_EXPIRATION_DAYS", DEFAULT_MAX_EXPIRATION_DAYS)
     end
 
     private

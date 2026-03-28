@@ -134,9 +134,47 @@ class RemoteShareProviderTest < ActiveSupport::TestCase
     end
   end
 
+  test "create_or_find clamps the requested expiry to the remote maximum" do
+    travel_to Time.zone.parse("2026-03-25 12:00:00 UTC") do
+      client = mock("remote-share-client")
+      client.stubs(:last_capabilities).returns(nil)
+      client.expects(:fetch_capabilities).returns({ "api_version" => "1", "max_expiration_days" => 7 })
+      client.expects(:create_share).with do |payload|
+        assert_equal "2026-04-01T12:00:00Z", payload[:expires_at]
+        true
+      end.returns(
+        {
+          token: "remote-share-7777",
+          url: "https://shares.example.com/s/remote-share-7777",
+          title: "Shared Note",
+          created_at: "2026-03-25T12:00:00Z",
+          updated_at: "2026-03-25T12:00:00Z",
+          expires_at: "2026-04-01T12:00:00Z"
+        }
+      )
+
+      provider = SharePublishers::RemoteShareProvider.new(
+        base_path: @test_notes_dir,
+        config: @config,
+        registry: @registry,
+        client: client
+      )
+
+      share = provider.create_or_find(
+        path: "shared-note.md",
+        title: "Shared Note",
+        snapshot_html: "<html><body>Ignored</body></html>",
+        share_payload: share_payload
+      )
+
+      assert_equal "2026-04-01T12:00:00Z", share[:expires_at]
+    end
+  end
+
   test "refresh marks the remote share stale when the remote API fails" do
     @registry.save(existing_share_metadata)
     client = mock("remote-share-client")
+    client.stubs(:last_capabilities).returns({})
     client.expects(:update_share).raises(RemoteShareClient::RequestError.new("Remote share API timed out", status: 503))
 
     provider = SharePublishers::RemoteShareProvider.new(
