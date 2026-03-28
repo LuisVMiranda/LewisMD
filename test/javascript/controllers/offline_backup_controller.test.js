@@ -66,14 +66,14 @@ describe("OfflineBackupController", () => {
 
     it("handles localStorage quota exceeded gracefully", () => {
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
-      const origSetItem = localStorage.setItem
-      localStorage.setItem = () => { throw new DOMException("QuotaExceededError") }
+      const setItemSpy = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+        throw new DOMException("QuotaExceededError")
+      })
 
       // Should not throw
       expect(() => controller.save("test.md", "content")).not.toThrow()
       expect(warnSpy).toHaveBeenCalledWith("localStorage backup failed:", expect.any(DOMException))
-
-      localStorage.setItem = origSetItem
+      expect(setItemSpy).toHaveBeenCalled()
     })
   })
 
@@ -122,6 +122,18 @@ describe("OfflineBackupController", () => {
 
       expect(localStorage.getItem("frankmd:backup:test.md")).toBeNull()
       expect(localStorage.getItem("frankmd:backup:other.md")).not.toBeNull()
+    })
+  })
+
+  describe("rename()", () => {
+    it("moves a backup record to the renamed path", () => {
+      controller.save("drafts/old-name.md", "content")
+
+      expect(controller.rename("drafts/old-name.md", "drafts/new-name.md")).toBe(true)
+      expect(localStorage.getItem("frankmd:backup:drafts/old-name.md")).toBeNull()
+
+      const moved = JSON.parse(localStorage.getItem("frankmd:backup:drafts/new-name.md"))
+      expect(moved.content).toBe("content")
     })
   })
 

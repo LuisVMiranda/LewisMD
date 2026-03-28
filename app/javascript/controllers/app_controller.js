@@ -2458,6 +2458,7 @@ export default class extends Controller {
 
   onFileRenamed(event) {
     const { oldPath, newPath, type } = event.detail
+    let currentFileRenamed = false
 
     if (type === "folder") {
       // Preserve expand/collapse state for renamed folder and its descendants.
@@ -2476,6 +2477,7 @@ export default class extends Controller {
       this.currentFile = `${newPath}${this.currentFile.slice(oldPath.length)}`
       this.updatePathDisplay(this.currentFile.replace(/\.md$/, ""))
       this.updateUrl(this.currentFile)
+      currentFileRenamed = true
     }
 
     // Update current file if it was the renamed file
@@ -2483,9 +2485,16 @@ export default class extends Controller {
       this.currentFile = newPath
       this.updatePathDisplay(newPath.replace(/\.md$/, ""))
       this.updateUrl(newPath)
+      currentFileRenamed = true
     }
 
     this.remapRememberedLastOpenNote(oldPath, newPath)
+
+    if (currentFileRenamed) {
+      this.getAutosaveController()?.renameCurrentFile?.(oldPath, newPath)
+      this.getPreviewController()?.setCurrentNotePath?.(this.isMarkdownFile() ? this.currentFile : null)
+      this.refreshNoteLinkAutocompleteContext()
+    }
 
     if (this.currentFile) {
       this.refreshCurrentShareState()

@@ -553,6 +553,28 @@ describe("AutosaveController — Content Loss Detection", () => {
       expect(saveNowSpy).not.toHaveBeenCalled()
     })
   })
+  describe("renameCurrentFile()", () => {
+    it("remaps the autosave path for the currently open note and moves the backup key", () => {
+      const mockBackupController = {
+        rename: vi.fn()
+      }
+      controller.getOfflineBackupController = () => mockBackupController
+      controller.currentFile = "drafts/old-name.md"
+      controller.hasUnsavedChanges = true
+
+      expect(controller.renameCurrentFile("drafts/old-name.md", "drafts/new-name.md")).toBe(true)
+      expect(controller.currentFile).toBe("drafts/new-name.md")
+      expect(mockBackupController.rename).toHaveBeenCalledWith("drafts/old-name.md", "drafts/new-name.md")
+    })
+
+    it("remaps nested current files when a parent folder is renamed", () => {
+      controller.currentFile = "projects/chapter-1/notes.md"
+
+      expect(controller.renameCurrentFile("projects", "book")).toBe(true)
+      expect(controller.currentFile).toBe("book/chapter-1/notes.md")
+    })
+  })
+
   describe("autosave:status events", () => {
     it("emits idle, unsaved, and saved without duplicate unsaved events", async () => {
       const events = []

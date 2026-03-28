@@ -33,6 +33,24 @@ export default class extends Controller {
     localStorage.removeItem(this.constructor.STORAGE_PREFIX + path)
   }
 
+  rename(oldPath, newPath) {
+    if (!oldPath || !newPath || oldPath === newPath) return false
+
+    const oldKey = this.constructor.STORAGE_PREFIX + oldPath
+    const newKey = this.constructor.STORAGE_PREFIX + newPath
+    const backup = localStorage.getItem(oldKey)
+    if (backup === null) return false
+
+    try {
+      localStorage.setItem(newKey, backup)
+      localStorage.removeItem(oldKey)
+      return true
+    } catch (e) {
+      console.warn("localStorage backup rename failed:", e)
+      return false
+    }
+  }
+
   clearAll() {
     const prefix = this.constructor.STORAGE_PREFIX
     const keys = []

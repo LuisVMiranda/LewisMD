@@ -245,6 +245,36 @@ describe("AppController shared UI state", () => {
     expect(controller.saveConfig).not.toHaveBeenCalled()
   })
 
+  it("remaps autosave and editor note-path dependencies when the open note is renamed", () => {
+    const autosaveController = {
+      renameCurrentFile: vi.fn()
+    }
+
+    controller.currentFile = "drafts/old-name.md"
+    controller.currentFileType = "markdown"
+    controller.expandedFolders = new Set()
+    controller.getAutosaveController = vi.fn(() => autosaveController)
+    controller.updatePathDisplay = vi.fn()
+    controller.updateUrl = vi.fn()
+    controller.refreshCurrentShareState = vi.fn()
+    controller.persistExplorerResumeState = vi.fn()
+    controller.refreshNoteLinkAutocompleteContext = vi.fn()
+    previewController.setCurrentNotePath = vi.fn()
+
+    controller.onFileRenamed({
+      detail: {
+        oldPath: "drafts/old-name.md",
+        newPath: "drafts/new-name.md",
+        type: "file"
+      }
+    })
+
+    expect(controller.currentFile).toBe("drafts/new-name.md")
+    expect(autosaveController.renameCurrentFile).toHaveBeenCalledWith("drafts/old-name.md", "drafts/new-name.md")
+    expect(previewController.setCurrentNotePath).toHaveBeenCalledWith("drafts/new-name.md")
+    expect(controller.refreshNoteLinkAutocompleteContext).toHaveBeenCalledTimes(1)
+  })
+
   it("dedupes unchanged state emissions", () => {
     controller.emitUiStateChanged("selection-changed")
     controller.emitUiStateChanged("selection-changed")

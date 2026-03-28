@@ -62,6 +62,17 @@ export default class extends Controller {
     this.emitStatusChanged("idle")
   }
 
+  renameCurrentFile(oldPath, newPath) {
+    const nextPath = this.remappedPathForRename(this.currentFile, oldPath, newPath)
+    if (!nextPath || nextPath === this.currentFile) return false
+
+    const previousPath = this.currentFile
+    this.currentFile = nextPath
+    this.getOfflineBackupController()?.rename?.(previousPath, nextPath)
+    this.emitStatusChanged(this.currentStatus())
+    return true
+  }
+
   checkOfflineBackup(serverContent) {
     const backup = this.getOfflineBackupController()
     if (!backup) return
@@ -259,6 +270,22 @@ export default class extends Controller {
     }
 
     this.emitStatusChanged("idle")
+  }
+
+  currentStatus() {
+    if (this.isOffline) return "offline"
+    if (this.hasUnsavedChanges) return "unsaved"
+    return "idle"
+  }
+
+  remappedPathForRename(currentPath, oldPath, newPath) {
+    if (!currentPath) return null
+    if (currentPath === oldPath) return newPath
+    if (currentPath.startsWith(`${oldPath}/`)) {
+      return `${newPath}${currentPath.slice(oldPath.length)}`
+    }
+
+    return currentPath
   }
 
   // === Content Loss Warning ===
