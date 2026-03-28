@@ -485,6 +485,7 @@ module ShareAPI
               class="share-view share-view--remote"
               data-remote-reader
               data-title="#{CGI.escapeHTML(title)}"
+              data-updated-at="#{CGI.escapeHTML(share["updated_at"].to_s)}"
               data-locale="#{CGI.escapeHTML(current_locale)}"
               data-theme="#{CGI.escapeHTML(current_theme)}"
               data-default-zoom="#{default_zoom}"
@@ -514,7 +515,10 @@ module ShareAPI
                 <div class="share-view__toolbar-top">
                   <div class="share-view__identity">
                     <p class="share-view__eyebrow">#{CGI.escapeHTML(shared_note_label)}</p>
-                    <h1 class="share-view__title">#{CGI.escapeHTML(title)}</h1>
+                    <div class="share-view__title-row">
+                      <h1 class="share-view__title">#{CGI.escapeHTML(title)}</h1>
+                      <span class="share-view__updated-pill" data-role="updated-at-pill" hidden></span>
+                    </div>
                   </div>
 
                   #{reader_toolbar_actions_html(

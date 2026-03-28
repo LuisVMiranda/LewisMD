@@ -240,6 +240,9 @@ class ShareApiAppTest < ActiveSupport::TestCase
     assert_includes last_response.body, 'data-toolbar-hint="true"'
     assert_includes last_response.body, '<p class="share-view__eyebrow">Shared note</p>'
     assert_includes last_response.body, '<h1 class="share-view__title">Shared Note</h1>'
+    assert_includes last_response.body, %(data-updated-at="#{payload["updated_at"]}")
+    assert_includes last_response.body, 'data-role="updated-at-pill" hidden'
+    assert_includes last_response.body, 'class="share-view__updated-pill"'
     assert_includes last_response.body, 'data-role="toolbar-toggle"'
     assert_includes last_response.body, 'data-role="toolbar"'
     assert_includes last_response.body, 'data-role="theme-toggle"'
@@ -298,12 +301,27 @@ class ShareApiAppTest < ActiveSupport::TestCase
     assert_includes last_response.body, 'title="Abrir ações de compartilhamento, exportação e cópia"'
     assert_includes last_response.body, '<span class="share-view__toolbar-label">Compartilhar</span>'
     assert_includes last_response.body, '<span class="share-view__toolbar-label">Exibição</span>'
+    assert_includes last_response.body, "&quot;last_updated&quot;:&quot;Última atualização %{timestamp}&quot;"
     assert_includes last_response.body, 'title="Visualização da nota compartilhada"'
     assert_includes last_response.body, '<span class="share-view__toolbar-label" data-role="theme-current-label">Light</span>'
     assert_includes last_response.body, '<span class="share-view__toolbar-label" data-role="locale-current-label">Português (Brasil)</span>'
     assert_includes last_response.body, 'data-default-zoom="100"'
     assert_includes last_response.body, 'data-default-width="72"'
     assert_includes last_response.body, 'data-default-font-family="default"'
+  end
+
+  test "public share shell stays valid when updated_at metadata is missing" do
+    payload = create_share!
+    share_path = @storage_path.join("shares", "#{payload["token"]}.json")
+    share_data = JSON.parse(File.read(share_path))
+    share_data.delete("updated_at")
+    File.write(share_path, JSON.pretty_generate(share_data))
+
+    get "/s/#{payload["token"]}"
+
+    assert_equal 200, last_response.status
+    assert_includes last_response.body, 'data-updated-at=""'
+    assert_includes last_response.body, 'data-role="updated-at-pill" hidden'
   end
 
   test "post stores a snapshot document and serves it from the snapshot route" do

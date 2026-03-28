@@ -43,9 +43,12 @@ describe("ShareViewController", () => {
         data-share-view-default-width-value="72"
         data-share-view-default-zoom-value="100"
         data-share-view-title-value="Shared Snapshot"
+        data-share-view-locale-value="en-GB"
+        data-share-view-last-updated-template-value="Last updated %{timestamp}"
         data-share-view-show-controls-label-value="Show reading controls"
         data-share-view-hide-controls-label-value="Hide reading controls"
       >
+        <span data-share-view-target="updatedAtPill" hidden></span>
         <button
           type="button"
           data-share-view-target="displayToggle"
@@ -122,6 +125,30 @@ describe("ShareViewController", () => {
     expect(article.style.fontSize).toBe("16px")
     expect(frameDocument.documentElement.getAttribute("data-theme")).toBe("dark")
     expect(frameDocument.documentElement.style.getPropertyValue("--theme-bg-primary")).toBe("#101418")
+  })
+
+  it("renders a localized last-updated pill when a valid timestamp is present", () => {
+    const updatedAt = "2026-03-27T18:45:00Z"
+    element.setAttribute("data-share-view-updated-at-value", updatedAt)
+
+    controller.renderUpdatedAtPill()
+
+    const expectedTimestamp = new Intl.DateTimeFormat("en-GB", {
+      dateStyle: "medium",
+      timeStyle: "short"
+    }).format(new Date(updatedAt))
+
+    expect(controller.updatedAtPillTarget.hidden).toBe(false)
+    expect(controller.updatedAtPillTarget.textContent).toBe(`Last updated ${expectedTimestamp}`)
+  })
+
+  it("keeps the last-updated pill hidden for an invalid timestamp", () => {
+    element.setAttribute("data-share-view-updated-at-value", "not-a-date")
+
+    controller.renderUpdatedAtPill()
+
+    expect(controller.updatedAtPillTarget.hidden).toBe(true)
+    expect(controller.updatedAtPillTarget.textContent).toBe("")
   })
 
   it("updates zoom and width controls in the embedded snapshot", () => {

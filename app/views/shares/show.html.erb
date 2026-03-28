@@ -16,6 +16,9 @@
   data-share-view-default-width-value="72"
   data-share-view-default-zoom-value="100"
   data-share-view-title-value="<%= @share[:title] %>"
+  data-share-view-locale-value="<%= I18n.locale %>"
+  data-share-view-updated-at-value="<%= @share[:updated_at].to_s %>"
+  data-share-view-last-updated-template-value="<%= t("share_view.last_updated", timestamp: "%{timestamp}") %>"
   data-share-view-show-controls-label-value="<%= t("share_view.show_controls", default: "Show reading controls") %>"
   data-share-view-hide-controls-label-value="<%= t("share_view.hide_controls", default: "Hide reading controls") %>"
 >
@@ -23,7 +26,10 @@
     <div class="share-view__toolbar-top">
       <div class="share-view__identity">
         <p class="share-view__eyebrow"><%= t("share_view.label", default: "Shared note") %></p>
-        <h1 class="share-view__title"><%= @share[:title] %></h1>
+        <div class="share-view__title-row">
+          <h1 class="share-view__title"><%= @share[:title] %></h1>
+          <span class="share-view__updated-pill" data-share-view-target="updatedAtPill" hidden></span>
+        </div>
       </div>
 
       <%= render "shares/toolbar_actions",

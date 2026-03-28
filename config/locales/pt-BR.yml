@@ -262,6 +262,7 @@ pt-BR:
     font_sans: Sans
     font_serif: Serif
     font_mono: Mono
+    last_updated: "Última atualização %{timestamp}"
     iframe_title: Visualização da nota compartilhada
   dialogs:
     rename:

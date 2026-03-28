@@ -255,6 +255,7 @@ he:
     font_sans: Sans
     font_serif: Serif
     font_mono: Mono
+    last_updated: "עודכן לאחרונה %{timestamp}"
     iframe_title: תצוגה מקדימה של ההערה המשותפת
   dialogs:
     rename:
@@ -645,7 +646,6 @@ he:
   notes:
     show:
       ai_error: 'שגיאת AI: %{message}'
-
 
 
 

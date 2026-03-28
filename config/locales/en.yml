@@ -282,6 +282,7 @@ en:
     font_sans: "Sans"
     font_serif: "Serif"
     font_mono: "Mono"
+    last_updated: "Last updated %{timestamp}"
     iframe_title: "Shared note preview"
 
   # Connection status

@@ -264,6 +264,7 @@ class ShareApiDeploymentArtifactsTest < ActiveSupport::TestCase
         font_sans
         font_serif
         font_mono
+        last_updated
         iframe_title
       ],
       "export_menu" => %w[

@@ -32,6 +32,7 @@
       "font_sans": "Sans",
       "font_serif": "Serif",
       "font_mono": "Mono",
+      "last_updated": "Last updated %{timestamp}",
       "iframe_title": "Shared note preview"
     },
     "export_menu": {
@@ -87,6 +88,7 @@
       "font_sans": "Sans",
       "font_serif": "Serif",
       "font_mono": "Mono",
+      "last_updated": "Última atualização %{timestamp}",
       "iframe_title": "Visualização da nota compartilhada"
     },
     "export_menu": {
@@ -142,6 +144,7 @@
       "font_sans": "Sans",
       "font_serif": "Serif",
       "font_mono": "Mono",
+      "last_updated": "Última atualização %{timestamp}",
       "iframe_title": "Pré-visualização da nota partilhada"
     },
     "export_menu": {
@@ -197,6 +200,7 @@
       "font_sans": "Sans",
       "font_serif": "Serif",
       "font_mono": "Mono",
+      "last_updated": "Última actualización %{timestamp}",
       "iframe_title": "Vista de la nota compartida"
     },
     "export_menu": {
@@ -252,6 +256,7 @@
       "font_sans": "Sans",
       "font_serif": "Serif",
       "font_mono": "Mono",
+      "last_updated": "עודכן לאחרונה %{timestamp}",
       "iframe_title": "תצוגה מקדימה של ההערה המשותפת"
     },
     "export_menu": {
@@ -307,6 +312,7 @@
       "font_sans": "Sans",
       "font_serif": "Serif",
       "font_mono": "Mono",
+      "last_updated": "最終更新 %{timestamp}",
       "iframe_title": "共有ノートのプレビュー"
     },
     "export_menu": {
@@ -362,6 +368,7 @@
       "font_sans": "Sans",
       "font_serif": "Serif",
       "font_mono": "Mono",
+      "last_updated": "마지막 업데이트 %{timestamp}",
       "iframe_title": "공유 노트 미리보기"
     },
     "export_menu": {

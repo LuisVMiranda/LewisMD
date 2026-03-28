@@ -258,6 +258,7 @@ ja:
     font_sans: Sans
     font_serif: Serif
     font_mono: Mono
+    last_updated: "最終更新 %{timestamp}"
     iframe_title: 共有ノートのプレビュー
   dialogs:
     rename:
@@ -671,7 +672,6 @@ ja:
   notes:
     show:
       ai_error: 'AIエラー: %{message}'
-
 
 
 

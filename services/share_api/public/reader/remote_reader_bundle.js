@@ -74,7 +74,8 @@ const DEFAULT_TRANSLATIONS = {
     font_default: "Default",
     font_sans: "Sans",
     font_serif: "Serif",
-    font_mono: "Mono"
+    font_mono: "Mono",
+    last_updated: "Last updated %{timestamp}"
   },
   export_menu: {
     copy_note: "Copy Note",
@@ -196,11 +197,13 @@ export class RemoteShareReader {
     this.toolbarToggle = element.querySelector('[data-role="toolbar-toggle"]')
     this.displayPanel = element.querySelector('[data-role="display-panel"]')
     this.displayToggle = element.querySelector('[data-role="display-toggle"]')
+    this.updatedAtPill = element.querySelector('[data-role="updated-at-pill"]')
     this.zoomValue = element.querySelector('[data-role="zoom-value"]')
     this.widthValue = element.querySelector('[data-role="width-value"]')
     this.fontSelect = element.querySelector('[data-role="font-select"]')
 
     this.title = element.dataset.title || document.title || "shared-note"
+    this.updatedAt = element.dataset.updatedAt || ""
     this.currentTheme = currentThemeId(element.dataset.theme)
     this.currentLocale = element.dataset.locale || "en"
     this.currentZoom = Number.parseInt(element.dataset.defaultZoom || "100", 10) || 100
@@ -233,6 +236,7 @@ export class RemoteShareReader {
     applyThemeToRoot(this.currentTheme)
     document.documentElement.lang = this.currentLocale
     this.updateColorSchemeMeta()
+    this.renderUpdatedAtPill()
     this.renderMenus()
     this.attachEventListeners()
     this.updateDisplays()
@@ -748,6 +752,36 @@ export class RemoteShareReader {
     if (this.zoomValue) this.zoomValue.textContent = `${this.currentZoom}%`
     if (this.widthValue) this.widthValue.textContent = `${this.currentWidth}ch`
     if (this.fontSelect) this.fontSelect.value = this.currentFontFamily
+  }
+
+  renderUpdatedAtPill() {
+    if (!this.updatedAtPill) return
+
+    const formatted = this.formattedUpdatedAtLabel()
+    this.updatedAtPill.hidden = !formatted
+    this.updatedAtPill.textContent = formatted || ""
+  }
+
+  formattedUpdatedAtLabel() {
+    const formattedTimestamp = this.formatUpdatedAtTimestamp(this.updatedAt)
+    if (!formattedTimestamp) return null
+
+    return window.t("share_view.last_updated", { timestamp: formattedTimestamp })
+  }
+
+  formatUpdatedAtTimestamp(timestamp) {
+    if (!timestamp) return null
+
+    const parsed = new Date(timestamp)
+    if (Number.isNaN(parsed.getTime())) return null
+
+    const options = { dateStyle: "medium", timeStyle: "short" }
+
+    try {
+      return new Intl.DateTimeFormat(this.currentLocale || undefined, options).format(parsed)
+    } catch {
+      return new Intl.DateTimeFormat(undefined, options).format(parsed)
+    }
   }
 
   detectBaseFontSize() {

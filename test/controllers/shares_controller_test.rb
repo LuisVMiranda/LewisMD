@@ -212,6 +212,47 @@ class SharesControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  test "show exposes the updated timestamp contract for the local share shell" do
+    post shares_url,
+      params: {
+        path: "shared-note.md",
+        title: "Shared Note",
+        html: "<html><body>Version One</body></html>"
+      },
+      as: :json
+    created_share = JSON.parse(response.body)
+
+    get share_snapshot_url(token: created_share["token"])
+
+    assert_response :success
+    assert_includes response.body, %(data-share-view-updated-at-value="#{created_share["updated_at"]}")
+    assert_includes response.body, %(data-share-view-last-updated-template-value="Last updated %{timestamp}")
+    assert_includes response.body, %(data-share-view-target="updatedAtPill")
+    assert_includes response.body, %(class="share-view__updated-pill")
+  end
+
+  test "show keeps the last updated pill hidden when share metadata has no updated timestamp" do
+    post shares_url,
+      params: {
+        path: "shared-note.md",
+        title: "Shared Note",
+        html: "<html><body>Version One</body></html>"
+      },
+      as: :json
+    created_share = JSON.parse(response.body)
+
+    metadata_path = @test_notes_dir.join(".frankmd/shares/#{created_share["token"]}.json")
+    metadata = JSON.parse(File.read(metadata_path))
+    metadata.delete("updated_at")
+    File.write(metadata_path, JSON.pretty_generate(metadata))
+
+    get share_snapshot_url(token: created_share["token"])
+
+    assert_response :success
+    assert_includes response.body, %(data-share-view-updated-at-value="")
+    assert_includes response.body, %(data-share-view-target="updatedAtPill" hidden)
+  end
+
   test "update refreshes snapshot content while keeping token stable" do
     post shares_url,
       params: {

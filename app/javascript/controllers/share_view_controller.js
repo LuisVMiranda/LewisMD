@@ -27,12 +27,15 @@ const FONT_FAMILIES = {
 }
 
 export default class extends Controller {
-  static targets = ["frame", "zoomValue", "widthValue", "fontSelect", "displayPanel", "displayToggle"]
+  static targets = ["frame", "zoomValue", "widthValue", "fontSelect", "displayPanel", "displayToggle", "updatedAtPill"]
 
   static values = {
     defaultZoom: { type: Number, default: 100 },
     defaultWidth: { type: Number, default: 72 },
     title: String,
+    locale: String,
+    updatedAt: String,
+    lastUpdatedTemplate: String,
     showControlsLabel: String,
     hideControlsLabel: String
   }
@@ -56,6 +59,7 @@ export default class extends Controller {
 
     window.addEventListener("frankmd:theme-changed", this.boundThemeChanged)
     window.addEventListener("resize", this.boundResize)
+    this.renderUpdatedAtPill()
     this.updateDisplays()
     this.syncResponsiveDisplayPanel()
   }
@@ -130,6 +134,37 @@ export default class extends Controller {
 
     if (this.hasFontSelectTarget) {
       this.fontSelectTarget.value = this.currentFontFamily
+    }
+  }
+
+  renderUpdatedAtPill() {
+    if (!this.hasUpdatedAtPillTarget) return
+
+    const formatted = this.formattedUpdatedAtLabel()
+    this.updatedAtPillTarget.hidden = !formatted
+    this.updatedAtPillTarget.textContent = formatted || ""
+  }
+
+  formattedUpdatedAtLabel() {
+    const formattedTimestamp = this.formatUpdatedAtTimestamp(this.updatedAtValue)
+    if (!formattedTimestamp) return null
+
+    const template = this.lastUpdatedTemplateValue || "Last updated %{timestamp}"
+    return template.replace(/%\{timestamp\}/g, formattedTimestamp)
+  }
+
+  formatUpdatedAtTimestamp(timestamp) {
+    if (!timestamp) return null
+
+    const parsed = new Date(timestamp)
+    if (Number.isNaN(parsed.getTime())) return null
+
+    const options = { dateStyle: "medium", timeStyle: "short" }
+
+    try {
+      return new Intl.DateTimeFormat(this.localeValue || document.documentElement.lang || undefined, options).format(parsed)
+    } catch {
+      return new Intl.DateTimeFormat(undefined, options).format(parsed)
     }
   }
 

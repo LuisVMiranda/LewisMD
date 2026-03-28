@@ -258,6 +258,7 @@ ko:
     font_sans: Sans
     font_serif: Serif
     font_mono: Mono
+    last_updated: "마지막 업데이트 %{timestamp}"
     iframe_title: 공유 노트 미리보기
   dialogs:
     rename:
@@ -671,7 +672,6 @@ ko:
   notes:
     show:
       ai_error: 'AI 오류: %{message}'
-
 
 
 
