@@ -19,6 +19,16 @@ export default class extends Controller {
     this.filteredResults = []
     this.selectedIndex = 0
     this.usingKeyboard = false
+    this.previewDebounceMs = 150
+    this.previewTimeout = null
+    this.previewAbortController = null
+    this.previewRequestSequence = 0
+    this.previewCache = new Map()
+  }
+
+  disconnect() {
+    this.cancelScheduledPreview()
+    this.cancelPreviewRequest()
   }
 
   // Called by app_controller with flattened file tree
@@ -26,6 +36,7 @@ export default class extends Controller {
     this.allFiles = files
     this.filteredResults = [...this.allFiles].slice(0, 10)
     this.selectedIndex = 0
+    this.previewCache.clear()
 
     this.inputTarget.value = ""
     this.renderResults()
@@ -34,6 +45,8 @@ export default class extends Controller {
   }
 
   close() {
+    this.cancelScheduledPreview()
+    this.cancelPreviewRequest()
     this.dialogTarget.close()
   }
 
@@ -60,6 +73,8 @@ export default class extends Controller {
 
   renderResults() {
     if (this.filteredResults.length === 0) {
+      this.cancelScheduledPreview()
+      this.cancelPreviewRequest()
       this.resultsTarget.innerHTML = `
         <div class="px-3 py-6 text-center text-[var(--theme-text-muted)] text-sm">
           ${window.t("sidebar.no_files_found")}
@@ -96,35 +111,108 @@ export default class extends Controller {
       })
       .join("")
 
-    this.loadPreview()
+    this.schedulePreviewLoad()
   }
 
-  async loadPreview() {
-    if (this.filteredResults.length === 0) {
+  currentPreviewPath() {
+    if (this.filteredResults.length === 0) return null
+
+    const file = this.filteredResults[this.selectedIndex]
+    return file?.path || null
+  }
+
+  cancelScheduledPreview() {
+    if (!this.previewTimeout) return
+
+    clearTimeout(this.previewTimeout)
+    this.previewTimeout = null
+  }
+
+  cancelPreviewRequest() {
+    if (!this.previewAbortController) return
+
+    this.previewAbortController.abort()
+    this.previewAbortController = null
+  }
+
+  renderPreview(preview) {
+    this.previewTarget.innerHTML = `<pre class="text-xs font-mono whitespace-pre-wrap text-[var(--theme-text-secondary)] leading-relaxed">${escapeHtml(preview)}</pre>`
+  }
+
+  renderPreviewError() {
+    this.previewTarget.innerHTML = `<div class="text-[var(--theme-text-muted)] text-sm">Unable to load preview</div>`
+  }
+
+  schedulePreviewLoad() {
+    const path = this.currentPreviewPath()
+    this.cancelScheduledPreview()
+    this.cancelPreviewRequest()
+
+    if (!path) {
       this.previewTarget.innerHTML = ""
       return
     }
 
-    const file = this.filteredResults[this.selectedIndex]
-    if (!file) return
+    const cachedPreview = this.previewCache.get(path)
+    if (cachedPreview) {
+      this.renderPreview(cachedPreview)
+      return
+    }
+
+    this.previewTimeout = setTimeout(() => {
+      this.previewTimeout = null
+      this.loadPreview(path)
+    }, this.previewDebounceMs)
+  }
+
+  async loadPreview(path = this.currentPreviewPath()) {
+    if (!path) {
+      this.cancelPreviewRequest()
+      this.previewTarget.innerHTML = ""
+      return
+    }
+
+    const cachedPreview = this.previewCache.get(path)
+    if (cachedPreview) {
+      this.renderPreview(cachedPreview)
+      return
+    }
+
+    this.cancelPreviewRequest()
+    const requestId = ++this.previewRequestSequence
+    const abortController = new AbortController()
+    this.previewAbortController = abortController
 
     try {
-      const response = await fetch(`/notes/${encodePath(file.path)}`, {
-        headers: { "Accept": "application/json" }
+      const response = await fetch(`/notes/${encodePath(path)}`, {
+        headers: { "Accept": "application/json" },
+        signal: abortController.signal
       })
 
+      if (requestId !== this.previewRequestSequence) return
+
       if (!response.ok) {
-        this.previewTarget.innerHTML = `<div class="text-[var(--theme-text-muted)] text-sm">Unable to load preview</div>`
+        this.renderPreviewError()
         return
       }
 
       const data = await response.json()
-      const lines = (data.content || "").split("\n").slice(0, 10)
-      const preview = lines.join("\n")
+      if (requestId !== this.previewRequestSequence) return
 
-      this.previewTarget.innerHTML = `<pre class="text-xs font-mono whitespace-pre-wrap text-[var(--theme-text-secondary)] leading-relaxed">${escapeHtml(preview)}${lines.length >= 10 ? '\n...' : ''}</pre>`
+      const lines = (data.content || "").split("\n").slice(0, 10)
+      const preview = `${lines.join("\n")}${lines.length >= 10 ? "\n..." : ""}`
+
+      this.previewCache.set(path, preview)
+      this.renderPreview(preview)
     } catch (error) {
-      this.previewTarget.innerHTML = `<div class="text-[var(--theme-text-muted)] text-sm">Unable to load preview</div>`
+      if (error?.name === "AbortError") return
+      if (requestId !== this.previewRequestSequence) return
+
+      this.renderPreviewError()
+    } finally {
+      if (this.previewAbortController === abortController) {
+        this.previewAbortController = null
+      }
     }
   }
 

@@ -47,9 +47,19 @@ describe("FileFinderController", () => {
   })
 
   afterEach(() => {
+    controller?.disconnect?.()
     application.stop()
     vi.restoreAllMocks()
   })
+
+  function deferred() {
+    let resolve
+    const promise = new Promise((resolver) => {
+      resolve = resolver
+    })
+
+    return { promise, resolve }
+  }
 
   describe("connect()", () => {
     it("initializes empty state", () => {
@@ -418,6 +428,93 @@ describe("FileFinderController", () => {
       await controller.loadPreview()
 
       expect(controller.previewTarget.innerHTML).toContain("Unable to load preview")
+    })
+
+    it("debounces preview requests when opening the finder", async () => {
+      vi.useFakeTimers()
+
+      controller.open([{ name: "test.md", path: "test.md" }])
+
+      expect(global.fetch).not.toHaveBeenCalled()
+
+      await vi.advanceTimersByTimeAsync(controller.previewDebounceMs - 1)
+      expect(global.fetch).not.toHaveBeenCalled()
+
+      await vi.advanceTimersByTimeAsync(1)
+      expect(global.fetch).toHaveBeenCalledTimes(1)
+
+      vi.useRealTimers()
+    })
+
+    it("aborts stale preview requests when selection changes", async () => {
+      vi.useFakeTimers()
+
+      const firstRequest = deferred()
+      const secondRequest = deferred()
+      global.fetch = vi.fn()
+        .mockReturnValueOnce(firstRequest.promise)
+        .mockReturnValueOnce(secondRequest.promise)
+
+      controller.filteredResults = [
+        { name: "one.md", path: "one.md" },
+        { name: "two.md", path: "two.md" }
+      ]
+      controller.selectedIndex = 0
+      controller.renderResults()
+
+      await vi.advanceTimersByTimeAsync(controller.previewDebounceMs)
+      const firstSignal = global.fetch.mock.calls[0][1].signal
+
+      controller.selectedIndex = 1
+      controller.renderResults()
+      await vi.advanceTimersByTimeAsync(controller.previewDebounceMs)
+
+      expect(firstSignal.aborted).toBe(true)
+      expect(global.fetch).toHaveBeenCalledTimes(2)
+
+      firstRequest.resolve({
+        ok: true,
+        json: () => Promise.resolve({ content: "first preview" })
+      })
+      await Promise.resolve()
+      await Promise.resolve()
+
+      secondRequest.resolve({
+        ok: true,
+        json: () => Promise.resolve({ content: "second preview" })
+      })
+      await Promise.resolve()
+      await Promise.resolve()
+
+      expect(controller.previewTarget.innerHTML).toContain("second preview")
+      expect(controller.previewTarget.innerHTML).not.toContain("first preview")
+
+      vi.useRealTimers()
+    })
+
+    it("reuses cached preview content for the same file", async () => {
+      controller.filteredResults = [{ name: "test.md", path: "test.md" }]
+      controller.selectedIndex = 0
+
+      await controller.loadPreview()
+      await controller.loadPreview()
+
+      expect(global.fetch).toHaveBeenCalledTimes(1)
+    })
+
+    it("cancels scheduled preview loads when the dialog closes", async () => {
+      vi.useFakeTimers()
+
+      controller.filteredResults = [{ name: "test.md", path: "test.md" }]
+      controller.selectedIndex = 0
+      controller.renderResults()
+      controller.close()
+
+      await vi.advanceTimersByTimeAsync(controller.previewDebounceMs)
+
+      expect(global.fetch).not.toHaveBeenCalled()
+
+      vi.useRealTimers()
     })
   })
 })
