@@ -157,6 +157,20 @@ describe("CustomAiPromptController", () => {
     expect(controller.selectionHintTarget.textContent).toBe("Entire note")
   })
 
+  it("allows vertical prompt resizing up to three times the base height", async () => {
+    global.fetch = vi.fn().mockResolvedValueOnce(response(aiConfigResponse()))
+
+    controller.basePromptInputHeight = null
+    controller.measurePromptInputBaseHeight = vi.fn(() => 60)
+
+    await controller.openModal()
+
+    expect(controller.promptInputTarget.style.resize).toBe("vertical")
+    expect(controller.promptInputTarget.style.overflowY).toBe("auto")
+    expect(controller.promptInputTarget.style.minHeight).toBe("60px")
+    expect(controller.promptInputTarget.style.maxHeight).toBe("180px")
+  })
+
   it("submits the selected provider and model with the custom prompt request", async () => {
     controller.getGrammarController = vi.fn(() => ({
       dispatch: vi.fn(),

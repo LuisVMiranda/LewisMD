@@ -14,6 +14,9 @@ export default class extends Controller {
     this.invalidSavedSelection = false
     this.aiConfigLoaded = false
     this.aiConfigLoadFailed = false
+    this.basePromptInputHeight = null
+
+    this.configurePromptInputResize()
   }
 
   // Opens the modal and fetches the selected text
@@ -45,6 +48,7 @@ export default class extends Controller {
     this.promptInputTarget.value = ""
     await this.loadAiChoices()
     this.dialogTarget.showModal()
+    this.configurePromptInputResize()
     this.promptInputTarget.focus()
   }
 
@@ -331,5 +335,40 @@ export default class extends Controller {
       console.debug("AI preference save failed:", error)
       return false
     }
+  }
+
+  configurePromptInputResize() {
+    if (!this.hasPromptInputTarget) return
+
+    const baseHeight = this.basePromptInputHeight || this.measurePromptInputBaseHeight()
+    this.basePromptInputHeight = baseHeight
+
+    this.promptInputTarget.style.resize = "vertical"
+    this.promptInputTarget.style.overflowY = "auto"
+    this.promptInputTarget.style.minHeight = `${baseHeight}px`
+    this.promptInputTarget.style.maxHeight = `${Math.round(baseHeight * 3)}px`
+  }
+
+  measurePromptInputBaseHeight() {
+    const measuredHeight = this.promptInputTarget.getBoundingClientRect().height ||
+      this.promptInputTarget.offsetHeight ||
+      this.parsePixelValue(window.getComputedStyle(this.promptInputTarget).height)
+
+    if (measuredHeight > 0) return measuredHeight
+
+    const computedStyle = window.getComputedStyle(this.promptInputTarget)
+    const rowCount = Number(this.promptInputTarget.getAttribute("rows")) || 3
+    const lineHeight = this.parsePixelValue(computedStyle.lineHeight)
+    const fontSize = this.parsePixelValue(computedStyle.fontSize) || 16
+    const contentLineHeight = lineHeight || fontSize * 1.5
+    const paddingHeight = this.parsePixelValue(computedStyle.paddingTop) + this.parsePixelValue(computedStyle.paddingBottom)
+    const borderHeight = this.parsePixelValue(computedStyle.borderTopWidth) + this.parsePixelValue(computedStyle.borderBottomWidth)
+
+    return Math.round((rowCount * contentLineHeight) + paddingHeight + borderHeight)
+  }
+
+  parsePixelValue(value) {
+    const parsed = Number.parseFloat(value)
+    return Number.isFinite(parsed) ? parsed : 0
   }
 }
