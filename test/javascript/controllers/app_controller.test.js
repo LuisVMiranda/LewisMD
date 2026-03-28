@@ -16,6 +16,7 @@ describe("AppController shared UI state", () => {
   let splitPaneController
   let exportMenuController
   let shareManagementController
+  let aiAssistController
 
   beforeEach(() => {
     previewController = {
@@ -91,6 +92,10 @@ describe("AppController shared UI state", () => {
       open: vi.fn()
     }
 
+    aiAssistController = {
+      openModal: vi.fn()
+    }
+
     controller = Object.create(AppController.prototype)
     controller.currentFile = "notes/test.md"
     controller.currentFileType = "markdown"
@@ -113,6 +118,7 @@ describe("AppController shared UI state", () => {
     controller.getSplitPaneController = vi.fn(() => splitPaneController)
     controller.getExportMenuController = vi.fn(() => exportMenuController)
     controller.getShareManagementController = vi.fn(() => shareManagementController)
+    controller.getAiAssistController = vi.fn(() => aiAssistController)
     controller.getAutosaveController = vi.fn(() => null)
     controller.hasPreviewPanelTarget = false
     controller.hasTextareaTarget = false
@@ -1017,5 +1023,61 @@ describe("AppController shared UI state", () => {
     await controller.saveCurrentNoteAsTemplate()
 
     expect(global.alert).toHaveBeenCalledWith("errors.templates_markdown_only")
+  })
+
+  it("opens AI Assist in grammar mode after flushing a pending autosave", async () => {
+    const autosaveController = {
+      saveTimeout: 123,
+      saveNow: vi.fn().mockResolvedValue(undefined)
+    }
+
+    controller.getAutosaveController = vi.fn(() => autosaveController)
+
+    await controller.openAiDialog()
+
+    expect(autosaveController.saveNow).toHaveBeenCalledTimes(1)
+    expect(aiAssistController.openModal).toHaveBeenCalledWith("grammar")
+  })
+
+  it("opens AI Assist in grammar mode without forcing a save when no autosave is pending", async () => {
+    const autosaveController = {
+      saveTimeout: null,
+      saveNow: vi.fn()
+    }
+
+    controller.getAutosaveController = vi.fn(() => autosaveController)
+
+    await controller.openAiDialog()
+
+    expect(autosaveController.saveNow).not.toHaveBeenCalled()
+    expect(aiAssistController.openModal).toHaveBeenCalledWith("grammar")
+  })
+
+  it("alerts instead of opening AI Assist when no file is open", async () => {
+    controller.currentFile = null
+    global.alert = vi.fn()
+    window.t = vi.fn((key) => key)
+
+    await controller.openAiDialog()
+
+    expect(global.alert).toHaveBeenCalledWith("errors.no_file_open")
+    expect(aiAssistController.openModal).not.toHaveBeenCalled()
+  })
+
+  it("alerts instead of opening AI Assist when the current note is blank", async () => {
+    codemirrorController.getValue = vi.fn(() => "   \n\t")
+    global.alert = vi.fn()
+    window.t = vi.fn((key) => key)
+
+    await controller.openAiDialog()
+
+    expect(global.alert).toHaveBeenCalledWith("errors.no_text_to_check")
+    expect(aiAssistController.openModal).not.toHaveBeenCalled()
+  })
+
+  it("opens AI Assist in custom prompt mode through the compatibility launcher", () => {
+    controller.openCustomAiDialog()
+
+    expect(aiAssistController.openModal).toHaveBeenCalledWith("custom_prompt")
   })
 })
