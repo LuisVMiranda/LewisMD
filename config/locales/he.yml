@@ -72,7 +72,7 @@ he:
       font: גופן
       font_title: הגדרות עורך
       ai: AI
-      ai_title: בדיקת דקדוק עם AI
+      ai_title: עוזר AI
       emoji: אימוג'י
       emoji_title: הוסף אימוג'י (Ctrl+Shift+E)
       custom_ai_prompt: הנחיה
@@ -590,6 +590,13 @@ he:
       using_default_setup: לא ניתן היה לטעון את אפשרויות ה-AI. הפרומפט הזה ישתמש בהגדרת ברירת המחדל שלך ל-AI.
       no_available_options: אין כרגע אפשרויות AI מוגדרות זמינות.
       preference_save_failed: לא ניתן היה לשמור את בחירת ה-AI הזו. היא תשמש רק עבור הפרומפט הזה.
+    ai_assist:
+      title: עוזר AI
+      mode_label: 'מה תרצה שה-AI יעשה?'
+      grammar: דקדוק
+      prompt: הנחיה מותאמת
+      run_grammar: הפעל בדיקת דקדוק
+      run_prompt: הפעל הנחיה
   errors:
     note_not_found: ההערה לא נמצאה
     note_already_exists: ההערה כבר קיימת
@@ -646,7 +653,6 @@ he:
   notes:
     show:
       ai_error: 'שגיאת AI: %{message}'
-
 
 
 

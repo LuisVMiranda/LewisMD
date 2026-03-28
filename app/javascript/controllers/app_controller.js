@@ -62,7 +62,7 @@ export default class extends Controller {
     "autosave", "scroll-sync", "editor-config",
     "image-picker", "file-finder", "find-replace", "jump-to-line",
     "outline", "export-menu",
-    "content-search", "ai-grammar", "video-dialog", "log-viewer",
+    "content-search", "video-dialog", "log-viewer",
     "code-dialog", "customize", "share-management", "drag-drop"
   ]
 
@@ -2362,7 +2362,7 @@ export default class extends Controller {
     this.onEditorChange({ detail: { docChanged: true } })
   }
 
-  // === AI Grammar Check Methods - Delegates to ai_grammar_controller ===
+  // === AI Assist Methods ===
 
   async openAiDialog() {
     if (!this.currentFile) {
@@ -2383,17 +2383,16 @@ export default class extends Controller {
       await autosaveForAi.saveNow()
     }
 
-    if (this.hasAiGrammarOutlet) this.aiGrammarOutlet.open(this.currentFile)
+    this.getAiAssistController()?.openModal("grammar")
   }
 
   openCustomAiDialog() {
-    const el = document.querySelector('[data-controller~="custom-ai-prompt"]')
-    if (el) {
-      const ctrl = this.application.getControllerForElementAndIdentifier(el, 'custom-ai-prompt')
-      if (ctrl) {
-        ctrl.openModal()
-      }
-    }
+    this.getAiAssistController()?.openModal("custom_prompt")
+  }
+
+  getAiAssistController() {
+    const element = document.querySelector('[data-controller~="custom-ai-prompt"]')
+    return element ? this.application.getControllerForElementAndIdentifier(element, "custom-ai-prompt") : null
   }
 
   // Handle AI processing started event - disable editor and show button loading state

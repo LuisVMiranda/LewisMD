@@ -73,7 +73,7 @@ ja:
       font: フォント
       font_title: エディタ設定
       ai: AI
-      ai_title: AI文法チェック
+      ai_title: AIアシスト
       emoji: 絵文字
       emoji_title: 絵文字挿入 (Ctrl+Shift+E)
       find: 検索
@@ -616,6 +616,13 @@ ja:
       using_default_setup: AIオプションを読み込めませんでした。このプロンプトでは既定のAI設定を使用します。
       no_available_options: 現在利用できる設定済みのAIオプションはありません。
       preference_save_failed: このAI選択は保存できませんでした。このプロンプトでのみ使用されます。
+    ai_assist:
+      title: AIアシスト
+      mode_label: AIに何をしてほしいですか？
+      grammar: 文法
+      prompt: カスタムプロンプト
+      run_grammar: 文法チェックを実行
+      run_prompt: プロンプトを実行
   errors:
     note_not_found: ノートが見つかりません
     note_already_exists: ノートは既に存在します
@@ -672,7 +679,6 @@ ja:
   notes:
     show:
       ai_error: 'AIエラー: %{message}'
-
 
 
 

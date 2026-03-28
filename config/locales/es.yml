@@ -73,7 +73,7 @@ es:
       font: Fuente
       font_title: Configuración del Editor
       ai: IA
-      ai_title: Revisión Gramatical con IA
+      ai_title: Asistente de IA
       emoji: Emoji
       emoji_title: Insertar Emoji (Ctrl+Shift+E)
       find: Buscar
@@ -616,6 +616,13 @@ es:
       using_default_setup: No se pudieron cargar las opciones de IA. Este prompt usará tu configuración predeterminada de IA.
       no_available_options: No hay opciones de IA configuradas disponibles en este momento.
       preference_save_failed: No se pudo guardar esta elección de IA. Se usará solo para este prompt.
+    ai_assist:
+      title: Asistente de IA
+      mode_label: '¿Qué quieres que haga la IA?'
+      grammar: Gramática
+      prompt: Prompt Personalizado
+      run_grammar: Ejecutar revisión gramatical
+      run_prompt: Ejecutar prompt
   errors:
     note_not_found: Nota no encontrada
     note_already_exists: La nota ya existe

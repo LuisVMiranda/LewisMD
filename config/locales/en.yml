@@ -85,7 +85,7 @@ en:
       font: "Font"
       font_title: "Editor Settings"
       ai: "AI"
-      ai_title: "AI Grammar Check"
+      ai_title: "AI Assist"
       custom_ai_prompt: "Prompt"
       custom_ai_title: "Custom AI Prompt"
       emoji: "Emoji"
@@ -591,6 +591,13 @@ en:
       using_default_setup: "Couldn't load AI choices. This prompt will use your default AI setup."
       no_available_options: "No configured AI options are available right now."
       preference_save_failed: "Couldn't save this AI choice. It will be used for this prompt only."
+    ai_assist:
+      title: "AI Assist"
+      mode_label: "What would you like AI to do?"
+      grammar: "Grammar"
+      prompt: "Custom Prompt"
+      run_grammar: "Run Grammar Check"
+      run_prompt: "Run Prompt"
 
     # AI diff dialog
     ai_diff:
