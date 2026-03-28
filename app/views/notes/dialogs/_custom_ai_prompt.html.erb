@@ -3,16 +3,16 @@
   <dialog
     data-custom-ai-prompt-target="dialog"
     data-action="keydown->custom-ai-prompt#handleKeydown"
-    class="w-[90vw] max-w-2xl p-0 rounded-lg shadow-xl bg-[var(--theme-bg-primary)] text-[var(--theme-text-primary)] backdrop:bg-black/50 border border-[var(--theme-border)]"
+    class="w-[90vw] max-w-2xl max-h-[82vh] overflow-hidden p-0 rounded-lg shadow-xl bg-[var(--theme-bg-primary)] text-[var(--theme-text-primary)] backdrop:bg-black/50 border border-[var(--theme-border)]"
   >
     <div class="flex items-center justify-between px-6 py-4 border-b border-[var(--theme-border)]">
       <h2 class="text-lg font-semibold"><%= t('dialogs.ai_assist.title', default: 'AI Assist') %></h2>
       <%= render "shared/dialog_close_button", action: "click->custom-ai-prompt#close", size: "h-5 w-5", padding: "p-2", hover_bg: "hover:bg-[var(--theme-bg-secondary)]" %>
     </div>
 
-    <div class="p-6 space-y-5">
-      <div>
-        <label class="block text-sm font-medium text-[var(--theme-text-secondary)] mb-2">
+    <div class="overflow-y-auto px-6 py-6 space-y-6">
+      <div class="space-y-3">
+        <label class="block text-sm font-medium text-[var(--theme-text-secondary)]">
           <%= t('dialogs.ai_assist.mode_label', default: 'What would you like AI to do?') %>
         </label>
         <div class="inline-flex rounded-lg border border-[var(--theme-border)] bg-[var(--theme-bg-secondary)] p-1 gap-1">
@@ -37,35 +37,35 @@
         </div>
       </div>
 
-      <div class="hidden" data-custom-ai-prompt-target="promptSection">
-        <label for="custom_ai_prompt_input" class="block text-sm font-medium text-[var(--theme-text-secondary)] mb-2">
+      <div class="hidden space-y-3" data-custom-ai-prompt-target="promptSection">
+        <label for="custom_ai_prompt_input" class="block text-sm font-medium text-[var(--theme-text-secondary)]">
           <%= t('dialogs.custom_ai.prompt_label', default: 'Instructions for AI:') %>
         </label>
         <textarea
           id="custom_ai_prompt_input"
           data-custom-ai-prompt-target="promptInput"
-          class="w-full text-sm font-mono bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] rounded border border-[var(--theme-border)] p-3 focus:outline-none focus:ring-1 focus:ring-[var(--theme-accent)] resize-none"
+          class="w-full text-sm font-mono bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] rounded border border-[var(--theme-border)] px-3 py-3.5 focus:outline-none focus:ring-1 focus:ring-[var(--theme-accent)] resize-none"
           rows="3"
           placeholder="<%= t('dialogs.custom_ai.placeholder', default: 'e.g., Translate to Spanish, Make it more professional...') %>"
         ></textarea>
-        <p class="hidden mt-2 text-xs text-[var(--theme-text-muted)] italic" data-custom-ai-prompt-target="selectionHint">
+        <p class="hidden text-xs text-[var(--theme-text-muted)] italic" data-custom-ai-prompt-target="selectionHint">
           <!-- Replaced via JS based on selection -->
         </p>
       </div>
 
-      <div>
-        <label for="custom_ai_provider_option" class="block text-sm font-medium text-[var(--theme-text-secondary)] mb-2">
+      <div class="space-y-3">
+        <label for="custom_ai_provider_option" class="block text-sm font-medium text-[var(--theme-text-secondary)]">
           <%= t('dialogs.custom_ai.provider_label', default: 'AI provider / model') %>
         </label>
         <select
           id="custom_ai_provider_option"
           data-custom-ai-prompt-target="optionSelect"
           data-action="change->custom-ai-prompt#onOptionChanged"
-          class="w-full text-sm bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] rounded border border-[var(--theme-border)] p-3 focus:outline-none focus:ring-1 focus:ring-[var(--theme-accent)]"
+          class="w-full text-sm bg-[var(--theme-bg-secondary)] text-[var(--theme-text-primary)] rounded border border-[var(--theme-border)] px-3 py-3.5 focus:outline-none focus:ring-1 focus:ring-[var(--theme-accent)]"
         >
           <option value=""><%= t('dialogs.custom_ai.loading_options', default: 'Loading available AI options...') %></option>
         </select>
-        <p class="mt-2 text-xs text-[var(--theme-text-muted)]" data-custom-ai-prompt-target="optionStatus">
+        <p class="text-xs text-[var(--theme-text-muted)]" data-custom-ai-prompt-target="optionStatus">
           <%= t('dialogs.custom_ai.loading_options', default: 'Loading available AI options...') %>
         </p>
       </div>

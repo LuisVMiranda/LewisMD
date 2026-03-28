@@ -1025,31 +1025,9 @@ describe("AppController shared UI state", () => {
     expect(global.alert).toHaveBeenCalledWith("errors.templates_markdown_only")
   })
 
-  it("opens AI Assist in grammar mode after flushing a pending autosave", async () => {
-    const autosaveController = {
-      saveTimeout: 123,
-      saveNow: vi.fn().mockResolvedValue(undefined)
-    }
-
-    controller.getAutosaveController = vi.fn(() => autosaveController)
-
+  it("opens AI Assist in grammar mode from the shared launcher", async () => {
     await controller.openAiDialog()
 
-    expect(autosaveController.saveNow).toHaveBeenCalledTimes(1)
-    expect(aiAssistController.openModal).toHaveBeenCalledWith("grammar")
-  })
-
-  it("opens AI Assist in grammar mode without forcing a save when no autosave is pending", async () => {
-    const autosaveController = {
-      saveTimeout: null,
-      saveNow: vi.fn()
-    }
-
-    controller.getAutosaveController = vi.fn(() => autosaveController)
-
-    await controller.openAiDialog()
-
-    expect(autosaveController.saveNow).not.toHaveBeenCalled()
     expect(aiAssistController.openModal).toHaveBeenCalledWith("grammar")
   })
 
@@ -1064,15 +1042,15 @@ describe("AppController shared UI state", () => {
     expect(aiAssistController.openModal).not.toHaveBeenCalled()
   })
 
-  it("alerts instead of opening AI Assist when the current note is blank", async () => {
+  it("still opens AI Assist when the current note is blank", async () => {
     codemirrorController.getValue = vi.fn(() => "   \n\t")
     global.alert = vi.fn()
     window.t = vi.fn((key) => key)
 
     await controller.openAiDialog()
 
-    expect(global.alert).toHaveBeenCalledWith("errors.no_text_to_check")
-    expect(aiAssistController.openModal).not.toHaveBeenCalled()
+    expect(global.alert).not.toHaveBeenCalled()
+    expect(aiAssistController.openModal).toHaveBeenCalledWith("grammar")
   })
 
   it("opens AI Assist in custom prompt mode through the compatibility launcher", () => {

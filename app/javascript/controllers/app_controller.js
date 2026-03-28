@@ -2370,19 +2370,6 @@ export default class extends Controller {
       return
     }
 
-    const codemirrorController = this.getCodemirrorController()
-    const text = codemirrorController ? codemirrorController.getValue() : ""
-    if (!text.trim()) {
-      alert(window.t("errors.no_text_to_check"))
-      return
-    }
-
-    // Save file first if there are pending changes (server reads from disk)
-    const autosaveForAi = this.getAutosaveController()
-    if (autosaveForAi && autosaveForAi.saveTimeout) {
-      await autosaveForAi.saveNow()
-    }
-
     this.getAiAssistController()?.openModal("grammar")
   }
 

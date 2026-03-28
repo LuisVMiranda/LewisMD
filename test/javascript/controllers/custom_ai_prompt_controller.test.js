@@ -277,6 +277,33 @@ describe("CustomAiPromptController", () => {
     )
   })
 
+  it("only shows the no-text warning when grammar mode is actually run", async () => {
+    appController.getCodemirrorController = () => ({
+      editor: {
+        state: {
+          selection: { main: { empty: true, from: 0, to: 0 } },
+          doc: {
+            toString: () => "",
+            length: 0
+          },
+          sliceDoc: () => ""
+        }
+      },
+      getValue: () => "   "
+    })
+
+    global.fetch = vi.fn().mockResolvedValueOnce(response(aiConfigResponse()))
+
+    await controller.openModal("grammar")
+    expect(controller.dialogTarget.showModal).toHaveBeenCalledTimes(1)
+
+    await controller.run()
+
+    expect(window.alert).toHaveBeenCalledWith("No text to check")
+    expect(global.fetch).toHaveBeenCalledTimes(1)
+    expect(diffController.startProcessing).not.toHaveBeenCalled()
+  })
+
   it("runs custom prompts and forwards the replacement range to the diff controller", async () => {
     global.fetch = vi.fn()
       .mockResolvedValueOnce(response(aiConfigResponse()))
