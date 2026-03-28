@@ -328,7 +328,7 @@ export default class extends Controller {
         this.expandParentFolders(path)
         this.showEditor(content, fileType)
         this.rememberCurrentMarkdownNote({ persist: false })
-        this.refreshTree()
+        this.syncTreeSelection(path)
         return
       }
 
@@ -384,7 +384,6 @@ export default class extends Controller {
         await this.loadFile(path, { updateHistory: false })
       } else {
         this.showEditorPlaceholder("file-cleared")
-        this.refreshTree()
       }
     }
     window.addEventListener("popstate", this.boundPopstateHandler)
@@ -398,6 +397,73 @@ export default class extends Controller {
       expandPath = expandPath ? `${expandPath}/${parts[i]}` : parts[i]
       this.expandedFolders.add(expandPath)
     }
+  }
+
+  parentFolderPaths(path) {
+    if (!path) return []
+
+    const parts = String(path).split("/")
+    const folders = []
+    let currentPath = ""
+
+    for (let i = 0; i < parts.length - 1; i++) {
+      currentPath = currentPath ? `${currentPath}/${parts[i]}` : parts[i]
+      folders.push(currentPath)
+    }
+
+    return folders
+  }
+
+  findTreeFileElement(path) {
+    if (!this.fileTreeTarget || !path) return null
+
+    return Array.from(this.fileTreeTarget.querySelectorAll('[data-type="file"]'))
+      .find((element) => element.dataset.path === path) || null
+  }
+
+  clearTreeSelection() {
+    if (!this.fileTreeTarget) return
+
+    this.fileTreeTarget.querySelectorAll('[data-type="file"].selected').forEach((element) => {
+      element.classList.remove("selected")
+    })
+  }
+
+  setFolderExpandedInTree(path, expanded) {
+    if (!this.fileTreeTarget || !path) return false
+
+    const folderElement = Array.from(this.fileTreeTarget.querySelectorAll(".tree-folder"))
+      .find((element) => element.dataset.path === path)
+    if (!folderElement) return false
+
+    const children = folderElement.querySelector(".tree-children")
+    const chevron = folderElement.querySelector(".tree-chevron")
+
+    if (children) {
+      children.classList.toggle("hidden", !expanded)
+    }
+
+    if (chevron) {
+      chevron.classList.toggle("expanded", expanded)
+    }
+
+    return true
+  }
+
+  syncTreeSelection(path = this.currentFile) {
+    this.clearTreeSelection()
+    if (!path) return false
+
+    this.expandParentFolders(path)
+    this.parentFolderPaths(path).forEach((folderPath) => {
+      this.setFolderExpandedInTree(folderPath, true)
+    })
+
+    const fileElement = this.findTreeFileElement(path)
+    if (!fileElement) return false
+
+    fileElement.classList.add("selected")
+    return true
   }
 
   hydrateExpandedFoldersFromTree() {
@@ -521,6 +587,7 @@ export default class extends Controller {
     this.currentFile = null
     this.currentFileType = null
     this.clearCurrentShare()
+    this.clearTreeSelection()
     this.getPreviewController()?.setCurrentNotePath?.(null)
     this.refreshNoteLinkAutocompleteContext()
     this.updatePathDisplay(null)
@@ -641,7 +708,9 @@ export default class extends Controller {
 
       this.showEditor(data.content, fileType)
       this.rememberCurrentMarkdownNote()
-      this.refreshTree()
+      if (!this.syncTreeSelection(path)) {
+        await this.refreshTree()
+      }
 
       // Update URL for bookmarkability
       if (updateHistory) {

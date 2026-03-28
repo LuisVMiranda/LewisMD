@@ -2,6 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect, beforeEach, vi } from "vitest"
+vi.mock("@rails/request.js", async () => await import("../mocks/requestjs.js"))
 import AppController from "../../../app/javascript/controllers/app_controller.js"
 import { buildDocumentOutline } from "../../../app/javascript/lib/document_outline.js"
 
@@ -93,6 +94,7 @@ describe("AppController shared UI state", () => {
     controller = Object.create(AppController.prototype)
     controller.currentFile = "notes/test.md"
     controller.currentFileType = "markdown"
+    controller.expandedFolders = new Set()
     controller.lastOpenMarkdownNotePath = null
     controller.readingModeActive = false
     controller.recoveryAvailable = false
@@ -116,6 +118,15 @@ describe("AppController shared UI state", () => {
     controller.hasTextareaTarget = false
     controller.fileTreeTarget = document.createElement("div")
   })
+
+  function response(json, ok = true, status = 200) {
+    return {
+      ok,
+      status,
+      json: () => Promise.resolve(json),
+      text: () => Promise.resolve(typeof json === "string" ? json : JSON.stringify(json))
+    }
+  }
 
   it("builds preview mode state from the current controller state", () => {
     previewController.isVisible = true
@@ -212,6 +223,78 @@ describe("AppController shared UI state", () => {
     controller.hydrateExpandedFoldersFromTree()
 
     expect(Array.from(controller.expandedFolders)).toEqual(["Projects", "Projects/Drafts"])
+  })
+
+  it("syncs tree selection locally without a full tree refresh", () => {
+    controller.currentFile = "Projects/Drafts/current.md"
+    controller.fileTreeTarget.innerHTML = `
+      <div class="tree-folder" data-path="Projects">
+        <div class="tree-item">
+          <svg class="tree-chevron"></svg>
+        </div>
+        <div class="tree-children hidden">
+          <div class="tree-folder" data-path="Projects/Drafts">
+            <div class="tree-item">
+              <svg class="tree-chevron"></svg>
+            </div>
+            <div class="tree-children hidden">
+              <div class="tree-item" data-type="file" data-path="Projects/Drafts/current.md"></div>
+              <div class="tree-item selected" data-type="file" data-path="Projects/Drafts/old.md"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+
+    expect(controller.syncTreeSelection("Projects/Drafts/current.md")).toBe(true)
+
+    expect(controller.findTreeFileElement("Projects/Drafts/current.md")?.classList.contains("selected")).toBe(true)
+    expect(controller.findTreeFileElement("Projects/Drafts/old.md")?.classList.contains("selected")).toBe(false)
+    expect(Array.from(controller.expandedFolders)).toEqual(["Projects", "Projects/Drafts"])
+    expect(controller.fileTreeTarget.querySelector('[data-path="Projects"] .tree-children')?.classList.contains("hidden")).toBe(false)
+    expect(controller.fileTreeTarget.querySelector('[data-path="Projects/Drafts"] .tree-children')?.classList.contains("hidden")).toBe(false)
+  })
+
+  it("loads a note without refreshing the tree when the file node already exists", async () => {
+    global.fetch = vi.fn().mockResolvedValueOnce(response({ content: "# Loaded" }))
+    controller.fileTreeTarget.innerHTML = `
+      <div class="tree-folder" data-path="Projects">
+        <div class="tree-item"><svg class="tree-chevron"></svg></div>
+        <div class="tree-children">
+          <div class="tree-item" data-type="file" data-path="Projects/current.md"></div>
+        </div>
+      </div>
+    `
+    controller.showEditor = vi.fn()
+    controller.rememberCurrentMarkdownNote = vi.fn()
+    controller.refreshTree = vi.fn()
+    controller.updatePathDisplay = vi.fn()
+    controller.updateUrl = vi.fn()
+
+    await controller.loadFile("Projects/current.md")
+
+    expect(global.fetch).toHaveBeenCalledTimes(1)
+    expect(global.fetch).toHaveBeenCalledWith(
+      "/notes/Projects/current.md",
+      expect.objectContaining({ method: "GET" })
+    )
+    expect(controller.refreshTree).not.toHaveBeenCalled()
+    expect(controller.findTreeFileElement("Projects/current.md")?.classList.contains("selected")).toBe(true)
+    expect(controller.updateUrl).toHaveBeenCalledWith("Projects/current.md")
+  })
+
+  it("falls back to refreshing the tree when the loaded file is missing from the current DOM tree", async () => {
+    global.fetch = vi.fn().mockResolvedValueOnce(response({ content: "# Loaded" }))
+    controller.fileTreeTarget.innerHTML = ""
+    controller.showEditor = vi.fn()
+    controller.rememberCurrentMarkdownNote = vi.fn()
+    controller.refreshTree = vi.fn().mockResolvedValue(undefined)
+    controller.updatePathDisplay = vi.fn()
+    controller.updateUrl = vi.fn()
+
+    await controller.loadFile("Projects/missing-from-tree.md")
+
+    expect(controller.refreshTree).toHaveBeenCalledTimes(1)
   })
 
   it("persists resume state when a markdown note becomes current", () => {
